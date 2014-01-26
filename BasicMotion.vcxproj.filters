@@ -1,0 +1,137 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hpp;hxx;hm;inl;inc;xsd</Extensions>
+    </Filter>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+    <Filter Include="Header Files\DeviceUtil">
+      <UniqueIdentifier>{ebf68541-7e38-48fa-919f-822b138617cc}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\DeviceUtil">
+      <UniqueIdentifier>{b0addbc2-d6c3-46f4-a1a2-10b626289020}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\IK">
+      <UniqueIdentifier>{4d719d9d-a6ad-4003-83ed-a592c244d840}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Predictive">
+      <UniqueIdentifier>{63502c62-ba6a-4aac-add8-a1d9158f711a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Predictive">
+      <UniqueIdentifier>{895c7499-0566-4973-a9a6-78bf3c0d82d3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Model">
+      <UniqueIdentifier>{003c2bb2-ef57-4114-8ed1-74110e0074d8}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="JointLoop.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="I2CBus.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="AS5048.cpp">
+      <Filter>Source Files\DeviceUtil</Filter>
+    </ClCompile>
+    <ClCompile Include="Main.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="DRV8830.cpp">
+      <Filter>Source Files\DeviceUtil</Filter>
+    </ClCompile>
+    <ClCompile Include="ikfastsolution.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Configuration.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="MotionController.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="SpeedController.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="vmath.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="PoseDynamics.cpp">
+      <Filter>Source Files\Predictive</Filter>
+    </ClCompile>
+    <ClCompile Include="PredictiveJointController.cpp">
+      <Filter>Source Files\Predictive</Filter>
+    </ClCompile>
+    <ClCompile Include="TimeMultiplexedVoltageConverter.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="JointLoop.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="I2CBus.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="AS5048.hpp">
+      <Filter>Header Files\DeviceUtil</Filter>
+    </ClInclude>
+    <ClInclude Include="DRV8830.hpp">
+      <Filter>Header Files\DeviceUtil</Filter>
+    </ClInclude>
+    <ClInclude Include="ikfast.h">
+      <Filter>Header Files\IK</Filter>
+    </ClInclude>
+    <ClInclude Include="Configuration.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="MotionController.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="MathUtils.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="SpeedController.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="SimpleMovingAverage.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="vmath.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="PredictiveJointController.hpp">
+      <Filter>Header Files\Predictive</Filter>
+    </ClInclude>
+    <ClInclude Include="PoseDynamics.hpp">
+      <Filter>Header Files\Predictive</Filter>
+    </ClInclude>
+    <ClInclude Include="ServoModel.hpp">
+      <Filter>Header Files\Model</Filter>
+    </ClInclude>
+    <ClInclude Include="SegmentModel.hpp">
+      <Filter>Header Files\Model</Filter>
+    </ClInclude>
+    <ClInclude Include="AngleUtil.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="TimeMultiplexedVoltageConverter.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="config.json">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="ArmModel.json">
+      <Filter>Resource Files</Filter>
+    </None>
+  </ItemGroup>
+</Project>

@@ -1,0 +1,105 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{398F70D2-EDCB-4AA0-B143-C40AA63DAAA0}</ProjectGuid>
+    <RootNamespace>BasicMotion</RootNamespace>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <IncludePath>C:\Users\Adam\Google Drive\Hataraki\BeagleBone\VisualStudioProjects\rapidjson\include;C:\Users\Adam\Google Drive\Hataraki\BeagleBone\VisualStudioProjects\LinuxHeaders;$(IncludePath)</IncludePath>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>Disabled</Optimization>
+    </ClCompile>
+    <Link>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+    </ClCompile>
+    <Link>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="AS5048.cpp" />
+    <ClCompile Include="Configuration.cpp" />
+    <ClCompile Include="DRV8830.cpp" />
+    <ClCompile Include="I2CBus.cpp" />
+    <ClCompile Include="ikfastsolution.cpp" />
+    <ClCompile Include="JointLoop.cpp" />
+    <ClCompile Include="Main.cpp" />
+    <ClCompile Include="MotionController.cpp" />
+    <ClCompile Include="PoseDynamics.cpp" />
+    <ClCompile Include="PredictiveJointController.cpp" />
+    <ClCompile Include="SpeedController.cpp" />
+    <ClCompile Include="TimeMultiplexedVoltageConverter.cpp" />
+    <ClCompile Include="vmath.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="AngleUtil.hpp" />
+    <ClInclude Include="AS5048.hpp" />
+    <ClInclude Include="Configuration.hpp" />
+    <ClInclude Include="DRV8830.hpp" />
+    <ClInclude Include="I2CBus.hpp" />
+    <ClInclude Include="ikfast.h" />
+    <ClInclude Include="JointLoop.hpp" />
+    <ClInclude Include="MathUtils.hpp" />
+    <ClInclude Include="MotionController.hpp" />
+    <ClInclude Include="PoseDynamics.hpp" />
+    <ClInclude Include="PredictiveJointController.hpp" />
+    <ClInclude Include="SegmentModel.hpp" />
+    <ClInclude Include="ServoModel.hpp" />
+    <ClInclude Include="SimpleMovingAverage.hpp" />
+    <ClInclude Include="SpeedController.hpp" />
+    <ClInclude Include="TimeMultiplexedVoltageConverter.hpp" />
+    <ClInclude Include="vmath.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="ArmModel.json" />
+    <None Include="config.json" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>
