@@ -1,6 +1,56 @@
 #include "PredictiveJointController.hpp"
 
 
+using namespace std;
+
+void PredictiveJointController::init()
+{
+	controlMode = ControlMode::Disabled;
+	
+	if (Configuration::CsvLoggingEnabled)
+	{
+		std::string columnSeperator = ",";
+		csvLog.open("Data_" + jointModel->name + ".csv");
+		csvLog <<
+			"RawSensorAngle" << columnSeperator <<
+			"SensorAngle" << columnSeperator <<
+			"TargetAngle" << columnSeperator <<
+			"Velocity" << columnSeperator <<
+			"TargetVelocity" << columnSeperator <<
+			"StaticJointTorque" << columnSeperator <<
+			"MotorTorque" << columnSeperator <<
+			"EffectiveVoltage" << columnSeperator <<
+			"TargetVoltage" << columnSeperator <<
+			"AppliedVoltage" << columnSeperator <<
+			"ControlMode" << endl;
+	}
+	
+	nVoltage = 0;
+	nDriverMode = DriverMode::Coast;
+}
+
+void PredictiveJointController::activate()
+{
+	if (ServoUtils::validateAndPrintJointFunction(bus, jointModel))
+	{
+//		active = true;
+	}
+}
+
+void PredictiveJointController::executeMotionPlan(std::shared_ptr<JointMotionPlan> requestedMotionPlan)
+{
+	if (!active) return;
+	
+	if (requestedMotionPlan->finalAngle >= jointModel->minAngle && requestedMotionPlan->finalAngle <= jointModel->maxAngle)
+	{
+		if (this->motionPlan != NULL)
+			motionPlan.reset();
+		
+		this->motionPlan = requestedMotionPlan;
+		controlMode = ControlMode::SpeedControl;
+	}
+}
+
 
 double timeSince(timespec & sinceTime){
 	timespec now;
@@ -11,10 +61,13 @@ double timeSince(timespec & sinceTime){
 void PredictiveJointController::setCurrentState()
 {		
 	cVoltage = nVoltage;
+	cAppliedVoltage = nAppliedVoltage;
+	cTargetVoltage = nTargetVoltage;
 	cDriverMode = nDriverMode;
+	
 	cDriverCommanded = false;	
 
-	cRawSensorAngle = MathUtil::offsetAngleSteps(AS5048::getSensorAngleSteps(bus),servoModel->sensorZeroPosition);
+	cRawSensorAngle = MathUtil::offsetAngleSteps(AS5048::getSensorAngleSteps(bus),jointModel->sensorZeroPosition);
 	cTime = timeSince(startTime);
 	
 	cVelocity = computeSpeed(cRawSensorAngle);	
@@ -23,37 +76,60 @@ void PredictiveJointController::setCurrentState()
 	cTargetAngleDistance = AS5048::getAngleError(cSensorAngle,motionPlan->finalAngle);
 	cTargetVelocity = motionPlan->getSpeedAtTime(cTime);
 
-	//Static torque resulting from current arm pose
-	double staticJointTorque = 0; //PoseDynamics::getInstance().computeTorqueOnJoint(0,0); TODO: precomputing torques during sleep time	
-	//Also need to consider torque that results from angular acceleration	
+	//Static torque resulting from current arm pose. Zero for now.
+	//TODO: Also need to consider torque that results from angular acceleration
+	double staticJointTorque = 0;
 	cJointTorque = staticJointTorque;
 			
+	//Torque measured by the motor.
 	cMotorTorque = servoModel->getTorqueForVoltageSpeed(cVoltage, cVelocity);	
 }
 
 
+/*
+ Determining speed is non-trivial due to sensor noise.
+ Sensor noise can be removed with a low-pass filter, but this may not be sufficient as the frequency
+ of the noise is close to the frequency of the actual velocity changes.
+ 
+ More investigation is needed to determine the optimal filtering strategy.
+ Minimizing delay is critical to obtain smooth motion.
+ */
+double PredictiveJointController::computeSpeed(int rawSensorAngle)
+{
+	//	filter_lowpass_angle_for_speed
+	//	filter_sma_angle_for_speed
+	
+	filter_sma_angle_for_speed->add(rawSensorAngle);
+	double filteredAngle = filter_sma_angle_for_speed->avg();
+	
+	double delta = MathUtil::subtractAngles(filteredAngle,lFilteredAngleForSpeed,MathUtil::PI_STEPS);
+	
+	//lowpass filter on speed
+	delta = filter_lowpass_speed->next(delta);
+	
+	return delta;
+}
 
-//int PredictiveJointController::getControlMode()
-//{
-//	//Close to setpoint, use position control
-//	//Minimum velocity determined by torque/speed/voltage function
-//
-//	double minVoltage = servoModel->getVoltageForTorqueSpeed(cJointTorque,0);
-//	double minVelocity = servoModel->getSpeedForTorqueVoltage(cJointTorque,DRV8830::getNearestVoltage(minVoltage));
-//
-//	if (MathUtil::abs(cTargetAngleDistance) < minVelocity*10*sampleTime)
-//	{
-//		return ControlMode::PositionControl;
-//	}
-//
-//	return ControlMode::SpeedControl;
-//}
+void PredictiveJointController::performSafetyChecks()
+{
+	if (cRawSensorAngle < jointModel->minAngle || cRawSensorAngle > jointModel->maxAngle || 
+		cSensorAngle < jointModel->minAngle || cSensorAngle > jointModel->maxAngle)
+	{
+		controlMode = ControlMode::Disabled;
+		
+		commandDriver(0,DriverMode::Brake);
+		commitCommands(); //Commit immediately to ensure safety
+
+		cout << "Error! Joint " << jointModel->name << " has exceeded angle limits. " << endl;
+		printState();
+	}
+}
 
 void PredictiveJointController::run()
 {
 	if (!active) return;
 
-	const double MinimumStopTime = 0.1; //seconds 
+	const double MinimumStopTime = 0; //seconds
 	const double VelocityZeroThreshold = 0.1;
 	const double MinTorqueScale = 1.2;
 	const double MinContinuousApproachDistance = 100;
@@ -63,13 +139,33 @@ void PredictiveJointController::run()
 	const double MaxSetpointError = 5; //steps
 	const double MaxMotionForValidStep = 5;//steps
 	const double BaseStepVoltage = 0.56; //V
+	const double MinDisturbanceError = 100;
+	
+	double MaximumStopTime = samplePeriod*1.5;
 
 	setCurrentState();		
 
 	performSafetyChecks();
 
+	if (controlMode == ControlMode::Disabled)
+	{
+		if (std::abs(cVelocity) > VelocityZeroThreshold)
+		{
+			cout << "Controller is disabled, but non-zero velocity was detected. Commanding driver brake." << endl;
+			commandDriver(0,DriverMode::Brake);
+		}
+	}
+
+	if (!cDriverCommanded && controlMode == ControlMode::Hold) 
+	{
+		if (std::abs(cTargetAngleDistance) < MinDisturbanceError)
+		{
+			controlMode = ControlMode::PositionControl;
+			positionControlState = PositionControlState::Missed;
+		}
+	}
 	
-	if (controlMode == ControlMode::SpeedControl) {
+	if (!cDriverCommanded && controlMode == ControlMode::SpeedControl) {
 		
 		if (std::abs(cTargetAngleDistance) < MinSpeedControlDistance)
 		{
@@ -107,6 +203,11 @@ void PredictiveJointController::run()
 					positionControlState = PositionControlState::Missed;
 					commandDriver(0,DriverMode::Brake);
 				}		
+				else if (stopIn < MaximumStopTime)
+				{
+					positionControlState = PositionControlState::Missed;
+					commandDriver(0,DriverMode::Brake);
+				}
 				else 
 				{
 					//Keep steady and wait
@@ -123,10 +224,17 @@ void PredictiveJointController::run()
 					}
 				}
 			}
-			//If not moving, then transition to stepping mode
+			//If not moving, then either complete, or transition to stepping mode
 			else 
 			{
-				positionControlState = PositionControlState::Missed;
+				if (std::abs(cTargetAngleDistance) < MaxSetpointError)
+				{
+					controlMode = ControlMode::Hold;
+				}
+				else
+				{
+					positionControlState = PositionControlState::Missed;
+				}
 			}	
 		}	
 
@@ -138,7 +246,7 @@ void PredictiveJointController::run()
 			if (std::abs(targetDistance) < MinContinuousApproachDistance)
 			{
 				controlMode = ControlMode::StepControl;
-				executeStep(BaseStepVoltage*stepDirection);
+				executeStep(BaseStepVoltage*MathUtils::sgn<double>(targetDistance));
 			}
 			else
 			{
@@ -159,9 +267,11 @@ void PredictiveJointController::run()
 			switch (steppingState)
 			{
 			case SteppingState::Energizing:
-				nextVoltage = stepVoltages.at(stepVoltageIndex++);
+				commandDriver(stepVoltages.at(stepVoltageIndex++),DriverMode::ConstantVoltage);
 				if (stepVoltageIndex >= stepVoltages.size())
+				{
 					steppingState = SteppingState::Braking;
+				}
 				break;
 			case SteppingState::Braking:
 				steppingState = SteppingState::Reading;
@@ -195,17 +305,12 @@ void PredictiveJointController::run()
 			}
 		}
 		else {
-
-
+			controlMode = ControlMode::Hold;
 		}
 	}
 
-	//This shouldn't happen. Shutdown motor to avoid damage.
-	if (!cDriverCommanded)
-	{
-		commandDriver(0,DriverMode::Coast);
-		cout << "Error! Command wasn't applied during operation. Motor shutdown." << endl;
-	}
+
+	commitCommands();
 }
 
 void PredictiveJointController::executeStep(double voltage) 
@@ -219,75 +324,121 @@ void PredictiveJointController::executeStep(double voltage)
 	stepStartPosition = cSensorAngle;
 	stepExpectedDirection = MathUtils::sgn<double>(voltage); //Assuming direction is the same sign as voltage
 	
-	steppingState = SteppingState::Energizing;
-
 	stepVoltageIndex = 0;
 	commandDriver(stepVoltages.at(stepVoltageIndex++),DriverMode::ConstantVoltage);
+	
+	if (stepVoltageIndex < stepVoltages.size())
+		steppingState = SteppingState::Energizing;
+	else
+		steppingState = SteppingState::Braking;
 }
 
 void PredictiveJointController::commandDriver(double voltage, DriverMode mode) 
 {
 	cDriverCommanded = true;
 
-	double commandVoltage;
 	if (mode == DriverMode::TMVoltage)
 	{
-		commandVoltage = voltageConverter->nextVoltage(voltage);
+		nAppliedVoltage = voltageConverter->nextVoltage(voltage);
 		nVoltage = voltageConverter->getAverageVoltage();
 	}
 	else if (mode == DriverMode::ConstantVoltage)
 	{
-		commandVoltage = DRV8830::getNearestVoltage(voltage);
-		voltageConverter->setActualVoltage(commandVoltage);
+		nAppliedVoltage = DRV8830::getNearestVoltage(voltage);
+		voltageConverter->setActualVoltage(nAppliedVoltage);
 		nVoltage = voltageConverter->getAverageVoltage();
 	}
 	else if (mode == DriverMode::Brake)
 	{
-		nVoltage = commandVoltage = 0;
+		nVoltage = nAppliedVoltage = 0;
 		voltageConverter->reset();
-	}	
+	}
 	else if (mode == DriverMode::Coast)
 	{
-		nVoltage = commandVoltage = 0;
+		nVoltage = nAppliedVoltage = 0;
 		voltageConverter->reset();
+	}
+
+	nDriverMode = mode;
+}
+
+void PredictiveJointController::commitCommands()
+{
+	//This shouldn't happen. Shutdown motor to avoid damage due to unexpected condition;
+	if (!cDriverCommanded)
+	{
+		controlMode = ControlMode::Disabled;
+		DRV8830::writeVoltageMode(bus, 0, DriveMode::OFF);
+		cout << "Error! Command wasn't applied during operation. Motor shutdown." << endl;
+	}
+	else
+	{
+		if (nDriverMode == DriverMode::Brake)
+			DRV8830::writeVoltageMode(bus, 0, DriveMode::BRAKE);
+		else if (nDriverMode == DriverMode::ConstantVoltage || nDriverMode == DriverMode::TMVoltage)
+			DRV8830::writeVoltage(bus, nAppliedVoltage);
+		else // if (nDriverMode == DriverMode::Coast)
+			DRV8830::writeVoltageMode(bus, 0, DriveMode::OFF);
 	}
 }
 
-//double PredictiveJointController::getVoltageForStep(double voltageLevel)
-//{
-//	const double defaultStepVoltage = 0.7;
-//	return MathUtils::sgn<double>(vol)*DRV8830::getNearestVoltage(defaultStepVoltage);
-//}
 
-
-
-
-/*
- Determining speed is non-trivial due to sensor error, and primarily, sensor noise.
- Sensor noise can be removed with a low-pass filter, but this may not be sufficient as the frequency 
- of the noise is close to the frequency of the actual velocity changes. 
- 
- More investigation is needed to determine the optimal filtering strategy. 
- Minimizing delay is critical to obtain smooth motion.
- */
-double PredictiveJointController::computeSpeed(int rawSensorAngle)
+void PredictiveJointController::logState()
 {
-//	filter_lowpass_angle_for_speed
-//	filter_sma_angle_for_speed
-	
-	filter_sma_angle_for_speed->add(rawSensorAngle);
-	double filteredAngle = filter_sma_angle_for_speed->avg();
-	
-	double delta = MathUtil::subtractAngles(filteredAngle,lFilteredAngleForSpeed,MathUtil::PI_STEPS);
-	
-	//lowpass filter on speed
-	delta = filter_lowpass_speed->next(delta);
-	
-	return delta;
+	const std::string columnSeperator = ",";
+
+	cout 		
+		<< cRawSensorAngle	<< columnSeperator
+		<< cSensorAngle		<< columnSeperator
+		<< cTargetAngle		<< columnSeperator
+		<< cVelocity		<< columnSeperator
+		<< cTargetVelocity	<< columnSeperator		
+		<< cJointTorque		<< columnSeperator 
+		<< cMotorTorque		<< columnSeperator
+		<< cVoltage			<< columnSeperator
+		<< cTargetVoltage	<< columnSeperator
+		<< cAppliedVoltage	<< columnSeperator
+		<< controlMode		<< columnSeperator
+		<< endl;
 }
 
+void PredictiveJointController::printState()
+{
+	cout 
+		<< jointModel->name << ":  " 
+		<< "RawSensor=" << AS5048::stepsToDegrees(cRawSensorAngle) << "deg, "
+		<< "Sensor=" << AS5048::stepsToDegrees(cSensorAngle) << "deg, "
+		<< "TargetAngle=" << AS5048::stepsToDegrees(cTargetAngle) << "deg, "
+		<< "Velocity=" << AS5048::stepsToDegrees(cVelocity) << "deg/s, "
+		<< "TargetVelocity=" << AS5048::stepsToDegrees(cTargetVelocity) << "deg/s"  
+		<< endl
+		<< "StaticTorque=" << cJointTorque << "Nm, " 
+		<< "MotorTorque=" << cMotorTorque << "Nm, "
+		<< "MotorVoltage=" << cVoltage << " V, "
+		<< "ControlMode=" << controlMode 
+		<< endl;
 
+	switch (controlMode) {
+	case ControlMode::PositionControl:
+		cout << "PosContMode=" << positionControlState << ", " << endl;
+		break;
+	case ControlMode::StepControl:
+		cout 
+			<< "SteppingState=" << steppingState << ", "
+			<< "StepStartPosition=" << stepStartPosition << ", " 
+			<< "StepVoltages=[ ";
+		for (auto it=stepVoltages.begin(); it != stepVoltages.end(); it++) 
+		{
+			cout << (*it) << " ";
+		}
+		cout << "]" << endl;
+		break;
+	case ControlMode::SpeedControl:
+	default:
+		break;
+	}
 
+}
 
 
 

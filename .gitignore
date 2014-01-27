@@ -2,3 +2,5 @@
 *.sdf
 *.opensdf
 *.suo
+.DS_Store
+*/.DS_Store

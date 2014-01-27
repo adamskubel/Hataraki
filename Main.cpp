@@ -248,28 +248,6 @@ int main(int argc, char *argv[])
 					cout << "One or more joints is unable to accept this command. No action performed." << endl;
 				}
 			}
-			else if (command.compare("setall") == 0) {
-				
-				double angles[6] = {0,0,0,0,0,0};
-
-				int i=0;
-				for (;i<6;i++)
-				{
-					input >> angles[i];
-				}
-				
-				if (input.fail())
-				{
-					cout << "Invalid input. Usage: set <angle0> <angle1> ... <angleN-1>" << endl;
-				}
-				else {
-
-					if (!applyCommand(angles))
-					{
-						cout << "One or more joints is unable to accept this command. No action performed." << endl;
-					}
-				}
-			}
 			else if (command.compare("set") == 0) {
 
 				int jointIndex;
@@ -315,32 +293,6 @@ int main(int argc, char *argv[])
 
 						JointLoop * joint = joints.at(jointIndex);
 						joint->setTargetJointVelocity(MathUtil::degreesToRadians(speed));
-					}
-					else {
-						cout << "Error! Joint index " << jointIndex << " is not valid." << endl;
-					}
-				}
-			}
-			else if (command.compare("setgains") == 0) {
-
-				int jointIndex;
-				double kp,ki,kd;
-
-				input >> jointIndex;
-
-				input >> kp;
-				input >> ki;
-				input >> kd;
-
-				if (input.fail()) {
-					cout << "Usage: setgains <index> <Kp> <Ki> <Kd>" << endl;
-				}
-				else {					 
-					if (jointIndex < joints.size()){
-
-						JointLoop * joint = joints.at(jointIndex);
-						cout << "Setting " << joint->getJointName() << " coefficients to " << kp << "," << ki << "," << kd << endl;
-						joint->setControllerCoefficients(kp,ki,kd);
 					}
 					else {
 						cout << "Error! Joint index " << jointIndex << " is not valid." << endl;
@@ -409,93 +361,6 @@ int main(int argc, char *argv[])
 					motionController->postTask(task);
 				}
 
-			}
-			else if (command.compare("setpos") == 0) {
-
-				double coords[3];
-				
-				for (int i=0;i<3;i++)
-				{
-					input >> coords[i];
-					coords[i] /= 100.0;
-				}
-
-				if (input.fail()) {
-					cout << "Usage: setpos <x>cm <y>cm <z>cm" << endl;
-				} else {
-
-					ikfast::IkSolutionList<ikfast2::IkReal> solutions;
-					ikfast2::IkReal rotationMatrix[9] = {0,0,-1, 0,1,0, 1,0,0}; 
-					//-90 about X = {1,0,0, 0,0,1, 0,-1,0}; //Identity={1,0,0, 0,1,0, 0,0,1};
-
-					if (ikfast2::ComputeIk(coords,rotationMatrix,NULL, solutions)) {
-
-						IkReal solution[6];
-
-						for (int i=0;i<solutions.GetNumSolutions();i++)
-						{		
-							solutions.GetSolution(i).GetSolution(solution,NULL);
-							
-							for (int j=0;j<6;j++) {
-								solution[j] *= (180.0/3.14159);
-							}
-							//Invert pitch joint angles
-							solution[1] *= -1.0;
-							solution[3] *= -1.0;
-							solution[4] *= -1.0;
-							
-							
-							cout << "Solution[" << i << "] = ";
-							bool validCommand = true;
-							int j=0;
-							for (auto it = joints.begin(); it != joints.end(); it++,j++)
-							{								
-								bool jointOk = (*it)->checkCommandValid(solution[j]);
-								validCommand = validCommand && jointOk;		
-
-								if (jointOk)
-									cout << solution[j] << " ";
-								else
-									cout << "[" << solution[j] << "] ";
-							}
-							cout << endl;
-
-							if (validCommand) {
-								cout << "This solution is valid. Proceed ([y]es/[n]ext/[a]bort)?";
-								string line2;
-								getline(cin,line2);
-
-								stringstream ss2(line2);
-
-								string ikConfirm;
-								ss2 >> ikConfirm;
-
-								if (ss2.fail()) {
-									cout << "Invalid input." << endl;
-									break;
-								}
-								else if (ikConfirm.compare("a") == 0) {
-									break;
-								}
-								else if (ikConfirm.compare("y") == 0){
-									applyCommand(solution);
-									break;
-								}
-								else if (ikConfirm.compare("n") == 0) {
-									continue;
-								}
-								else {
-									cout << "Invalid input." << endl;
-									break;
-								}
-							}						
-						}
-					}
-					else
-					{
-						cout << "No solution found :(." << endl;
-					}
-				}
 			}
 			else 
 			{

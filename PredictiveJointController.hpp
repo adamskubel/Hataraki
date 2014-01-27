@@ -5,6 +5,7 @@
 #include <vector>
 #include <queue>
 #include <cmath>
+#include <memory>
 
 #include "cJSON.h"
 
@@ -17,6 +18,8 @@
 #include "PoseDynamics.hpp"
 #include "LowpassFilter.hpp"
 #include "TimeMultiplexedVoltageConverter.hpp"
+#include "ServoUtil.hpp"
+
 
 class MotionInterval {
 
@@ -56,16 +59,12 @@ struct ControllerConfig {
 	
 };
 
-//namespace ControlMode {
-//
-//	const static int SpeedControl = 0;
-//	const static int PositionControl = 1;
-//};
-
 enum ControlMode {
+	Disabled,
 	SpeedControl,
 	PositionControl,
-	StepControl
+	StepControl,
+	Hold
 };
 
 enum PositionControlState {
@@ -73,8 +72,7 @@ enum PositionControlState {
 	Stabilizing,
 	Approaching,
 	Missed,
-	//Stepping,
-	Complete
+	Validating
 };
 
 enum SteppingState {
@@ -96,13 +94,17 @@ class PredictiveJointController {
 private:
 	ControllerConfig config;
 	ServoModel * servoModel;
+	JointModel * jointModel;
 	I2CBus * bus;
-	JointMotionPlan * motionPlan;
+//	JointMotionPlan * motionPlan;
+	std::shared_ptr<JointMotionPlan> motionPlan;
 
 	bool active;
-	double sampleTime;
+	double samplePeriod;
 
 	TimeMultiplexedVoltageConverter * voltageConverter;
+	
+	std::ofstream csvLog;
 	
 	//Historical states	
 	SimpleMovingAverage * smaFilter;
@@ -131,17 +133,25 @@ private:
 	
 	double cVoltage;
 	DriverMode cDriverMode;
+	double cTargetVoltage;
+	double cAppliedVoltage;
 
 	bool cDriverCommanded;
 
 	//Next state
 	double nVoltage;
+	double nTargetVoltage;
+	double nAppliedVoltage;
 	DriverMode nDriverMode;
 	
 	//Long term states
 	timespec startTime;
 	PositionControlState positionControlState;
 	ControlMode controlMode;
+
+
+//	double setpointHoldAngle;
+
 
 	//Stepping states
 	std::vector<double> stepVoltages;
@@ -151,7 +161,6 @@ private:
 	double stepStartPosition;
 	double stepInitialTargetDistance;
 	int stepExpectedDirection;
-
 
 
 	//--Member functions--//
@@ -165,6 +174,12 @@ private:
 	void commandDriver(double targetVoltage, DriverMode mode);
 	void performSafetyChecks();
 
+	void commitCommands();
+
+	void printState();
+	void logState();
+	
+	void init();
 
 public:
 	PredictiveJointController (ServoModel * _servoModel, cJSON * rawConfig, I2CBus * _bus) :
@@ -172,10 +187,15 @@ public:
 	{
 		this->bus = _bus;
 		this->servoModel = _servoModel;
+		
+		active = false;
+		
+		init();
 	}
+	
+	void activate();
 
-	void setTargetAngle(double targetAngle);
-
+	void executeMotionPlan(std::shared_ptr<JointMotionPlan> requestedMotionPlan);
 	void run();
 
 };

@@ -32,10 +32,10 @@ public:
 		torqueConstant, //	(N*m)/amp
 		backEmfConstant, //	V/RPM
 		armatureResistance, //Ohms
-		//stallCurrent, //Amps
+		stallCurrent, //Amps
 		stallTorque, // N*m
 		noLoadTorque, //Friction torque
-		//noLoadCurrent, 
+		noLoadCurrent,
 		noLoadSpeed; //RPM
 
 	MotorModel(cJSON * rawConfig) {
@@ -50,29 +50,36 @@ public:
 		//noLoadCurrent = cJSON_GetObjectItem(rawConfig,"NoLoadCurrent")->valuedouble;
 		noLoadTorque = cJSON_GetObjectItem(rawConfig,"NoLoadTorque")->valuedouble;
 		noLoadSpeed = cJSON_GetObjectItem(rawConfig,"NoLoadSpeed")->valuedouble;
+		
+		noLoadCurrent = noLoadTorque/torqueConstant;
+		stallCurrent = stallTorque/torqueConstant;
 	}
 	
 
 
 };
 
-struct ServoModel {
-
+class ServoModel {
+		
+public:
 	GearboxModel gearbox;
 	MotorModel motor;
 
 	double driverDelay, sensorDelay;
+	
+	int driverAddress;
+	int sensorAddress;
 
-	int sensorZeroPosition;
 	
 	ServoModel(cJSON * rawConfig) :
-		gearbox(cJSON_GetObjectItem(rawConfig,"Gearbox")),
-		motor(cJSON_GetObjectItem(rawConfig,"Motor"))
+		gearbox(Configuration::getInstance().getObject(cJSON_GetObjectItem(rawConfig,"Gearbox")->valuestring)),
+		motor(Configuration::getInstance().getObject(cJSON_GetObjectItem(rawConfig,"Motor")->valuestring))
 	{
-
+		sensorAddress = cJSON_GetObjectItem(rawConfig, "SensorAddress")->valueint;
+		driverAddress = cJSON_GetObjectItem(rawConfig, "DriverAddress")->valueint;
 	}
 
-
+	//These functions are here because they incorporate both gearbox and motor parameters
 	double getNoLoadSpeedForVoltage(double voltage) 
 	{
 		return (voltage - motor.noLoadCurrent*motor.armatureResistance)/motor.backEmfConstant;
@@ -86,29 +93,39 @@ struct ServoModel {
 
 	double getTorqueForVoltageSpeed(double voltage, double speed)
 	{
-		double torqueSpeedSlope = motor.getTorqueSpeedSlope();		
+		double torqueSpeedSlope = getTorqueSpeedSlope();
 		return ((speed - getNoLoadSpeedForVoltage(voltage))/torqueSpeedSlope) + motor.noLoadTorque;
 	}
 
 	double getVoltageForTorqueSpeed(double torque, double speed)
-	{		
-		double torqueSpeedSlope = motor.getTorqueSpeedSlope();				
-		return (speed - ((torque-noLoadTorque)*torqueSpeedSlope))*motor.backEmfConstant;
+	{
+		double torqueSpeedSlope = getTorqueSpeedSlope();
+		return (speed - ((torque-motor.noLoadTorque)*torqueSpeedSlope))*motor.backEmfConstant;
 	}
 
 	double getSpeedForTorqueVoltage(double torque, double voltage)
 	{		
-		double torqueSpeedSlope = motor.getTorqueSpeedSlope();		
+		double torqueSpeedSlope = getTorqueSpeedSlope();
 		return getNoLoadSpeedForVoltage(voltage) + torqueSpeedSlope*torque;
 	}
 
 };
 
-struct JointModel {
-
+class JointModel {
+	
+public:
 	ServoModel servoModel;
 
 	double maxAngle, minAngle;
+	double sensorZeroPosition;
+
+	std::string name;
+
+	JointModel(cJSON * rawConfig) :
+		servoModel(cJSON_GetObjectItem(rawConfig,"Servo"))
+	{
+		
+	}
 
 };
 

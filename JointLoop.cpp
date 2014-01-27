@@ -76,11 +76,6 @@ string JointLoop::getJointName(){
 	return jointName;
 }
 
-//void JointLoop::logState(double currentAngle, double targetAngle, double targetVoltage, double actualVoltage, double targetSpeed, double actualSpeed) {
-//
-//
-//}
-
 void JointLoop::initJoint()
 {	
 	errorSum = 0;
