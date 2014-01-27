@@ -40,6 +40,22 @@
 	],
 	"JointDefinitions" : [
 		{
+			"Name" : "Roll_0",
+			"ZeroPosition" : 285, 
+			"MinAngle" : -90,
+			"MaxAngle" : 90,
+			"Servo" : 
+			{
+				"DriverAddress" : 100,
+				"SensorAddress" : 68,
+				"DriverDelay" : 0.0004,
+				"SensorDelay" : 0.0012,
+				"MaxDriverVoltage" : 1.5,
+				"Motor" : "GM12-1000",
+				"Gearbox" : "Ideal"
+			}
+		},
+		{
 			"Name" : "Pitch_0",
 			"ZeroPosition" : 30,
 			"MinAngle" : -35,
@@ -48,6 +64,9 @@
 			{
 				"DriverAddress" : 101,
 				"SensorAddress" : 75,
+				"DriverDelay" : 0.0004,
+				"SensorDelay" : 0.0012,
+				"MaxDriverVoltage" : 1.5,
 				"Motor" : "GM12-1000",
 				"Gearbox" : "Ideal"
 			}
@@ -60,7 +79,10 @@
 			"Servo" : 
 			{
 				"DriverAddress" : 103,
-				"SensorAddress" : 65,
+				"SensorAddress" : 65,				
+				"DriverDelay" : 0.0004,
+				"SensorDelay" : 0.0012,
+				"MaxDriverVoltage" : 1.5,
 				"Motor" : "GM12-1000",
 				"Gearbox" : "Ideal"
 			}
@@ -74,6 +96,9 @@
 			{
 				"DriverAddress" : 99,
 				"SensorAddress" : 66,
+				"DriverDelay" : 0.0004,
+				"SensorDelay" : 0.0012,
+				"MaxDriverVoltage" : 1.5,
 				"Motor" : "GM12-1000",
 				"Gearbox" : "Ideal"
 			}
@@ -87,6 +112,9 @@
 			{
 				"DriverAddress" : 104,
 				"SensorAddress" : 67,
+				"DriverDelay" : 0.0004,
+				"SensorDelay" : 0.0012,
+				"MaxDriverVoltage" : 1.5,
 				"Motor" : "GM12-298",
 				"Gearbox" : "Ideal"
 			}
@@ -100,6 +128,9 @@
 			{
 				"DriverAddress" : 102,
 				"SensorAddress" : 64,
+				"DriverDelay" : 0.0004,
+				"SensorDelay" : 0.0012,
+				"MaxDriverVoltage" : 1.5,
 				"Motor" : "GM12-298",
 				"Gearbox" : "Ideal"
 			}

@@ -8,20 +8,52 @@ using namespace ikfast;
 int MotionController::PlanStepCount = 1;
 
 
-MotionController::MotionController(vector<JointLoop*> & _joints, long _updatePeriod) {
+MotionController::MotionController(vector<PredictiveJointController*> & _joints, long _updatePeriod) {
 	this->joints = _joints;
 	this->updatePeriod = _updatePeriod;
 
 	state = MotionControllerState::Waiting;
 }
 
-void MotionController::commandMotionStep(MotionStep * step) {
 
-	for (int i=0;i<6;i++) {		
-		joints.at(i)->setTargetAngle(MathUtil::radiansToDegrees(step->targetJointAngles[i]));
-		joints.at(i)->setTargetJointVelocity(step->maxJointVelocities[i]);
+void MotionController::moveToPosition(double * targetPosition)
+{	
+	if (state == MotionControllerState::Stepping)
+	{
+		cout << "Cannot command new movement until current motion plan completes." << endl;
+		return;
+	}
+
+	vector<MotionStep*> motionSteps;
+	bool solutionFound = buildMotionSteps(targetPosition,motionSteps);
+	std::for_each( motionSteps.begin(), motionSteps.end(),[](MotionStep * step){delete step;});
+
+	if (solutionFound) {
+	
+		currentPlan.clear();
+		currentPlan = createMotionPlans(motionSteps);
+
+		cout << "Motion plan created: " << endl;
+
+		cout << "Commence motion? [y]es/[a]bort :" << endl;
+
+		string strIn;
+		getline(cin,strIn);
+		
+		if (strIn.compare("y") == 0) {		
+			state = MotionControllerState::Stepping;
+			cout << "Stepping..." << endl;
+		}
+		else {
+			currentPlan.clear();
+			cout << "Aborted motion plan" << endl;
+		}
+	}
+	else {
+		cout << "Failed to construct motion plan for target. " << endl;
 	}
 }
+
 
 void MotionController::postTask(std::function<void()> task)
 {
@@ -29,6 +61,33 @@ void MotionController::postTask(std::function<void()> task)
 	taskQueue.push(task);
 }
 
+vector<JointMotionPlan*> MotionController::createMotionPlans(vector<MotionStep*> & steps)
+{
+	vector<JointMotionPlan*> motionPlan;
+
+	for (int i=0;i<6;i++) 
+	{
+		motionPlan.push_back(new JointMotionPlan());
+	}
+
+	for (auto it=steps.begin();it != steps.end(); it++)
+	{
+		double stepTime = 0;
+		for (int i=0;i<6;i++) 
+		{			
+			double jointTime = std::abs((*it)->maxJointVelocities[i] / joints.at(i)->getMaxJointVelocity());
+			stepTime  = std::max(stepTime ,jointTime);
+		}
+
+		for (int i=0;i<6;i++) 
+		{			
+			double velocity = (*it)->maxJointVelocities[i]/stepTime;
+			motionPlan.at(i)->motionIntervals.push_back(new MotionInterval(velocity,stepTime));
+		}
+	}
+
+	return motionPlan;
+}
 
 void MotionController::updateController(){
 
@@ -36,33 +95,33 @@ void MotionController::updateController(){
 	clock_gettime(CLOCK_REALTIME, &start);
 
 
-	if (state == MotionControllerState::Stepping) {
+	//if (state == MotionControllerState::Stepping) {
 
-		bool settled = true;
-		for (auto it = joints.begin(); it != joints.end(); it++)
-		{
-			settled = settled && (*it)->isSettled();
-		}
+	//	bool settled = true;
+	//	for (auto it = joints.begin(); it != joints.end(); it++)
+	//	{
+	//		settled = settled && (*it)->isSettled();
+	//	}
 
-		//Ready for next step
-		if (settled) {
-			
-			if (currentStep < currentPlan.size()) {
-				commandMotionStep(currentPlan.at(currentStep));
-				cout << "Step " << currentStep << " complete." << endl;
-				currentStep++;
-			}
-			else {
-				state = MotionControllerState::Waiting;
+	//	//Ready for next step
+	//	if (settled) {
+	//		
+	//		if (currentStep < currentPlan.size()) {
+	//			commandMotionStep(currentPlan.at(currentStep));
+	//			cout << "Step " << currentStep << " complete." << endl;
+	//			currentStep++;
+	//		}
+	//		else {
+	//			state = MotionControllerState::Waiting;
 
-				for (int i=0;i<6;i++) {		
-					joints.at(i)->setTargetJointVelocity(0);
-				}
-				
-				cout << "Plan completed!" << endl;
-			}
-		}
-	}
+	//			for (int i=0;i<6;i++) {		
+	//				joints.at(i)->setTargetJointVelocity(0);
+	//			}
+	//			
+	//			cout << "Plan completed!" << endl;
+	//		}
+	//	}
+	//}
 
 
 	for (auto it = joints.begin(); it != joints.end(); it++)
@@ -78,16 +137,11 @@ void MotionController::updateController(){
 		taskQueueMutex.unlock();
 	}
 
-
-	clock_gettime(CLOCK_REALTIME, &end);
-	double totalTime = (end.tv_nsec - start.tv_nsec)/1000000000.0;
-	if (totalTime < 0) totalTime += 1.0;
-	//avgTotalTime = avgTotalTime*.9 + totalTime*.1;
+	double totalTime = MathUtil::timeSince(start);
 
 	long adjustedSleep = updatePeriod - (totalTime*1000000);
 	if (adjustedSleep > 0 && adjustedSleep <= updatePeriod)
 		usleep(adjustedSleep);
-
 }
 
 
@@ -98,7 +152,6 @@ void MotionController::getJointAngles(double * angles)
 	{					
 		angles[i] = MathUtil::degreesToRadians((*it)->getCurrentAngle());
 	}
-
 }
 
 
@@ -175,50 +228,6 @@ bool MotionController::getEasiestSolution(const double * currentAngles, const do
 	return false;
 }
 
-void MotionController::moveToPosition(double * targetPosition)
-{	
-	if (state == MotionControllerState::Stepping)
-	{
-		cout << "Cannot command new movement until current motion plan completes." << endl;
-		return;
-	}
-
-	currentPlan.clear();
-	if (buildMotionSteps(targetPosition,currentPlan)) {
-		
-		cout << "Motion plan created: " << endl;
-
-		int stepNum = 0;
-		for (auto it = currentPlan.begin(); it != currentPlan.end(); it++,stepNum++) {
-			
-			cout << "Step[" << stepNum << "]: Target (cm) = ";			
-			for (int j=0;j<3;j++) cout << (*it)->targetPosition[j]*100.0 << " ";			
-			cout << endl << "Angles (deg) = ";
-			for (int j=0;j<6;j++) cout << MathUtil::radiansToDegrees((*it)->targetJointAngles[j]) << " ";
-			cout << endl << "Velocities (steps/s) = ";
-			for (int j=0;j<6;j++) cout << AS5048::radiansToSteps((*it)->maxJointVelocities[j]) << " ";
-			cout << endl << endl;
-		}
-
-		cout << "Commence motion? [y]es/[a]bort :" << endl;
-
-		string strIn;
-		getline(cin,strIn);
-		
-		if (strIn.compare("y") == 0) {			
-			currentStep = 0;
-			state = MotionControllerState::Stepping;
-			cout << "Stepping..." << endl;
-		}
-		else {
-			currentPlan.clear();
-			cout << "Aborted motion plan" << endl;
-		}
-	}
-	else {
-		cout << "Failed to construct motion plan for target. " << endl;
-	}
-}
 
 bool MotionController::buildMotionSteps(double * targetPosition,vector<MotionStep*> & steps)
 {
@@ -263,17 +272,17 @@ bool MotionController::buildMotionSteps(double * targetPosition,vector<MotionSte
 
 		if (solutionExists) {	
 			
-			double maxTime = 0;
-			for (int j=0;j<6;j++) {				
-				double jointDelta = MathUtil::abs(MathUtil::subtractAngles(lastAngles[j],stepAngles[j]));
-				double jointTime = jointDelta / joints.at(j)->getMaxJointVelocity();
-				maxTime = std::max(maxTime,jointTime);
-			}
+			//double maxTime = 0;
+			//for (int j=0;j<6;j++) {				
+			//	double jointDelta = MathUtil::abs(MathUtil::subtractAngles(lastAngles[j],stepAngles[j]));
+			//	double jointTime = jointDelta / joints.at(j)->getMaxJointVelocity();
+			//	maxTime = std::max(maxTime,jointTime);
+			//}
 			
 			MotionStep * step = new MotionStep();
 			//Determine the max joint velocities and store in the step object
 			for (int j=0;j<6;j++) {
-				step->maxJointVelocities[j] = MathUtil::abs(MathUtil::subtractAngles(lastAngles[j],stepAngles[j])) / maxTime;
+				step->maxJointVelocities[j] = MathUtil::abs(MathUtil::subtractAngles(lastAngles[j],stepAngles[j]));
 			}
 			//Next, copy the target joint angles to the step object
 			std::copy(std::begin(stepAngles), std::end(stepAngles), std::begin(step->targetJointAngles));

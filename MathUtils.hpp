@@ -90,6 +90,14 @@ public:
 		return angleDeg*(180.0/PI);
 	}
 
+	static double rpmToRadPerSecond(double rpm) {
+		return (rpm*2.0*PI)/60.0;
+	}
+
+	static double radPerSecondToRPM(double radPerSecond) {
+		return (radPerSecond*60.0)/2.0*PI;
+	}
+
 	static void addVectors(const double * v0, const double * v1, double * v01) {
 		for (int i=0;i<3;i++){
 			v01[i] = v0[i] + v1[i];

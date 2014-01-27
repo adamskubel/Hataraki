@@ -4,3 +4,4 @@
 *.suo
 .DS_Store
 */.DS_Store
+ipch*

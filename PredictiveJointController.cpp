@@ -6,45 +6,68 @@ using namespace std;
 void PredictiveJointController::init()
 {
 	controlMode = ControlMode::Disabled;
-	
+	jointStatus = JointStatus::New;
+	motionPlan = NULL;
+
 	if (Configuration::CsvLoggingEnabled)
 	{
-		std::string columnSeperator = ",";
 		csvLog.open("Data_" + jointModel->name + ".csv");
 		csvLog <<
-			"RawSensorAngle" << columnSeperator <<
-			"SensorAngle" << columnSeperator <<
-			"TargetAngle" << columnSeperator <<
-			"Velocity" << columnSeperator <<
-			"TargetVelocity" << columnSeperator <<
-			"StaticJointTorque" << columnSeperator <<
-			"MotorTorque" << columnSeperator <<
-			"EffectiveVoltage" << columnSeperator <<
-			"TargetVoltage" << columnSeperator <<
-			"AppliedVoltage" << columnSeperator <<
-			"ControlMode" << endl;
+			"Time"				<< Configuration::CsvSeparator <<
+			"RawSensorAngle"	<< Configuration::CsvSeparator <<
+			"SensorAngle"		<< Configuration::CsvSeparator <<
+			"TargetAngle"		<< Configuration::CsvSeparator <<
+			"Velocity"			<< Configuration::CsvSeparator <<
+			"TargetVelocity"	<< Configuration::CsvSeparator <<
+			"StaticJointTorque" << Configuration::CsvSeparator <<
+			"MotorTorque"		<< Configuration::CsvSeparator <<
+			"EffectiveVoltage"	<< Configuration::CsvSeparator <<
+			"TargetVoltage"		<< Configuration::CsvSeparator <<
+			"AppliedVoltage"	<< Configuration::CsvSeparator <<
+			"ControlMode"		<< endl;
 	}
 	
 	nVoltage = 0;
 	nDriverMode = DriverMode::Coast;
+	
+	MathUtil::setNow(startTime);	
 }
 
-void PredictiveJointController::activate()
+void PredictiveJointController::prepare()
 {
 	if (ServoUtils::validateAndPrintJointFunction(bus, jointModel))
 	{
-//		active = true;
+		jointStatus = JointStatus::Ready;
 	}
+	else
+		jointStatus = JointStatus::Error;
+}
+
+void PredictiveJointController::enable()
+{
+	if (jointStatus == JointStatus::Ready)
+	{
+		jointStatus = JointStatus::Active;
+	}
+	else
+	{
+		cout << "Joint must be in 'Ready' state to activate." << endl;
+	}
+}
+
+void PredictiveJointController::disable()
+{
+	controlMode = ControlMode::Disabled;
 }
 
 void PredictiveJointController::executeMotionPlan(std::shared_ptr<JointMotionPlan> requestedMotionPlan)
 {
-	if (!active) return;
+	if (jointStatus != JointStatus::Active) return;
 	
 	if (requestedMotionPlan->finalAngle >= jointModel->minAngle && requestedMotionPlan->finalAngle <= jointModel->maxAngle)
 	{
 		if (this->motionPlan != NULL)
-			motionPlan.reset();
+			motionPlan.reset();		
 		
 		this->motionPlan = requestedMotionPlan;
 		controlMode = ControlMode::SpeedControl;
@@ -58,6 +81,37 @@ double timeSince(timespec & sinceTime){
 	return MathUtil::getTimeDelta(sinceTime,now);
 }
 
+int PredictiveJointController::getSensorAngleRegisterValue()
+{
+	int result = -1;
+	try 
+	{
+		bus->selectAddress(servoModel->sensorAddress);
+		result = AS5048::getSensorAngleSteps(bus);
+	}
+	catch (std::runtime_error & e)
+	{
+		emergencyHalt();
+	}
+	return result;
+}
+
+void PredictiveJointController::emergencyHalt()
+{
+	try
+	{
+		controlMode = ControlMode::Disabled;
+		//Attempt shutdown 
+		bus->selectAddress(servoModel->driverAddress);
+		DRV8830::writeVoltageMode(bus, 0, DriveMode::OFF);		
+		jointStatus = JointStatus::Error;
+	}
+	catch (std::runtime_error & e)
+	{
+		cout << "HALP I CANNOT STOPS I HAZ EXCPTIONZ " << e.what() << endl;
+	}
+}
+
 void PredictiveJointController::setCurrentState()
 {		
 	cVoltage = nVoltage;
@@ -66,8 +120,9 @@ void PredictiveJointController::setCurrentState()
 	cDriverMode = nDriverMode;
 	
 	cDriverCommanded = false;	
-
-	cRawSensorAngle = MathUtil::offsetAngleSteps(AS5048::getSensorAngleSteps(bus),jointModel->sensorZeroPosition);
+		
+	cNonZeroOffsetSensorAngle = getSensorAngleRegisterValue();
+	cRawSensorAngle = MathUtil::offsetAngleSteps(cNonZeroOffsetSensorAngle,jointModel->sensorZeroPosition);
 	cTime = timeSince(startTime);
 	
 	cVelocity = computeSpeed(cRawSensorAngle);	
@@ -78,10 +133,9 @@ void PredictiveJointController::setCurrentState()
 
 	//Static torque resulting from current arm pose. Zero for now.
 	//TODO: Also need to consider torque that results from angular acceleration
-	double staticJointTorque = 0;
-	cJointTorque = staticJointTorque;
+	cJointTorque = 0;
 			
-	//Torque measured by the motor.
+	//Torque experienced by the motor.
 	cMotorTorque = servoModel->getTorqueForVoltageSpeed(cVoltage, cVelocity);	
 }
 
@@ -127,8 +181,6 @@ void PredictiveJointController::performSafetyChecks()
 
 void PredictiveJointController::run()
 {
-	if (!active) return;
-
 	const double MinimumStopTime = 0; //seconds
 	const double VelocityZeroThreshold = 0.1;
 	const double MinTorqueScale = 1.2;
@@ -139,22 +191,22 @@ void PredictiveJointController::run()
 	const double MaxSetpointError = 5; //steps
 	const double MaxMotionForValidStep = 5;//steps
 	const double BaseStepVoltage = 0.56; //V
-	const double MinDisturbanceError = 100;
-	
+	const double MinDisturbanceError = 100;	
 	double MaximumStopTime = samplePeriod*1.5;
-
-	setCurrentState();		
-
-	performSafetyChecks();
-
+		
+	if (jointStatus != JointStatus::Active) 
+	{
+		return;
+	}
+	
 	if (controlMode == ControlMode::Disabled)
 	{
-		if (std::abs(cVelocity) > VelocityZeroThreshold)
-		{
-			cout << "Controller is disabled, but non-zero velocity was detected. Commanding driver brake." << endl;
-			commandDriver(0,DriverMode::Brake);
-		}
+		emergencyHalt();
+		return;
 	}
+
+	setCurrentState();		
+	performSafetyChecks();
 
 	if (!cDriverCommanded && controlMode == ControlMode::Hold) 
 	{
@@ -309,8 +361,8 @@ void PredictiveJointController::run()
 		}
 	}
 
-
 	commitCommands();
+	logState();
 }
 
 void PredictiveJointController::executeStep(double voltage) 
@@ -364,41 +416,48 @@ void PredictiveJointController::commandDriver(double voltage, DriverMode mode)
 
 void PredictiveJointController::commitCommands()
 {
-	//This shouldn't happen. Shutdown motor to avoid damage due to unexpected condition;
-	if (!cDriverCommanded)
+	try
 	{
-		controlMode = ControlMode::Disabled;
-		DRV8830::writeVoltageMode(bus, 0, DriveMode::OFF);
-		cout << "Error! Command wasn't applied during operation. Motor shutdown." << endl;
-	}
-	else
-	{
-		if (nDriverMode == DriverMode::Brake)
-			DRV8830::writeVoltageMode(bus, 0, DriveMode::BRAKE);
-		else if (nDriverMode == DriverMode::ConstantVoltage || nDriverMode == DriverMode::TMVoltage)
-			DRV8830::writeVoltage(bus, nAppliedVoltage);
-		else // if (nDriverMode == DriverMode::Coast)
+		bus->selectAddress(servoModel->driverAddress);
+		//This shouldn't happen. Shutdown motor to avoid damage due to unexpected condition;
+		if (!cDriverCommanded)
+		{
+			controlMode = ControlMode::Disabled;
 			DRV8830::writeVoltageMode(bus, 0, DriveMode::OFF);
+			cout << "Error! Command wasn't applied during operation. Motor shutdown." << endl;
+		}
+		else
+		{
+			if (nDriverMode == DriverMode::Brake)
+				DRV8830::writeVoltageMode(bus, 0, DriveMode::BRAKE);
+			else if (nDriverMode == DriverMode::ConstantVoltage || nDriverMode == DriverMode::TMVoltage)
+				DRV8830::writeVoltage(bus, nAppliedVoltage);
+			else // if (nDriverMode == DriverMode::Coast)
+				DRV8830::writeVoltageMode(bus, 0, DriveMode::OFF);
+		}
+	}
+	catch (std::runtime_error & e)
+	{
+		emergencyHalt();
 	}
 }
 
 
 void PredictiveJointController::logState()
 {
-	const std::string columnSeperator = ",";
-
 	cout 		
-		<< cRawSensorAngle	<< columnSeperator
-		<< cSensorAngle		<< columnSeperator
-		<< cTargetAngle		<< columnSeperator
-		<< cVelocity		<< columnSeperator
-		<< cTargetVelocity	<< columnSeperator		
-		<< cJointTorque		<< columnSeperator 
-		<< cMotorTorque		<< columnSeperator
-		<< cVoltage			<< columnSeperator
-		<< cTargetVoltage	<< columnSeperator
-		<< cAppliedVoltage	<< columnSeperator
-		<< controlMode		<< columnSeperator
+		<< cTime			<< Configuration::CsvSeparator
+		<< cRawSensorAngle	<< Configuration::CsvSeparator
+		<< cSensorAngle		<< Configuration::CsvSeparator
+		<< cTargetAngle		<< Configuration::CsvSeparator
+		<< cVelocity		<< Configuration::CsvSeparator
+		<< cTargetVelocity	<< Configuration::CsvSeparator		
+		<< cJointTorque		<< Configuration::CsvSeparator 
+		<< cMotorTorque		<< Configuration::CsvSeparator
+		<< cVoltage			<< Configuration::CsvSeparator
+		<< cTargetVoltage	<< Configuration::CsvSeparator
+		<< cAppliedVoltage	<< Configuration::CsvSeparator
+		<< controlMode		<< Configuration::CsvSeparator
 		<< endl;
 }
 
@@ -441,7 +500,12 @@ void PredictiveJointController::printState()
 }
 
 
+double PredictiveJointController::getMaxJointVelocity()
+{
+	const AverageTorque = 0.5; 
 
+	return servoModel->getSpeedForTorqueVoltage(AverageTorque,servoModel->maxDriverVoltage);
+}
 
 
 

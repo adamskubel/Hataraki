@@ -6,6 +6,7 @@
 #include <queue>
 #include <cmath>
 #include <memory>
+#include <string>
 
 #include "cJSON.h"
 
@@ -26,6 +27,13 @@ class MotionInterval {
 public:
 	double startSpeed, endSpeed, duration;
 
+	MotionInterval(double constantSpeed, double _duration)
+	{
+		this->startSpeed = constantSpeed;
+		this->endSpeed = constantSpeed;
+		this->duration = _duration;
+	}
+
 	MotionInterval(double _startSpeed, double _endSpeed, double _duration) {
 		this->startSpeed = _startSpeed;
 		this->endSpeed = _endSpeed;
@@ -40,13 +48,29 @@ public:
 	double finalAngle;
 	std::vector<MotionInterval*> motionIntervals;
 
+	JointMotionPlan() 
+	{
+		finalAngle = 0;		
+	}
+
 	JointMotionPlan(std::vector<MotionInterval*> _intervals, double _finalAngle) {
 		this->motionIntervals = _intervals;
 		this->finalAngle = _finalAngle;
 	}
 
-	double getSpeedAtTime(double systemTimeSeconds) {
-		return -1;
+	double getSpeedAtTime(double planTime) {
+		
+		double intervalStart = 0;
+		for (auto it=motionIntervals.begin();it != motionIntervals.end(); it++)
+		{
+			double intervalEnd = intervalStart+(*it)->duration;
+			if (planTime >= intervalStart && planTime <= intervalEnd)
+			{
+				return (*it)->startSpeed;
+			}
+			intervalStart = intervalEnd;
+		}
+		return 0;
 	}
 
 };
@@ -57,6 +81,13 @@ struct ControllerConfig {
 		
 	}
 	
+};
+
+enum JointStatus {
+	New,
+	Ready,
+	Active,
+	Error
 };
 
 enum ControlMode {
@@ -96,10 +127,10 @@ private:
 	ServoModel * servoModel;
 	JointModel * jointModel;
 	I2CBus * bus;
-//	JointMotionPlan * motionPlan;
 	std::shared_ptr<JointMotionPlan> motionPlan;
 
-	bool active;
+	JointStatus jointStatus;
+
 	double samplePeriod;
 
 	TimeMultiplexedVoltageConverter * voltageConverter;
@@ -119,6 +150,7 @@ private:
 
 	//Current state
 	int cRawSensorAngle;
+	int cNonZeroOffsetSensorAngle;
 
 	double cSensorAngle;
 
@@ -173,7 +205,9 @@ private:
 	void executeStep(double voltage);
 	void commandDriver(double targetVoltage, DriverMode mode);
 	void performSafetyChecks();
+	int getSensorAngleRegisterValue();
 
+	void emergencyHalt();
 	void commitCommands();
 
 	void printState();
@@ -187,16 +221,18 @@ public:
 	{
 		this->bus = _bus;
 		this->servoModel = _servoModel;
-		
-		active = false;
-		
+		jointStatus = JointStatus::New;		
 		init();
 	}
 	
-	void activate();
+	void prepare();
+	void enable();
+	void disable();
 
 	void executeMotionPlan(std::shared_ptr<JointMotionPlan> requestedMotionPlan);
 	void run();
+
+	double getMaxJointVelocity();
 
 };
 

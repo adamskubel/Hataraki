@@ -10,15 +10,16 @@
 #include <unistd.h>
 
 #include <vector>
-
-#include "ikfast.h"
-
-#include "JointLoop.hpp"
-#include "MathUtils.hpp"
-#include "AS5048.hpp"
 #include <mutex>
 #include <functional>
 #include <queue>
+#include <memory>
+
+#include "ikfast.h"
+#include "MathUtils.hpp"
+#include "PredictiveJointController.hpp"
+#include "MathUtils.hpp"
+#include "AS5048.hpp"
 
 
 namespace MotionControllerState {
@@ -38,9 +39,9 @@ class MotionController {
 	};
 
 private:
-	std::vector<JointLoop*> joints;
-	int numSteps, state, currentStep;
-	std::vector<MotionStep*> currentPlan;
+	std::vector<PredictiveJointController*> joints;
+	int numSteps, state;
+	std::vector<std::shared_ptr<JointMotionPlan> > currentPlan;
 	std::queue<std::function<void()> > taskQueue;
 	std::mutex taskQueueMutex;
 
@@ -54,12 +55,14 @@ private:
 
 	bool buildMotionSteps(double * position, std::vector<MotionStep*> & steps);
 
-	void commandMotionStep(MotionStep * step);
+	void executeMotionPlan(std::vector<JointMotionPlan*> & newPlan);
+
+	std::vector<std::shared_ptr<JointMotionPlan> > createMotionPlans(std::vector<MotionStep*> & steps);
 
 public:
 	static int PlanStepCount;
 
-	MotionController(std::vector<JointLoop*> & joints, long updatePeriod);
+	MotionController(std::vector<PredictiveJointController*> & joints, long updatePeriod);
 		
 	void moveToPosition(double * position);
 
