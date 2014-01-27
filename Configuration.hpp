@@ -33,7 +33,7 @@ private:
 	
 public:
 	static bool CsvLoggingEnabled;
-	static std::string CsvSeparator(",");
+	static std::string CsvSeparator;
 	
 	static Configuration & getInstance()
 	{

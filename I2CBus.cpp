@@ -2,7 +2,7 @@
 
 using namespace std;
 
-I2CBus::I2CBus(char * busname)
+I2CBus::I2CBus(const char * busname)
 {
     char filename[40];
 	sprintf(filename,"%s",busname);

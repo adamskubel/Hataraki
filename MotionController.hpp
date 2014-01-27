@@ -15,6 +15,8 @@
 #include <queue>
 #include <memory>
 
+#include "vmath.h"
+
 #include "ikfast.h"
 #include "MathUtils.hpp"
 #include "PredictiveJointController.hpp"
@@ -64,11 +66,19 @@ public:
 
 	MotionController(std::vector<PredictiveJointController*> & joints, long updatePeriod);
 		
-	void moveToPosition(double * position);
+	void moveToPosition(Vector3d position);
+	
+	void setJointPosition(int jointIndex, double angle, double velocity);
 
 	void updateController();
 
 	void postTask(std::function<void()> task);
+	
+	void shutdown();
+	
+	void zeroAllJoints();
+	void prepareAllJoints();
+	void enableAllJoints();
 
 };
 

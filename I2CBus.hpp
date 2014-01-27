@@ -26,7 +26,7 @@ private:
 public:
 //	static I2CBus * getBus(string busname);
 	
-	I2CBus(char * busname);
+	I2CBus(const char * busname);
 
 	void selectAddress(int addr);
 

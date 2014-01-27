@@ -1,6 +1,7 @@
 #include "Configuration.hpp"
 
 bool Configuration::CsvLoggingEnabled = false;
+std::string Configuration::CsvSeparator = ",";
 
 using namespace std;
 

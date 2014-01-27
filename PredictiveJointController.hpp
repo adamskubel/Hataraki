@@ -50,7 +50,13 @@ public:
 
 	JointMotionPlan() 
 	{
-		finalAngle = 0;		
+		finalAngle = 0;
+	}
+	
+	JointMotionPlan(MotionInterval * interval, double _finalAngle)
+	{
+		motionIntervals.push_back(interval);
+		this->finalAngle = _finalAngle;
 	}
 
 	JointMotionPlan(std::vector<MotionInterval*> _intervals, double _finalAngle) {
@@ -127,7 +133,6 @@ private:
 	ServoModel * servoModel;
 	JointModel * jointModel;
 	I2CBus * bus;
-	std::shared_ptr<JointMotionPlan> motionPlan;
 
 	JointStatus jointStatus;
 
@@ -148,6 +153,10 @@ private:
 	double lFilteredAngleForSpeed;
 	
 
+	//Motion plan
+	std::shared_ptr<JointMotionPlan> motionPlan;
+	timespec planStartTime;
+	
 	//Current state
 	int cRawSensorAngle;
 	int cNonZeroOffsetSensorAngle;
@@ -207,7 +216,6 @@ private:
 	void performSafetyChecks();
 	int getSensorAngleRegisterValue();
 
-	void emergencyHalt();
 	void commitCommands();
 
 	void printState();
@@ -216,11 +224,14 @@ private:
 	void init();
 
 public:
-	PredictiveJointController (ServoModel * _servoModel, cJSON * rawConfig, I2CBus * _bus) :
+	PredictiveJointController (cJSON * rawConfig, I2CBus * _bus) :
 		config(rawConfig)
 	{
 		this->bus = _bus;
-		this->servoModel = _servoModel;
+		
+		jointModel = new JointModel(rawConfig);
+		servoModel = jointModel->servoModel;
+		
 		jointStatus = JointStatus::New;		
 		init();
 	}
@@ -228,12 +239,15 @@ public:
 	void prepare();
 	void enable();
 	void disable();
+	
+	void emergencyHalt();
 
+	void validateMotionPlan(std::shared_ptr<JointMotionPlan> requestedMotionPlan);
 	void executeMotionPlan(std::shared_ptr<JointMotionPlan> requestedMotionPlan);
 	void run();
 
 	double getMaxJointVelocity();
-
+	double getCurrentAngle();
 };
 
 

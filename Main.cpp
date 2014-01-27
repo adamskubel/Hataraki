@@ -34,7 +34,7 @@
 #include <queue>
 
 #include "I2CBus.hpp"
-#include "JointLoop.hpp"
+#include "PredictiveJointController.cpp"
 #include "Configuration.hpp"
 #include "MotionController.hpp"
 #include "MathUtils.hpp"
@@ -50,7 +50,6 @@ double MathUtil::TAU = 6.28318530718;
 using namespace std;
 using namespace ikfast2;
 
-vector<JointLoop*> joints;
 volatile bool running;
 
 MotionController * motionController;
@@ -83,15 +82,15 @@ std::string get_file_contents(const char *filename)
 }
 
 
-void shutdownMotors()
-{		
-	cout << "Shutting down motors..";	
-	for (auto it = joints.begin(); it != joints.end(); it++)
-	{
-		(*it)->shutdown();
-	}		
-	cout << "Done" << endl;
-}
+//void shutdownMotors()
+//{		
+//	cout << "Shutting down motors..";	
+//	for (auto it = joints.begin(); it != joints.end(); it++)
+//	{
+//		(*it)->shutdown();
+//	}		
+//	cout << "Done" << endl;
+//}
 
 void signal_callback_handler(int signum)
 {
@@ -130,26 +129,6 @@ void testFK()
 }
 
 
-bool applyCommand(double * angles)
-{
-	bool validCommand = true;
-	int i = 0;
-	for (auto it = joints.begin(); it != joints.end(); it++,i++)
-	{					
-		validCommand = validCommand && (*it)->checkCommandValid(angles[i]);
-	}
-
-	if (validCommand) {
-		i = 0;
-		for (auto it = joints.begin(); it != joints.end(); it++,i++)
-		{					
-			(*it)->setTargetAngle(angles[i]);
-		}
-		return true;
-	}
-
-	return false;	
-}
 
 int main(int argc, char *argv[])
 {
@@ -199,23 +178,23 @@ int main(int argc, char *argv[])
 	cout << "Opening I2C bus... " << endl;
 	I2CBus * bus = new I2CBus("/dev/i2c-1");
 				
-	cout << "Reading joints from JSON." << endl;	
-	joints.clear();
-	cJSON * jointArray = cJSON_GetObjectItem(configRoot,"Joints");
+	cout << "Reading joints from JSON." << endl;
+	cJSON * jointArray = cJSON_GetObjectItem(configRoot,"JointDefinitions");
+	
+	vector<PredictiveJointController*> controllers;
+
 	for (int i=0;i<cJSON_GetArraySize(jointArray);i++)
 	{
 		cJSON * jointItem =cJSON_GetArrayItem(jointArray,i);
 
 		cout << "Adding joint with name '" << cJSON_GetObjectItem(jointItem,"Name")->valuestring<< "'" << endl;
+		PredictiveJointController * pjc = new PredictiveJointController(jointItem,bus);
 		
-		JointLoop * joint = new JointLoop(bus, jointItem, samplePeriod);
-
-		joints.push_back(joint);
+		controllers.push_back(pjc);
 	}
 
-	motionController = new MotionController(joints,sleepTime);
+	motionController = new MotionController(controllers,sleepTime);
 		
-	cJSON_Delete(configRoot);
 
 	running = true;
 	std::thread jointUpdate(updateController);
@@ -235,153 +214,106 @@ int main(int argc, char *argv[])
 			string command;
 			input >> command;
 						
-			if (command.compare("exit") == 0 || command.compare("k") == 0) {		
-				cout << "Exit command." << endl;
-				running = false;
-			}
-			else if (command.compare("home") == 0) {
-				
-				double angles[6] = {0,0,0,0,0,0};
-
-				if (!applyCommand(angles))
-				{
-					cout << "One or more joints is unable to accept this command. No action performed." << endl;
-				}
-			}
-			else if (command.compare("set") == 0) {
-
-				int jointIndex;
-				double angle;
-
-				input >> jointIndex;
-				input >> angle;
-				
-				if (input.fail()) {
-					cout << "Invalid input. Usage: set <index> <angle>" << endl;
-				}
-
-				if (jointIndex >= 0 && jointIndex < joints.size()){
-
-					JointLoop * joint = joints.at(jointIndex);
-
-					if (joint->checkCommandValid(angle)) {							
-						cout << "Setting " << joint->getJointName() << " to " << angle << " degrees" << endl;
-						joint->setTargetAngle(angle);				
-					}
-					else {
-						cout << "Commanded angle " << angle << " exceeds joint range [" << joint->getMinAngle() << "," << joint->getMaxAngle() << "]" << endl;
-					}
-				}
-				else {
-					cout << "Error! Joint index " << jointIndex << " is not valid." << endl;
-				}
-			}
-			else if (command.compare("setspeed") == 0) {
-				
-				int jointIndex;
-				double speed;
-
-				input >> jointIndex;
-
-				input >> speed;
-
-				if (input.fail()) {
-					cout << "Usage: setspeed <index> <joint max speed (deg/s)>" << endl;
-				}
-				else {					 
-					if (jointIndex < joints.size()){
-
-						JointLoop * joint = joints.at(jointIndex);
-						joint->setTargetJointVelocity(MathUtil::degreesToRadians(speed));
-					}
-					else {
-						cout << "Error! Joint index " << jointIndex << " is not valid." << endl;
-					}
-				}
-			}
-			else if (command.compare("list") == 0) {
-
-				cout << "Angles: ";
-				for (auto it = joints.begin(); it != joints.end(); it++)
-				{					
-					cout << (*it)->getCurrentAngle() << " ";
-				}
-				cout << endl;
-			}
-			else if (command.compare("planto") == 0) {
-
-				double coords[3];
-				
-				for (int i=0;i<3;i++)
-				{
-					input >> coords[i];
-					coords[i] /= 100.0;
-				}
-
-				if (input.fail()) {
-					cout << "Usage: planto <x>cm <y>cm <z>cm" << endl;
-				} else {
-					motionController->moveToPosition(coords);
-				}
-			}
-			else if (command.compare("getpos") == 0) {
-
-				double angles[6];
-				int i=0;
-				for (auto it = joints.begin(); it != joints.end(); it++,i++)
-				{					
-					angles[i] = MathUtil::degreesToRadians((*it)->getCurrentAngle());
-				}
-
-				angles[1] *= -1.0;
-				angles[3] *= -1.0;
-				angles[4] *= -1.0;
-				
-				printPositionForAngles(angles);
-			}
-			else if (command.compare("spike") == 0) {
-				
-				int jointIndex, spikeLength, repeatCount, zeroLength;
-				double voltage;
-
-				input >> jointIndex;
-				input >> voltage;
-				input >> spikeLength;
-				input >> zeroLength;
-				input >> repeatCount;
-
-				if (input.fail() || (jointIndex >= joints.size() || jointIndex < 0)) {
-					cout << "Usage: spoke <joint> <voltage> <spikeLength> (Ts) <zeroLength> (Ts) <repeat count>" << endl;
-				} else {
-					JointLoop * joint = joints.at(jointIndex);
-					auto task = [joint,voltage,spikeLength, zeroLength, repeatCount]() {
-						joint->pauseJoint();
-						joint->executeSpike(voltage,spikeLength,zeroLength,repeatCount);
-					};
-					motionController->postTask(task);
-				}
-
-			}
-			else 
+			try
 			{
-				cout << "Invalid entry. Valid commands are: exit, home, set, setall, setgains, list, getpos, setpos " << endl;
+				if (command.compare("exit") == 0 || command.compare("k") == 0) {
+					cout << "Exit command." << endl;
+					running = false;
+				}
+				else if (command.compare("enable") == 0)
+				{
+					motionController->postTask([](){
+						motionController->enableAllJoints();
+					});
+				}
+				else if (command.compare("home") == 0) {
+					
+					motionController->postTask([](){
+						motionController->zeroAllJoints();
+					});
+				}
+				else if (command.compare("set") == 0) {
+
+					int jointIndex;
+					double angle, velocity;
+
+					input >> jointIndex;
+					input >> angle;
+					input >> velocity;
+					
+					if (input.fail()) {
+						cout << "Invalid input. Usage: set <index> <angle> <|velocity|>" << endl;
+					}
+					
+					motionController->postTask([jointIndex,angle,velocity](){
+						motionController->setJointPosition(jointIndex, angle, velocity);
+					});
+					
+				}
+				else if (command.compare("list") == 0) {
+
+					cout << "Angles: ";
+					for (auto it = controllers.begin(); it != controllers.end(); it++)
+					{					
+						cout << MathUtil::radiansToDegrees((*it)->getCurrentAngle()) << " ";
+					}
+					cout << endl;
+				}
+				else if (command.compare("setpos") == 0) {
+
+					Vector3d targetPosition;
+					
+					input >> targetPosition.x;
+					input >> targetPosition.y;
+					input >> targetPosition.z;
+					
+					targetPosition = targetPosition * 100.0;
+					
+
+					if (input.fail()) {
+						cout << "Usage: planto <x>cm <y>cm <z>cm" << endl;
+					} else {
+						motionController->postTask([targetPosition](){
+							motionController->moveToPosition(targetPosition);
+						});
+					}
+				}
+				else if (command.compare("getpos") == 0) {
+
+					double angles[6];
+					int i=0;
+					for (auto it = controllers.begin(); it != controllers.end(); it++,i++)
+					{					
+						angles[i] = MathUtil::degreesToRadians((*it)->getCurrentAngle());
+					}
+
+					angles[1] *= -1.0;
+					angles[3] *= -1.0;
+					angles[4] *= -1.0;
+					
+					printPositionForAngles(angles);
+				}
+				else 
+				{
+					cout << "Invalid entry. Valid commands are: enable, exit, home, set, list, getpos, setpos " << endl;
+				}
+			}
+			catch (std::runtime_error & commandException)
+			{
+				cout << "Command caused exception: " << commandException.what() << endl;
 			}
 		}
 	}
 	catch (std::runtime_error & e)
 	{
 		cout << "Exception: " << e.what() << endl;
-		
-		for (auto it = joints.begin(); it != joints.end(); it++)
-		{
-			(*it)->requestEmergencyHalt();
-		}	
-
 	}
 
 	cout << "Powering down control loops..";	
 	jointUpdate.join();
 	cout << "Done." << endl;
 	
-	shutdownMotors();
+	motionController->shutdown();
+		
+	cJSON_Delete(configRoot);
 }

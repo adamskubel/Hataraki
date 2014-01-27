@@ -15,8 +15,72 @@ MotionController::MotionController(vector<PredictiveJointController*> & _joints,
 	state = MotionControllerState::Waiting;
 }
 
+void MotionController::setJointPosition(int jointIndex, double angle, double velocity)
+{
+	if (jointIndex >= 0 && jointIndex < joints.size()){
+		
+		PredictiveJointController * pjc = joints.at(jointIndex);
+		
+		auto plan = shared_ptr<JointMotionPlan>(new JointMotionPlan(new MotionInterval(velocity,std::numeric_limits<double>::infinity()),angle));
+		
+		pjc->validateMotionPlan(plan);
+		pjc->executeMotionPlan(plan);
+	}
+	else {
+		throw std::runtime_error("Error! Joint index is not valid.");
+	}
+}
 
-void MotionController::moveToPosition(double * targetPosition)
+void MotionController::shutdown()
+{
+	for (auto it = joints.begin(); it != joints.end(); it++)
+	{
+		try
+		{
+			(*it)->emergencyHalt();
+		}
+		catch (std::runtime_error & e)
+		{
+			cout << "Error while shutting down joint: " << e.what() << endl;
+		}
+	}
+}
+
+void MotionController::zeroAllJoints()
+{
+	const double zeroVelocity = MathUtil::degreesToRadians(40);
+	
+	for (auto it=joints.begin();it!=joints.end();it++)
+	{
+		auto plan = shared_ptr<JointMotionPlan>(new JointMotionPlan(new MotionInterval(zeroVelocity,std::numeric_limits<double>::infinity()),0));
+		(*it)->validateMotionPlan(plan);
+	}
+	
+	for (auto it=joints.begin();it!=joints.end();it++)
+	{
+		auto plan = shared_ptr<JointMotionPlan>(new JointMotionPlan(new MotionInterval(zeroVelocity,std::numeric_limits<double>::infinity()),0));
+		(*it)->executeMotionPlan(plan);
+	}
+}
+
+void MotionController::prepareAllJoints()
+{
+	for (auto it = joints.begin(); it != joints.end(); it++)
+	{
+		(*it)->prepare();
+	}
+}
+
+void MotionController::enableAllJoints()
+{
+	for (auto it = joints.begin(); it != joints.end(); it++)
+	{
+		(*it)->enable();
+	}
+}
+
+
+void MotionController::moveToPosition(Vector3d targetPosition)
 {	
 	if (state == MotionControllerState::Stepping)
 	{
@@ -40,9 +104,18 @@ void MotionController::moveToPosition(double * targetPosition)
 		string strIn;
 		getline(cin,strIn);
 		
-		if (strIn.compare("y") == 0) {		
-			state = MotionControllerState::Stepping;
-			cout << "Stepping..." << endl;
+		if (strIn.compare("y") == 0) {
+			
+			for (int i=0;i<6;i++)
+			{
+				joints.at(i)->validateMotionPlan(currentPlan.at(i));
+			}
+			
+			for (int i=0;i<6;i++)
+			{
+				joints.at(i)->executeMotionPlan(currentPlan.at(i));
+			}
+			
 		}
 		else {
 			currentPlan.clear();
@@ -93,36 +166,6 @@ void MotionController::updateController(){
 
 	struct timespec start,end;
 	clock_gettime(CLOCK_REALTIME, &start);
-
-
-	//if (state == MotionControllerState::Stepping) {
-
-	//	bool settled = true;
-	//	for (auto it = joints.begin(); it != joints.end(); it++)
-	//	{
-	//		settled = settled && (*it)->isSettled();
-	//	}
-
-	//	//Ready for next step
-	//	if (settled) {
-	//		
-	//		if (currentStep < currentPlan.size()) {
-	//			commandMotionStep(currentPlan.at(currentStep));
-	//			cout << "Step " << currentStep << " complete." << endl;
-	//			currentStep++;
-	//		}
-	//		else {
-	//			state = MotionControllerState::Waiting;
-
-	//			for (int i=0;i<6;i++) {		
-	//				joints.at(i)->setTargetJointVelocity(0);
-	//			}
-	//			
-	//			cout << "Plan completed!" << endl;
-	//		}
-	//	}
-	//}
-
 
 	for (auto it = joints.begin(); it != joints.end(); it++)
 	{

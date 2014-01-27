@@ -62,15 +62,24 @@ void PredictiveJointController::disable()
 
 void PredictiveJointController::executeMotionPlan(std::shared_ptr<JointMotionPlan> requestedMotionPlan)
 {
-	if (jointStatus != JointStatus::Active) return;
+	validateMotionPlan(requestedMotionPlan);
 	
-	if (requestedMotionPlan->finalAngle >= jointModel->minAngle && requestedMotionPlan->finalAngle <= jointModel->maxAngle)
+	if (this->motionPlan != NULL)
+		motionPlan.reset();		
+	
+	this->motionPlan = requestedMotionPlan;
+	controlMode = ControlMode::SpeedControl;
+	
+}
+
+void PredictiveJointController::validateMotionPlan(std::shared_ptr<JointMotionPlan> requestedMotionPlan)
+{
+	if (jointStatus != JointStatus::Active)
+		throw std::runtime_error("Joint must be in Active state to execute a motion plan");
+	
+	if (requestedMotionPlan->finalAngle < jointModel->minAngle && requestedMotionPlan->finalAngle > jointModel->maxAngle)
 	{
-		if (this->motionPlan != NULL)
-			motionPlan.reset();		
-		
-		this->motionPlan = requestedMotionPlan;
-		controlMode = ControlMode::SpeedControl;
+		throw std::runtime_error("Motion plan angle exceeds joint range");
 	}
 }
 
@@ -127,10 +136,12 @@ void PredictiveJointController::setCurrentState()
 	
 	cVelocity = computeSpeed(cRawSensorAngle);	
 	cSensorAngle = filterAngle(cRawSensorAngle); //Filter for position
-	
+		
 	cTargetAngleDistance = AS5048::getAngleError(cSensorAngle,motionPlan->finalAngle);
-	cTargetVelocity = motionPlan->getSpeedAtTime(cTime);
-
+	double targetDirection = MathUtils::sgn<double>(cTargetAngleDistance);
+	
+	cTargetVelocity = std::abs(motionPlan->getSpeedAtTime(MathUtil::timeSince(planStartTime))*targetDirection;
+							   
 	//Static torque resulting from current arm pose. Zero for now.
 	//TODO: Also need to consider torque that results from angular acceleration
 	cJointTorque = 0;
@@ -169,10 +180,7 @@ void PredictiveJointController::performSafetyChecks()
 	if (cRawSensorAngle < jointModel->minAngle || cRawSensorAngle > jointModel->maxAngle || 
 		cSensorAngle < jointModel->minAngle || cSensorAngle > jointModel->maxAngle)
 	{
-		controlMode = ControlMode::Disabled;
-		
-		commandDriver(0,DriverMode::Brake);
-		commitCommands(); //Commit immediately to ensure safety
+		emergencyHalt();
 
 		cout << "Error! Joint " << jointModel->name << " has exceeded angle limits. " << endl;
 		printState();
@@ -451,8 +459,8 @@ void PredictiveJointController::logState()
 		<< cSensorAngle		<< Configuration::CsvSeparator
 		<< cTargetAngle		<< Configuration::CsvSeparator
 		<< cVelocity		<< Configuration::CsvSeparator
-		<< cTargetVelocity	<< Configuration::CsvSeparator		
-		<< cJointTorque		<< Configuration::CsvSeparator 
+		<< cTargetVelocity	<< Configuration::CsvSeparator
+		<< cJointTorque		<< Configuration::CsvSeparator
 		<< cMotorTorque		<< Configuration::CsvSeparator
 		<< cVoltage			<< Configuration::CsvSeparator
 		<< cTargetVoltage	<< Configuration::CsvSeparator
@@ -502,7 +510,7 @@ void PredictiveJointController::printState()
 
 double PredictiveJointController::getMaxJointVelocity()
 {
-	const AverageTorque = 0.5; 
+	const double AverageTorque = 0.5;
 
 	return servoModel->getSpeedForTorqueVoltage(AverageTorque,servoModel->maxDriverVoltage);
 }

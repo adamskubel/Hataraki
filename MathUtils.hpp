@@ -3,6 +3,9 @@
 
 
 #include <time.h>
+#include <cmath>
+#include <limits>
+#include <math.h>
 
 namespace MathUtils {
 	
