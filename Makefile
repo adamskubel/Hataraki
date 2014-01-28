@@ -12,7 +12,7 @@ INC_PARAMS=$(foreach d, $(INC),-I$d)
 
 #MAINFILE=Main.cpp
 #TESTFILE=Test.cpp
-SOURCES=Main.cpp DRV8830.cpp AS5048.cpp I2CBus.cpp JointLoop.cpp cJSON.cpp ikfastsolution.cpp Configuration.cpp MotionController.cpp SpeedController.cpp
+SOURCES=Main.cpp DRV8830.cpp AS5048.cpp I2CBus.cpp PredictiveJointController.cpp cJSON.cpp ikfastsolution.cpp Configuration.cpp MotionController.cpp TimeMultiplexedVoltageConverter.cpp vmath.cpp MathUtils.cpp ServoUtil.cpp 
 OBJECTS=$(SOURCES:.cpp=.o)
 
 EXECUTABLE=BasicMotion

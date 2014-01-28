@@ -134,13 +134,13 @@ void MotionController::postTask(std::function<void()> task)
 	taskQueue.push(task);
 }
 
-vector<JointMotionPlan*> MotionController::createMotionPlans(vector<MotionStep*> & steps)
+vector<shared_ptr<JointMotionPlan> > MotionController::createMotionPlans(vector<MotionStep*> & steps)
 {
-	vector<JointMotionPlan*> motionPlan;
+	vector<shared_ptr<JointMotionPlan> > motionPlan;
 
 	for (int i=0;i<6;i++) 
 	{
-		motionPlan.push_back(new JointMotionPlan());
+		motionPlan.push_back(shared_ptr<JointMotionPlan>(new JointMotionPlan()));
 	}
 
 	for (auto it=steps.begin();it != steps.end(); it++)
@@ -202,8 +202,10 @@ bool MotionController::checkSolutionValid(const double * solution)
 {
 	int j=0;
 	for (auto it = joints.begin(); it != joints.end(); it++,j++)
-	{								
-		if (!(*it)->checkCommandValid(MathUtil::radiansToDegrees(solution[j])))
+	{
+		JointModel * jointModel = (*it)->getJointModel();
+		double angleSteps = AS5048::radiansToSteps(solution[j]);
+		if (!())
 			return false;
 	}
 	return true;

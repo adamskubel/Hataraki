@@ -82,28 +82,6 @@ std::string get_file_contents(const char *filename)
 }
 
 
-//void shutdownMotors()
-//{		
-//	cout << "Shutting down motors..";	
-//	for (auto it = joints.begin(); it != joints.end(); it++)
-//	{
-//		(*it)->shutdown();
-//	}		
-//	cout << "Done" << endl;
-//}
-
-void signal_callback_handler(int signum)
-{
-	cout << "Caught signal" << signum << endl;
-
-	for (auto it = joints.begin(); it != joints.end(); it++)
-	{
-		(*it)->requestEmergencyHalt();
-	}	
-
-	running = false;
-}
-
 void printPositionForAngles(IkReal * jointAngles) {
 	
 	IkReal translationMatrix[3];

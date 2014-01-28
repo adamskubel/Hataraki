@@ -1,5 +1,5 @@
 {
-	"Version" : "1.0",
+	"Version" : "2.0",
 	"DataRecording" : {
 		"Enabled" : 1,
 		"FilePrefix" : "JointData_"
@@ -8,41 +8,76 @@
 		"MaxVoltage" : 2.2,
 		"MotionPlanSteps" : 1
 	},
-	"Joints" : [	
+	"Motors" :
+	[
+		{
+			"Name" : "GM12-1000",
+			"TorqueConstant" : 5.769,
+			"BackEmfConstant" : 0.315655,
+			"ArmatureResistance" : 9.4,
+			"StallTorque" : 3,
+			"NoLoadSpeed" : 14.5,
+			"NoLoadTorque" : 0
+		},
+		{
+			"Name" : "GM12-298",
+			"TorqueConstant" : 6,
+			"BackEmfConstant" : 0.31,
+			"ArmatureResistance" : 9.4,
+			"StallTorque" : 3,
+			"NoLoadSpeed" : 14.5,
+			"NoLoadTorque" : 0
+		}		
+	],
+	"Gearboxes" : 
+	[
+		{
+			"Name" : "Ideal",
+			"Ratio" : 1,
+			"LostMotion" : 0
+		},
+		{
+			"Name" : "GM12-1000-Gearbox",
+			"Ratio" : 1000,
+			"LostMotion" : 2.8
+		},
+		{
+			"Name" : "GM12-298-Gearbox",
+			"Ratio" : 298,
+			"LostMotion" : 2.1 
+		}
+	],
+	"JointDefinitions" : [
 		{
 			"Name" : "Roll_0",
 			"ZeroPosition" : 285, 
 			"MinAngle" : -90,
 			"MaxAngle" : 90,
-			"DriverAddress" : 100,
-			"SensorAddress" : 68,
-			"MotorConstant" : 800,
-			"PositionController" : {
-				"Kp" : 0.2, "Ki" : 0, "Kd" : 0,
-				"MaxErrorIntegralMagnitude" : 5			
-			},
-			"SpeedController" : {
-				"Kp" : 0.2, "Ki" : 0, "Kd" : 0,
-				"Enabled" : 0,
-				"FilterRC" : 0.1
+			"Servo" : 
+			{
+				"DriverAddress" : 100,
+				"SensorAddress" : 68,
+				"DriverDelay" : 0.0004,
+				"SensorDelay" : 0.0012,
+				"MaxDriverVoltage" : 1.5,
+				"Motor" : "Motors.GM12-1000",
+				"Gearbox" : "Gearboxes.Ideal"
 			}
-		},	
+		},
 		{
 			"Name" : "Pitch_0",
 			"ZeroPosition" : 30,
 			"MinAngle" : -35,
 			"MaxAngle" : 90,
-			"DriverAddress" : 101,
-			"SensorAddress" : 75,
-			"MotorConstant" : 800,
-			"PositionController" : {
-				"Kp" : 0.2, "Ki" : 0, "Kd" : 0,
-				"MaxErrorIntegralMagnitude" : 5			
-			},
-			"SpeedController" : {
-				"Kp" : 0.2, "Ki" : 0, "Kd" : 0,
-				"Enabled" : 1,
-				"FilterRC" : 0.1
+			"Servo" : 
+			{
+				"DriverAddress" : 101,
+				"SensorAddress" : 75,
+				"DriverDelay" : 0.0004,
+				"SensorDelay" : 0.0012,
+				"MaxDriverVoltage" : 1.5,
+				"Motor" : "Motors.GM12-1000",
+				"Gearbox" : "Gearboxes.Ideal"
 			}
 		},
 		{
@@ -50,17 +85,15 @@
 			"ZeroPosition" : 92, 
 			"MinAngle" : -90,
 			"MaxAngle" : 90,
-			"DriverAddress" : 103,
-			"SensorAddress" : 65,
-			"MotorConstant" : 800,
-			"PositionController" : {
-				"Kp" : 0.2, "Ki" : 0, "Kd" : 0,
-				"MaxErrorIntegralMagnitude" : 5			
-			},
-			"SpeedController" : {
-				"Kp" : 0.2, "Ki" : 0, "Kd" : 0,
-				"Enabled" : 1,
-				"FilterRC" : 0.1
+			"Servo" : 
+			{
+				"DriverAddress" : 103,
+				"SensorAddress" : 65,				
+				"DriverDelay" : 0.0004,
+				"SensorDelay" : 0.0012,
+				"MaxDriverVoltage" : 1.5,
+				"Motor" : "Motors.GM12-1000",
+				"Gearbox" : "Gearboxes.Ideal"
 			}
 		},
 		{
@@ -68,17 +101,15 @@
 			"ZeroPosition" : 40,
 			"MinAngle" : -40,
 			"MaxAngle" : 90,
-			"DriverAddress" : 99,
-			"SensorAddress" : 66,
-			"MotorConstant" : 800,
-			"PositionController" : {
-				"Kp" : 0.2, "Ki" : 0, "Kd" : 0,
-				"MaxErrorIntegralMagnitude" : 5			
-			},
-			"SpeedController" : {
-				"Kp" : 0.2, "Ki" : 0, "Kd" : 0,
-				"Enabled" : 1,
-				"FilterRC" : 0.1
+			"Servo" : 
+			{
+				"DriverAddress" : 99,
+				"SensorAddress" : 66,
+				"DriverDelay" : 0.0004,
+				"SensorDelay" : 0.0012,
+				"MaxDriverVoltage" : 1.5,
+				"Motor" : "Motors.GM12-1000",
+				"Gearbox" : "Gearboxes.Ideal"
 			}
 		},
 		{
@@ -86,17 +117,15 @@
 			"ZeroPosition" : 325,
 			"MinAngle" : -60,
 			"MaxAngle" : 95,
-			"DriverAddress" : 104,
-			"SensorAddress" : 67,
-			"MotorConstant" : 2700,
-			"PositionController" : {
-				"Kp" : 0.2, "Ki" : 0, "Kd" : 0,
-				"MaxErrorIntegralMagnitude" : 5			
-			},
-			"SpeedController" : {
-				"Kp" : 0.2, "Ki" : 0, "Kd" : 0,
-				"Enabled" : 1,
-				"FilterRC" : 0.05
+			"Servo" : 
+			{
+				"DriverAddress" : 104,
+				"SensorAddress" : 67,
+				"DriverDelay" : 0.0004,
+				"SensorDelay" : 0.0012,
+				"MaxDriverVoltage" : 1.5,
+				"Motor" : "Motors.GM12-298",
+				"Gearbox" : "Gearboxes.Ideal"
 			}
 		},
 		{
@@ -104,17 +133,15 @@
 			"ZeroPosition" : 145,
 			"MinAngle" : -170,
 			"MaxAngle" : 170,
-			"DriverAddress" : 102,
-			"SensorAddress" : 64,
-			"MotorConstant" : 2700,
-			"PositionController" : {
-				"Kp" : 0.2, "Ki" : 0, "Kd" : 0,
-				"MaxErrorIntegralMagnitude" : 5			
-			},
-			"SpeedController" : {
-				"Kp" : 0.2, "Ki" : 0, "Kd" : 0,
-				"Enabled" : 1,
-				"FilterRC" : 0.05
+			"Servo" : 
+			{
+				"DriverAddress" : 102,
+				"SensorAddress" : 64,
+				"DriverDelay" : 0.0004,
+				"SensorDelay" : 0.0012,
+				"MaxDriverVoltage" : 1.5,
+				"Motor" : "Motors.GM12-298",
+				"Gearbox" : "Gearboxes.Ideal"
 			}
 		}
 	]

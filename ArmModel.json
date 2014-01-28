@@ -1,5 +1,5 @@
 {
-	"MotorDefinitions" :
+	"Motors" :
 	[
 		{
 			"Name" : "GM12-1000",
@@ -20,7 +20,7 @@
 			"NoLoadTorque" : 0
 		}		
 	],
-	"GearboxDefinitions" : 
+	"Gearboxes" : 
 	[
 		{
 			"Name" : "Ideal",
@@ -51,8 +51,8 @@
 				"DriverDelay" : 0.0004,
 				"SensorDelay" : 0.0012,
 				"MaxDriverVoltage" : 1.5,
-				"Motor" : "GM12-1000",
-				"Gearbox" : "Ideal"
+				"Motor" : "Motors.GM12-1000",
+				"Gearbox" : "Gearboxes.Ideal"
 			}
 		},
 		{
@@ -67,8 +67,8 @@
 				"DriverDelay" : 0.0004,
 				"SensorDelay" : 0.0012,
 				"MaxDriverVoltage" : 1.5,
-				"Motor" : "GM12-1000",
-				"Gearbox" : "Ideal"
+				"Motor" : "Motors.GM12-1000",
+				"Gearbox" : "Gearboxes.Ideal"
 			}
 		},
 		{
@@ -83,8 +83,8 @@
 				"DriverDelay" : 0.0004,
 				"SensorDelay" : 0.0012,
 				"MaxDriverVoltage" : 1.5,
-				"Motor" : "GM12-1000",
-				"Gearbox" : "Ideal"
+				"Motor" : "Motors.GM12-1000",
+				"Gearbox" : "Gearboxes.Ideal"
 			}
 		},
 		{
@@ -99,8 +99,8 @@
 				"DriverDelay" : 0.0004,
 				"SensorDelay" : 0.0012,
 				"MaxDriverVoltage" : 1.5,
-				"Motor" : "GM12-1000",
-				"Gearbox" : "Ideal"
+				"Motor" : "Motors.GM12-1000",
+				"Gearbox" : "Gearboxes.Ideal"
 			}
 		},
 		{
@@ -115,8 +115,8 @@
 				"DriverDelay" : 0.0004,
 				"SensorDelay" : 0.0012,
 				"MaxDriverVoltage" : 1.5,
-				"Motor" : "GM12-298",
-				"Gearbox" : "Ideal"
+				"Motor" : "Motors.GM12-298",
+				"Gearbox" : "Gearboxes.Ideal"
 			}
 		},
 		{
@@ -131,17 +131,9 @@
 				"DriverDelay" : 0.0004,
 				"SensorDelay" : 0.0012,
 				"MaxDriverVoltage" : 1.5,
-				"Motor" : "GM12-298",
-				"Gearbox" : "Ideal"
+				"Motor" : "Motors.GM12-298",
+				"Gearbox" : "Gearboxes.Ideal"
 			}
 		}
-	],
-	"ArmDefinition" :
-	{
-		
-	}
-
-
-
-
+	]
 }

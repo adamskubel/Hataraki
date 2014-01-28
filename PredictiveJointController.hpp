@@ -16,7 +16,7 @@
 #include "Configuration.hpp"
 #include "ServoModel.hpp"
 #include "SimpleMovingAverage.hpp"
-#include "PoseDynamics.hpp"
+//#include "PoseDynamics.hpp"
 #include "LowpassFilter.hpp"
 #include "TimeMultiplexedVoltageConverter.hpp"
 #include "ServoUtil.hpp"
@@ -248,6 +248,8 @@ public:
 
 	double getMaxJointVelocity();
 	double getCurrentAngle();
+	
+	JointModel * getJointModel();
 };
 
 
