@@ -1,8 +1,10 @@
 #ifndef HATARAKI_BASICMOTION_MODEL_SERVOMODEL_HPP_
 #define HATARAKI_BASICMOTION_MODEL_SERVOMODEL_HPP_
 
-#include "cJSON.h"
+//#include "cJSON.h"
 #include "Configuration.hpp"
+#include "MathUtils.hpp"
+#include "AS5048.hpp"
 
 
 struct GearboxModel {
@@ -134,8 +136,8 @@ public:
 				
 		name = std::string(cJSON_GetObjectItem(rawConfig,"Name")->valuestring);
 
-		maxAngle = cJSON_GetObjectItem(rawConfig,"MaxAngle")->valuedouble;
-		minAngle = cJSON_GetObjectItem(rawConfig,"MinAngle")->valuedouble;
+		maxAngle = AS5048::degreesToSteps(cJSON_GetObjectItem(rawConfig,"MaxAngle")->valuedouble);
+		minAngle = AS5048::degreesToSteps(cJSON_GetObjectItem(rawConfig,"MinAngle")->valuedouble);
 		sensorZeroPosition = AS5048::degreesToSteps(cJSON_GetObjectItem(rawConfig,"ZeroPosition")->valuedouble);
 	}
 

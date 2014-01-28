@@ -4,8 +4,6 @@
 #include <iostream>
 
 #include "I2CBus.hpp"
-#include "MathUtils.hpp"
-
 
 #define MAX_ANGLE 16384
 

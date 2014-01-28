@@ -14,6 +14,7 @@
 #include <functional>
 #include <queue>
 #include <memory>
+#include <algorithm> 
 
 #include "vmath.h"
 

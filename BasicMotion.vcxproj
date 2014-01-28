@@ -69,9 +69,11 @@
     <ClCompile Include="ikfastsolution.cpp" />
     <ClCompile Include="JointLoop.cpp" />
     <ClCompile Include="Main.cpp" />
+    <ClCompile Include="MathUtils.cpp" />
     <ClCompile Include="MotionController.cpp" />
     <ClCompile Include="PoseDynamics.cpp" />
     <ClCompile Include="PredictiveJointController.cpp" />
+    <ClCompile Include="ServoUtil.cpp" />
     <ClCompile Include="SpeedController.cpp" />
     <ClCompile Include="TimeMultiplexedVoltageConverter.cpp" />
     <ClCompile Include="vmath.cpp" />
@@ -84,6 +86,7 @@
     <ClInclude Include="I2CBus.hpp" />
     <ClInclude Include="ikfast.h" />
     <ClInclude Include="JointLoop.hpp" />
+    <ClInclude Include="LowpassFilter.hpp" />
     <ClInclude Include="MathUtils.hpp" />
     <ClInclude Include="MotionController.hpp" />
     <ClInclude Include="PoseDynamics.hpp" />

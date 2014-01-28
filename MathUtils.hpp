@@ -7,6 +7,7 @@
 #include <limits>
 #include <math.h>
 
+
 namespace MathUtils {
 	
 	template <typename T> int sgn(T val) {
@@ -21,7 +22,7 @@ public:
 	static double TAU;
 	
 	static double PI_STEPS;	
-	static double PI_DEGREES;;
+	//static double PI_DEGREES;
 	
 	
 
@@ -75,14 +76,16 @@ public:
 
 	static int offsetAngleSteps(int angle, int zeroPosition) 
 	{
-		int newAngle = angle - zeroPosition;
+	//	int newAngle = angle - zeroPosition;
 
-		if (newAngle < -AS5048::PI_STEPS)
-			newAngle += AS5048::TAU_STEPS;
-		else if (newAngle > AS5048::PI_STEPS)
-			newAngle -= AS5048::TAU_STEPS;
+	//	if (newAngle < -AS5048::PI_STEPS)
+	//		newAngle += AS5048::TAU_STEPS;
+	//	else if (newAngle > AS5048::PI_STEPS)
+	//		newAngle -= AS5048::TAU_STEPS;
 
-		return newAngle;
+	//	return newAngle;
+
+		return subtractAngles(angle,zeroPosition,16384.0);
 	}
 
 	static double degreesToRadians(double angleDeg){
@@ -119,7 +122,7 @@ public:
 		}
 	}
 
-	static void setNow(struct timespec & sinceTime) {		
+	static void setNow(struct timespec & now) {		
 		clock_gettime(CLOCK_REALTIME, &now);
 	}
 

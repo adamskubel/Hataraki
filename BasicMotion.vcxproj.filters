@@ -72,6 +72,12 @@
     <ClCompile Include="TimeMultiplexedVoltageConverter.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="MathUtils.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="ServoUtil.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="JointLoop.hpp">
@@ -123,6 +129,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="TimeMultiplexedVoltageConverter.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="LowpassFilter.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

@@ -5,6 +5,7 @@
 
 #include <list>
 #include <cmath>
+#include <numeric>  
 
 #include "DRV8830.hpp"
 #include "MathUtils.hpp"

@@ -27,33 +27,33 @@ namespace DRV8830Registers
 //	unsigned char 
 //};
 
-struct DRV8830Command {
+//struct DRV8830Command {
+//
+//	int Voltage;
+//	HBridgeMode Mode;
+//	
+//	DRV8830Command() {
+//		Voltage = 0;
+//		Mode = 0;
+//	}
+//
+//	DRV8830Command(int _Voltage, HBridgeMode _Mode) :
+//		Voltage(_Voltage),
+//		Mode(_Mode)
+//	{
+//
+//	}
+//
+//
+//};
 
-	int Voltage;
-	HBridgeMode Mode;
-	
-	DRV8830Command() {
-		Voltage = 0;
-		Mode = 0;
-	}
-
-	DRV8830Command(int _Voltage, HBridgeMode _Mode) :
-		Voltage(_Voltage),
-		Mode(_Mode)
-	{
-
-	}
-
-
-};
-
-enum HBridgeMode {
-	Open,
-	Forward,
-	Reverse,
-	Short
-	
-};
+//enum HBridgeMode {
+//	Open,
+//	Forward,
+//	Reverse,
+//	Short
+//	
+//};
 
 class DRV8830 {
 

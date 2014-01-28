@@ -5,8 +5,9 @@
 		"FilePrefix" : "JointData_"
 	},
 	"GlobalSettings" : {
-		"MaxVoltage" : 2.2,
-		"MotionPlanSteps" : 1
+		"MaxVoltage" : 1.2,
+		"MotionPlanSteps" : 1,
+		"UpdateFrequency" : 100
 	},
 	"Motors" :
 	[
@@ -34,17 +35,23 @@
 		{
 			"Name" : "Ideal",
 			"Ratio" : 1,
-			"LostMotion" : 0
+			"LostMotion" : 0,
+			"Efficiency" : 1.0,
+			"ViscousFriction" : 0
 		},
 		{
 			"Name" : "GM12-1000-Gearbox",
 			"Ratio" : 1000,
-			"LostMotion" : 2.8
+			"LostMotion" : 2.8,
+			"Efficiency" : 1.0,
+			"ViscousFriction" : 0
 		},
 		{
 			"Name" : "GM12-298-Gearbox",
 			"Ratio" : 298,
-			"LostMotion" : 2.1 
+			"LostMotion" : 2.1 ,
+			"Efficiency" : 1.0,
+			"ViscousFriction" : 0
 		}
 	],
 	"JointDefinitions" : [
@@ -111,7 +118,10 @@
 				"Motor" : "Motors.GM12-1000",
 				"Gearbox" : "Gearboxes.Ideal"
 			}
-		},
+		}
+	],
+	"J2" : 
+	[
 		{
 			"Name" : "Pitch_2",
 			"ZeroPosition" : 325,

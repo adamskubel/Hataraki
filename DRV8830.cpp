@@ -76,6 +76,16 @@ double DRV8830::stepsToVoltage(int vCmd)
 	return (1.285/16.0) * ((double)vCmd);
 }
 
+double DRV8830::fractionalStepsToVoltage(double vSteps)
+{
+	return (1.285/16.0) * (vSteps);
+}
+
+double DRV8830::voltageToFractionalSteps(double voltage)
+{
+	return voltage/(1.285/16.0);
+}
+
 //void DRV8830::buildVoltageDitherArray(double vTarget,int * vCmdArray, int cycleLength,int cycleCount)
 //{
 //	int vCmdLow = voltageToSteps(vTarget);

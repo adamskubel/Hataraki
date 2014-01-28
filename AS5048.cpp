@@ -1,5 +1,7 @@
 #include "AS5048.hpp"
 
+#include "MathUtils.hpp"
+
 int AS5048::TAU_STEPS = 16384;
 int AS5048::PI_STEPS = 8192;
 

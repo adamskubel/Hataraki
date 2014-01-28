@@ -21,9 +21,9 @@
 #include <fcntl.h>
 #include <sys/time.h>
 #include <inttypes.h>
-//#include <math.h>
 #include <stdio.h>
 #include <signal.h>
+#include <execinfo.h>
 
 #include <vector>
 #include <thread>
@@ -33,18 +33,17 @@
 #include <stdexcept> 
 #include <queue>
 
+#include "cJSON.h"
+
 #include "I2CBus.hpp"
-#include "PredictiveJointController.cpp"
+#include "PredictiveJointController.hpp"
 #include "Configuration.hpp"
 #include "MotionController.hpp"
 #include "MathUtils.hpp"
-#include "cJSON.h"
 
 #define VMATH_NAMESPACE vmath
 #include "vmath.h"
 
-double MathUtil::PI = 3.141592653589793238462;
-double MathUtil::TAU = 6.28318530718;
 
 
 using namespace std;
@@ -58,28 +57,12 @@ MotionController * motionController;
 
 void updateController()
 {
-	cout << "Starting joint thread" << endl;
 	while (running)
 	{
 		motionController->updateController();
 	}
 }
 
-std::string get_file_contents(const char *filename)
-{
-  std::ifstream in(filename, std::ios::in | std::ios::binary);
-  if (in)
-  {
-    std::string contents;
-    in.seekg(0, std::ios::end);
-    contents.resize(in.tellg());
-    in.seekg(0, std::ios::beg);
-    in.read(&contents[0], contents.size());
-    in.close();
-    return(contents);
-  }
-  throw(errno);
-}
 
 
 void printPositionForAngles(IkReal * jointAngles) {
@@ -106,58 +89,60 @@ void testFK()
 	printPositionForAngles(jointAngles2);
 }
 
+void handle(int sig) {
+	void *array[30];
+	size_t size;
+
+	// get void*'s for all entries on the stack
+	size = backtrace(array, 30);
+
+	// print out all the frames to stderr
+	fprintf(stderr, "Error: signal %d:\n", sig);
+	backtrace_symbols_fd(array, size, STDERR_FILENO);
+	exit(1);
+}
+//
+//void handleFatalError(string errorText, int sig) {
+//	fprintf(stderr,"Exception: %s\n",errorText.c_str());
+//	handle(sig);
+//}
+
 
 
 int main(int argc, char *argv[])
 {
 	double samplePeriod;
-		
-	if (argc < 2)
-	{
-		printf("Usage: %s <SampleFreq> \n\n",argv[0]);
-		exit(1);
-	}
 
+	signal(SIGSEGV, handle);
+	
 	//signal(SIGINT, signal_callback_handler);
 
-	samplePeriod = 1.0/atof(argv[1]);	
-	long sleepTime = (long)(samplePeriod*1000000.0);
+	std::string configFileName = "config.json";
+
+	if (argc >= 2)
+	{
+		configFileName = std::string(argv[1]);
+	}
+
+	Configuration::getInstance().loadConfig(configFileName);
+
+	cJSON * globalConfig = cJSON_GetObjectItem(Configuration::getInstance().getRoot(),"GlobalSettings");
 	
+	samplePeriod = 1.0/cJSON_GetObjectItem(globalConfig,"UpdateFrequency")->valuedouble;
 	cout << "Operating with period of " << samplePeriod << " seconds. " <<endl;
 
-	cout << "Opening JSON configuration file 'config.json'...";
-	std::string configString = get_file_contents("config.json");	
+	long sleepTime = (long)(samplePeriod*1000000.0);	
 
-	cout << "Done. Parsing...";
-	cJSON * configRoot = cJSON_Parse(configString.c_str());
-	cout << "Done." << endl;
-		
-	if (configRoot)
-	{
-		cout << "Config Version = " << cJSON_GetObjectItem(configRoot,"Version")->valuestring << endl;
-	}
-	else
-	{
-		cout << "Error parsing configuration. Exiting." << endl;
-	}
-
-	cJSON * globalConfig = cJSON_GetObjectItem(configRoot,"GlobalSettings");
-
-	DRV8830::MaxVoltageStep = DRV8830::voltageToSteps(cJSON_GetObjectItem(globalConfig,"MaxVoltage")->valuedouble);
+	DRV8830::MaxVoltageStep = DRV8830::voltageToSteps(cJSON_GetObjectItem(globalConfig,"MaxVoltage")->valuedouble);	
 	cout << "Setting maximum voltage to " << DRV8830::stepsToVoltage(DRV8830::MaxVoltageStep) << " V (Step=0x" << hex << DRV8830::MaxVoltageStep << ")" << endl;
 
 	MotionController::PlanStepCount = cJSON_GetObjectItem(globalConfig,"MotionPlanSteps")->valueint;
-
 	
-	cJSON * dataRecordingConfig = cJSON_GetObjectItem(configRoot,"DataRecording");
-	Configuration::CsvLoggingEnabled = (cJSON_GetObjectItem(dataRecordingConfig,"Enabled")->valueint != 0);
-
-
 	cout << "Opening I2C bus... " << endl;
 	I2CBus * bus = new I2CBus("/dev/i2c-1");
 				
 	cout << "Reading joints from JSON." << endl;
-	cJSON * jointArray = cJSON_GetObjectItem(configRoot,"JointDefinitions");
+	cJSON * jointArray = cJSON_GetObjectItem(Configuration::getInstance().getRoot(),"JointDefinitions");
 	
 	vector<PredictiveJointController*> controllers;
 
@@ -167,6 +152,7 @@ int main(int argc, char *argv[])
 
 		cout << "Adding joint with name '" << cJSON_GetObjectItem(jointItem,"Name")->valuestring<< "'" << endl;
 		PredictiveJointController * pjc = new PredictiveJointController(jointItem,bus);
+		cout << "Done." << endl;
 		
 		controllers.push_back(pjc);
 	}
@@ -174,8 +160,15 @@ int main(int argc, char *argv[])
 	motionController = new MotionController(controllers,sleepTime);
 		
 
+	motionController->prepareAllJoints();
+		
 	running = true;
+	
+	cout << "Starting joint thread" << endl;
 	std::thread jointUpdate(updateController);
+
+	//motionController->postTask([](){
+	//});
 
 	try
 	{
@@ -222,10 +215,12 @@ int main(int argc, char *argv[])
 					if (input.fail()) {
 						cout << "Invalid input. Usage: set <index> <angle> <|velocity|>" << endl;
 					}
-					
-					motionController->postTask([jointIndex,angle,velocity](){
-						motionController->setJointPosition(jointIndex, angle, velocity);
-					});
+					else
+					{
+						motionController->postTask([jointIndex,angle,velocity](){
+							motionController->setJointPosition(jointIndex, angle, velocity);
+						});
+					}
 					
 				}
 				else if (command.compare("list") == 0) {
@@ -291,7 +286,5 @@ int main(int argc, char *argv[])
 	jointUpdate.join();
 	cout << "Done." << endl;
 	
-	motionController->shutdown();
-		
-	cJSON_Delete(configRoot);
+	motionController->shutdown();	
 }

@@ -26,9 +26,9 @@ bool ServoUtils::validateAndPrintJointFunction(I2CBus * bus, JointModel * joint)
 		
 		cout
 			<< "Angle = " << AS5048::stepsToDegrees(angle)
-			<< "RawAngle = " << AS5048::stepsToDegrees(rawAngle)
-			<< "GainValue = " << (int)agc
-			<< "DiagRegister = " << (int)diagnosticFlags
+			<< " RawAngle = " << AS5048::stepsToDegrees(rawAngle)
+			<< " GainValue = " << dec << (int)agc
+			<< " DiagRegister = " << hex << (int)diagnosticFlags
 			<< endl;
 		
 		if (angle < joint->minAngle || angle > joint->maxAngle)
@@ -41,7 +41,7 @@ bool ServoUtils::validateAndPrintJointFunction(I2CBus * bus, JointModel * joint)
 		}
 		else
 		{
-			cout << "Encoder initialized." << endl;
+			//cout << "Encoder initialized." << endl;
 			encoderReady = true;
 		}
 				
@@ -60,7 +60,7 @@ bool ServoUtils::validateAndPrintJointFunction(I2CBus * bus, JointModel * joint)
 		
 		if (!DRV8830::hasFault(driverFaults))
 		{
-			cout << "Driver is ready!" << endl;
+			//cout << "Driver initialized." << endl;
 			driverReady = true;
 		}
 		else
@@ -75,16 +75,6 @@ bool ServoUtils::validateAndPrintJointFunction(I2CBus * bus, JointModel * joint)
 		cout << "Joint is in error state and will not function." << endl;
 	}
 	
-	//Result
-	
-	if (encoderReady && driverReady)
-	{
-		cout << "Initialization succeeded. " << endl;
-	}
-	else
-	{
-		cout << "Initialization failed, joint function is disabled." << endl;
-	}
 	cout << "------------------------------------------------" << endl << endl;
 	
 	return encoderReady && driverReady;

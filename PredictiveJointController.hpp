@@ -7,6 +7,9 @@
 #include <cmath>
 #include <memory>
 #include <string>
+#include <fstream>
+#include <locale>
+#include <algorithm>
 
 #include "cJSON.h"
 
@@ -129,7 +132,7 @@ enum DriverMode {
 class PredictiveJointController {
 	
 private:
-	ControllerConfig config;
+	//ControllerConfig config;
 	ServoModel * servoModel;
 	JointModel * jointModel;
 	I2CBus * bus;
@@ -143,10 +146,11 @@ private:
 	std::ofstream csvLog;
 	
 	//Historical states	
-	SimpleMovingAverage * smaFilter;
-	LowpassFilter * torqueFilter;
+	LowpassFilter * filter_lowpass_for_motorTorque;
+	
+	SimpleMovingAverage * filter_sma_angle_for_position;
 
-	LowpassFilter * filter_lowpass_angle_for_speed;
+	//LowpassFilter * filter_lowpass_angle_for_speed;
 	SimpleMovingAverage * filter_sma_angle_for_speed;
 	
 	LowpassFilter * filter_lowpass_speed;
@@ -169,8 +173,9 @@ private:
 
 	double cVelocity;	
 	double cTime;
-	double cJointTorque;	
+	double cModelJointTorque;	
 	double cMotorTorque;
+	double cDisturbanceTorque;
 	
 	double cVoltage;
 	DriverMode cDriverMode;
@@ -190,9 +195,7 @@ private:
 	PositionControlState positionControlState;
 	ControlMode controlMode;
 
-
-//	double setpointHoldAngle;
-
+	double setpointHoldAngle;
 
 	//Stepping states
 	std::vector<double> stepVoltages;
@@ -224,13 +227,15 @@ private:
 	void init();
 
 public:
-	PredictiveJointController (cJSON * rawConfig, I2CBus * _bus) :
-		config(rawConfig)
+	PredictiveJointController (cJSON * rawConfig, I2CBus * _bus) 
+		//: config(rawConfig)
 	{
 		this->bus = _bus;
+
+		Configuration::AssertConfigExists(rawConfig,"JointConfig");
 		
 		jointModel = new JointModel(rawConfig);
-		servoModel = jointModel->servoModel;
+		servoModel = &(jointModel->servoModel);
 		
 		jointStatus = JointStatus::New;		
 		init();
@@ -240,7 +245,7 @@ public:
 	void enable();
 	void disable();
 	
-	void emergencyHalt();
+	void emergencyHalt(std::string reason);
 
 	void validateMotionPlan(std::shared_ptr<JointMotionPlan> requestedMotionPlan);
 	void executeMotionPlan(std::shared_ptr<JointMotionPlan> requestedMotionPlan);

@@ -1,6 +1,5 @@
 #include "MotionController.hpp"
 
-
 using namespace std;
 using namespace ikfast2;
 using namespace ikfast;
@@ -14,6 +13,48 @@ MotionController::MotionController(vector<PredictiveJointController*> & _joints,
 
 	state = MotionControllerState::Waiting;
 }
+
+void MotionController::updateController(){
+
+	try 
+	{
+		struct timespec start,end;
+		clock_gettime(CLOCK_REALTIME, &start);
+
+		for (auto it = joints.begin(); it != joints.end(); it++)
+		{
+			(*it)->run();
+		}
+
+		if (taskQueueMutex.try_lock()) {		
+			while (!taskQueue.empty()) {
+				try 
+				{
+					taskQueue.front()();
+				}
+				catch (std::runtime_error & e)
+				{
+					cout << "Exception executing scheduled task: " << e.what() << endl;
+				}
+				taskQueue.pop();
+			}
+			taskQueueMutex.unlock();
+		}
+
+		double totalTime = MathUtil::timeSince(start);
+
+		long adjustedSleep = updatePeriod - (totalTime*1000000);
+		if (adjustedSleep > 0 && adjustedSleep <= updatePeriod)
+			usleep(adjustedSleep);
+	}
+	catch (std::runtime_error & e)
+	{
+		cout << "Exception thrown during control loop execution: " << e.what() << endl;
+		cout << "Commencing emergency shutdown." << endl;
+		shutdown();
+	}
+}
+
 
 void MotionController::setJointPosition(int jointIndex, double angle, double velocity)
 {
@@ -37,7 +78,7 @@ void MotionController::shutdown()
 	{
 		try
 		{
-			(*it)->emergencyHalt();
+			(*it)->emergencyHalt("Shutdown commanded.");
 		}
 		catch (std::runtime_error & e)
 		{
@@ -162,32 +203,6 @@ vector<shared_ptr<JointMotionPlan> > MotionController::createMotionPlans(vector<
 	return motionPlan;
 }
 
-void MotionController::updateController(){
-
-	struct timespec start,end;
-	clock_gettime(CLOCK_REALTIME, &start);
-
-	for (auto it = joints.begin(); it != joints.end(); it++)
-	{
-		(*it)->run();
-	}
-
-	if (taskQueueMutex.try_lock()) {		
-		while (!taskQueue.empty()) {
-			taskQueue.front()();
-			taskQueue.pop();
-		}
-		taskQueueMutex.unlock();
-	}
-
-	double totalTime = MathUtil::timeSince(start);
-
-	long adjustedSleep = updatePeriod - (totalTime*1000000);
-	if (adjustedSleep > 0 && adjustedSleep <= updatePeriod)
-		usleep(adjustedSleep);
-}
-
-
 void MotionController::getJointAngles(double * angles)
 {
 	int i=0;
@@ -205,7 +220,7 @@ bool MotionController::checkSolutionValid(const double * solution)
 	{
 		JointModel * jointModel = (*it)->getJointModel();
 		double angleSteps = AS5048::radiansToSteps(solution[j]);
-		if (!())
+		if (angleSteps < jointModel->minAngle || angleSteps > jointModel->maxAngle)
 			return false;
 	}
 	return true;

@@ -5,6 +5,18 @@ using namespace std;
 
 void PredictiveJointController::init()
 {
+	const double TorqueFilterTimeConstant = 0.05;
+	const double PositionMovingAverageWindowSize = 4;
+	const double SpeedMovingAverageWindowSize = 2;
+	const double SpeedFilterTimeConstant = 0.05;
+	
+	filter_lowpass_for_motorTorque =	new LowpassFilter(TorqueFilterTimeConstant);
+	filter_sma_angle_for_position =		new SimpleMovingAverage(PositionMovingAverageWindowSize);
+	filter_sma_angle_for_speed =		new SimpleMovingAverage(SpeedMovingAverageWindowSize);
+	filter_lowpass_speed =				new LowpassFilter(SpeedFilterTimeConstant);
+
+	voltageConverter = new TimeMultiplexedVoltageConverter(2);
+
 	controlMode = ControlMode::Disabled;
 	jointStatus = JointStatus::New;
 	motionPlan = NULL;
@@ -19,7 +31,7 @@ void PredictiveJointController::init()
 			"TargetAngle"		<< Configuration::CsvSeparator <<
 			"Velocity"			<< Configuration::CsvSeparator <<
 			"TargetVelocity"	<< Configuration::CsvSeparator <<
-			"StaticJointTorque" << Configuration::CsvSeparator <<
+			"DisturbanceTorque" << Configuration::CsvSeparator <<
 			"MotorTorque"		<< Configuration::CsvSeparator <<
 			"EffectiveVoltage"	<< Configuration::CsvSeparator <<
 			"TargetVoltage"		<< Configuration::CsvSeparator <<
@@ -40,14 +52,24 @@ void PredictiveJointController::prepare()
 		jointStatus = JointStatus::Ready;
 	}
 	else
+	{
+		cout << "Joint initialization failed." << endl;
 		jointStatus = JointStatus::Error;
+	}
 }
 
 void PredictiveJointController::enable()
 {
 	if (jointStatus == JointStatus::Ready)
 	{
+		std::string upName = std::string(jointModel->name);
+		std::transform(upName.begin(), upName.end(),upName.begin(), ::toupper);
+
+		setpointHoldAngle = MathUtil::offsetAngleSteps(getSensorAngleRegisterValue(),jointModel->sensorZeroPosition);
 		jointStatus = JointStatus::Active;
+		controlMode = ControlMode::Hold;
+
+		cout << "JOINT " << upName << " IS ONLINE" << endl;
 	}
 	else
 	{
@@ -100,12 +122,13 @@ int PredictiveJointController::getSensorAngleRegisterValue()
 	}
 	catch (std::runtime_error & e)
 	{
-		emergencyHalt();
+		emergencyHalt("Error reading sensor. ");
+		cout << "Exception in getSensorAngleRegisterValue(): " <<  e.what() << endl;
 	}
 	return result;
 }
 
-void PredictiveJointController::emergencyHalt()
+void PredictiveJointController::emergencyHalt(std::string reason)
 {
 	try
 	{
@@ -114,6 +137,8 @@ void PredictiveJointController::emergencyHalt()
 		bus->selectAddress(servoModel->driverAddress);
 		DRV8830::writeVoltageMode(bus, 0, DriveMode::OFF);		
 		jointStatus = JointStatus::Error;
+		cout << "Joint " << jointModel->name << " is now offline" << endl;
+		cout << "Reason for shutdown: " << reason << endl;
 	}
 	catch (std::runtime_error & e)
 	{
@@ -136,18 +161,31 @@ void PredictiveJointController::setCurrentState()
 	
 	cVelocity = computeSpeed(cRawSensorAngle);	
 	cSensorAngle = filterAngle(cRawSensorAngle); //Filter for position
-		
-	cTargetAngleDistance = AS5048::getAngleError(cSensorAngle,motionPlan->finalAngle);
-	double targetDirection = MathUtils::sgn<double>(cTargetAngleDistance);
-	
-	cTargetVelocity = std::abs(motionPlan->getSpeedAtTime(MathUtil::timeSince(planStartTime))*targetDirection;
+
+	if (controlMode == ControlMode::Hold)
+	{
+		if (motionPlan == NULL)
+			cTargetAngleDistance = AS5048::getAngleError(cSensorAngle,setpointHoldAngle);
+		else
+			cTargetAngleDistance = AS5048::getAngleError(cSensorAngle,motionPlan->finalAngle);
+
+		cTargetVelocity = 0;
+	}
+	else
+	{
+		cTargetAngleDistance = AS5048::getAngleError(cSensorAngle,motionPlan->finalAngle);
+		double targetDirection = MathUtils::sgn<double>(cTargetAngleDistance);
+		cTargetVelocity = std::abs(motionPlan->getSpeedAtTime(MathUtil::timeSince(planStartTime)))*targetDirection;
+	}
 							   
 	//Static torque resulting from current arm pose. Zero for now.
 	//TODO: Also need to consider torque that results from angular acceleration
-	cJointTorque = 0;
+	cModelJointTorque = 0;
 			
 	//Torque experienced by the motor.
 	cMotorTorque = servoModel->getTorqueForVoltageSpeed(cVoltage, cVelocity);	
+
+	cDisturbanceTorque = filter_lowpass_for_motorTorque->next(cMotorTorque - cModelJointTorque);
 }
 
 
@@ -175,12 +213,18 @@ double PredictiveJointController::computeSpeed(int rawSensorAngle)
 	return delta;
 }
 
+double PredictiveJointController::filterAngle(int rawSensorAngle)
+{
+	filter_sma_angle_for_position->add(rawSensorAngle);
+	return filter_sma_angle_for_position->avg();
+}
+
 void PredictiveJointController::performSafetyChecks()
 {
 	if (cRawSensorAngle < jointModel->minAngle || cRawSensorAngle > jointModel->maxAngle || 
 		cSensorAngle < jointModel->minAngle || cSensorAngle > jointModel->maxAngle)
 	{
-		emergencyHalt();
+		emergencyHalt("Safety check failed");
 
 		cout << "Error! Joint " << jointModel->name << " has exceeded angle limits. " << endl;
 		printState();
@@ -194,7 +238,7 @@ void PredictiveJointController::run()
 	const double MinTorqueScale = 1.2;
 	const double MinContinuousApproachDistance = 100;
 	const double MinSpeedControlDistance = 200;
-	const double MinApproachSpeed = 0.5; //LOL 
+	const double MinApproachSpeed = 10; //steps/second
 	const double SteppingModeReadDelay = 0.05; //seconds
 	const double MaxSetpointError = 5; //steps
 	const double MaxMotionForValidStep = 5;//steps
@@ -209,7 +253,7 @@ void PredictiveJointController::run()
 	
 	if (controlMode == ControlMode::Disabled)
 	{
-		emergencyHalt();
+		emergencyHalt("Joint running with control disabled");
 		return;
 	}
 
@@ -218,11 +262,13 @@ void PredictiveJointController::run()
 
 	if (!cDriverCommanded && controlMode == ControlMode::Hold) 
 	{
-		if (std::abs(cTargetAngleDistance) < MinDisturbanceError)
+		if (std::abs(cTargetAngleDistance) > MinDisturbanceError)
 		{
 			controlMode = ControlMode::PositionControl;
 			positionControlState = PositionControlState::Missed;
 		}
+		else
+			commandDriver(0,DriverMode::Brake);
 	}
 	
 	if (!cDriverCommanded && controlMode == ControlMode::SpeedControl) {
@@ -235,9 +281,7 @@ void PredictiveJointController::run()
 		else 
 		{
 			//Todo: accelerations		
-			double torqueError =  cMotorTorque - cJointTorque;
-			double expectedTorque = cJointTorque + torqueFilter->next(torqueError); //Should filtering be done here? Speed is already filtered.
-
+			double expectedTorque = cDisturbanceTorque;
 			commandDriver(servoModel->getVoltageForTorqueSpeed(expectedTorque,cTargetVelocity),DriverMode::TMVoltage);
 		}
 
@@ -430,9 +474,7 @@ void PredictiveJointController::commitCommands()
 		//This shouldn't happen. Shutdown motor to avoid damage due to unexpected condition;
 		if (!cDriverCommanded)
 		{
-			controlMode = ControlMode::Disabled;
-			DRV8830::writeVoltageMode(bus, 0, DriveMode::OFF);
-			cout << "Error! Command wasn't applied during operation. Motor shutdown." << endl;
+			emergencyHalt("Command wasn't applied during operation. Motor shutdown.");
 		}
 		else
 		{
@@ -446,21 +488,22 @@ void PredictiveJointController::commitCommands()
 	}
 	catch (std::runtime_error & e)
 	{
-		emergencyHalt();
+		emergencyHalt("Cannot commit command");
+		cout << "Error occured during commit: " << e.what();
 	}
 }
 
 
 void PredictiveJointController::logState()
 {
-	cout 		
+	csvLog 		
 		<< cTime			<< Configuration::CsvSeparator
 		<< cRawSensorAngle	<< Configuration::CsvSeparator
 		<< cSensorAngle		<< Configuration::CsvSeparator
 		<< cTargetAngle		<< Configuration::CsvSeparator
 		<< cVelocity		<< Configuration::CsvSeparator
 		<< cTargetVelocity	<< Configuration::CsvSeparator
-		<< cJointTorque		<< Configuration::CsvSeparator
+		<< cDisturbanceTorque << Configuration::CsvSeparator
 		<< cMotorTorque		<< Configuration::CsvSeparator
 		<< cVoltage			<< Configuration::CsvSeparator
 		<< cTargetVoltage	<< Configuration::CsvSeparator
@@ -479,7 +522,7 @@ void PredictiveJointController::printState()
 		<< "Velocity=" << AS5048::stepsToDegrees(cVelocity) << "deg/s, "
 		<< "TargetVelocity=" << AS5048::stepsToDegrees(cTargetVelocity) << "deg/s"  
 		<< endl
-		<< "StaticTorque=" << cJointTorque << "Nm, " 
+		<< "DisturbanceTorque=" << cDisturbanceTorque << "Nm, " 
 		<< "MotorTorque=" << cMotorTorque << "Nm, "
 		<< "MotorVoltage=" << cVoltage << " V, "
 		<< "ControlMode=" << controlMode 
@@ -516,7 +559,16 @@ double PredictiveJointController::getMaxJointVelocity()
 }
 
 
+JointModel * PredictiveJointController::getJointModel()
+{
+	return jointModel;
+}
 
+
+double PredictiveJointController::getCurrentAngle()
+{
+	return cSensorAngle;
+}
 
 
 
