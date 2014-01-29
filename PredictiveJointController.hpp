@@ -146,15 +146,14 @@ private:
 	std::ofstream csvLog;
 	
 	//Historical states	
-	LowpassFilter * filter_lowpass_for_motorTorque;
-	
+	LowpassFilter * filter_lowpass_for_motorTorque;	
 	SimpleMovingAverage * filter_sma_angle_for_position;
-
 	//LowpassFilter * filter_lowpass_angle_for_speed;
-	SimpleMovingAverage * filter_sma_angle_for_speed;
-	
+	SimpleMovingAverage * filter_sma_angle_for_speed;	
 	LowpassFilter * filter_lowpass_speed;
+
 	double lFilteredAngleForSpeed;
+	double lTime;
 	
 
 	//Motion plan
@@ -210,11 +209,11 @@ private:
 	//--Member functions--//
 	//-------------------//
 	
-	double computeSpeed(int rawSensorAngle);
+	double computeSpeed(double rawSensorAngle);
 	
 	double filterAngle(int currentAngle);	
 	void setCurrentState();
-	void executeStep(double voltage);
+	void executeStep(double voltage, int energizeLength);
 	void commandDriver(double targetVoltage, DriverMode mode);
 	void performSafetyChecks();
 	int getSensorAngleRegisterValue();

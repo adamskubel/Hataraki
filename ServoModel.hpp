@@ -32,26 +32,24 @@ class MotorModel {
 public:
 	double 
 		torqueConstant, //	(N*m)/amp
-		backEmfConstant, //	V/RPM
+		backEmfConstant, //	V/RPM -> V/(steps/second)
 		armatureResistance, //Ohms
 		stallCurrent, //Amps
 		stallTorque, // N*m
 		noLoadTorque, //Friction torque
 		noLoadCurrent,
-		noLoadSpeed; //RPM
+		noLoadSpeed; //RPM -> steps/second
 
 	MotorModel(cJSON * rawConfig) {
 		
 		Configuration::AssertConfigExists(rawConfig,"MotorModel");
 
 		torqueConstant = cJSON_GetObjectItem(rawConfig,"TorqueConstant")->valuedouble;
-		backEmfConstant = MathUtil::radPerSecondToRPM(cJSON_GetObjectItem(rawConfig,"BackEmfConstant")->valuedouble);
+		backEmfConstant = MathUtil::stepsPerSecondToRPM(cJSON_GetObjectItem(rawConfig,"BackEmfConstant")->valuedouble);
 		armatureResistance = cJSON_GetObjectItem(rawConfig,"ArmatureResistance")->valuedouble;
-		//stallCurrent = cJSON_GetObjectItem(rawConfig,"StallCurrent")->valuedouble;
 		stallTorque = cJSON_GetObjectItem(rawConfig,"StallTorque")->valuedouble;
-		//noLoadCurrent = cJSON_GetObjectItem(rawConfig,"NoLoadCurrent")->valuedouble;
 		noLoadTorque = cJSON_GetObjectItem(rawConfig,"NoLoadTorque")->valuedouble;
-		noLoadSpeed = MathUtil::rpmToRadPerSecond(cJSON_GetObjectItem(rawConfig,"NoLoadSpeed")->valuedouble);
+		noLoadSpeed = MathUtil::rpmToStepsPerSecond(cJSON_GetObjectItem(rawConfig,"NoLoadSpeed")->valuedouble);
 		
 		noLoadCurrent = noLoadTorque/torqueConstant;
 		stallCurrent = stallTorque/torqueConstant;

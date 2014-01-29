@@ -5,7 +5,7 @@
 		"FilePrefix" : "JointData_"
 	},
 	"GlobalSettings" : {
-		"MaxVoltage" : 1.2,
+		"MaxVoltage" : 1.8,
 		"MotionPlanSteps" : 1,
 		"UpdateFrequency" : 100
 	},
@@ -16,17 +16,17 @@
 			"TorqueConstant" : 5.769,
 			"BackEmfConstant" : 0.315655,
 			"ArmatureResistance" : 9.4,
-			"StallTorque" : 3,
+			"StallTorque" : 3.0,
 			"NoLoadSpeed" : 14.5,
 			"NoLoadTorque" : 0
 		},
 		{
 			"Name" : "GM12-298",
-			"TorqueConstant" : 6,
-			"BackEmfConstant" : 0.31,
+			"TorqueConstant" : 2.0,
+			"BackEmfConstant" : 0.93,
 			"ArmatureResistance" : 9.4,
-			"StallTorque" : 3,
-			"NoLoadSpeed" : 14.5,
+			"StallTorque" : 1.0,
+			"NoLoadSpeed" : 43.5,
 			"NoLoadTorque" : 0
 		}		
 	],

@@ -7,7 +7,7 @@ void PredictiveJointController::init()
 {
 	const double TorqueFilterTimeConstant = 0.05;
 	const double PositionMovingAverageWindowSize = 4;
-	const double SpeedMovingAverageWindowSize = 2;
+	const double SpeedMovingAverageWindowSize = 4;
 	const double SpeedFilterTimeConstant = 0.05;
 	
 	filter_lowpass_for_motorTorque =	new LowpassFilter(TorqueFilterTimeConstant);
@@ -17,6 +17,7 @@ void PredictiveJointController::init()
 
 	voltageConverter = new TimeMultiplexedVoltageConverter(2);
 
+	positionControlState = PositionControlState::Missed;
 	controlMode = ControlMode::Disabled;
 	jointStatus = JointStatus::New;
 	motionPlan = NULL;
@@ -26,6 +27,7 @@ void PredictiveJointController::init()
 		csvLog.open("Data_" + jointModel->name + ".csv");
 		csvLog <<
 			"Time"				<< Configuration::CsvSeparator <<
+			"JointStatus"		<< Configuration::CsvSeparator <<
 			"RawSensorAngle"	<< Configuration::CsvSeparator <<
 			"SensorAngle"		<< Configuration::CsvSeparator <<
 			"TargetAngle"		<< Configuration::CsvSeparator <<
@@ -36,10 +38,14 @@ void PredictiveJointController::init()
 			"EffectiveVoltage"	<< Configuration::CsvSeparator <<
 			"TargetVoltage"		<< Configuration::CsvSeparator <<
 			"AppliedVoltage"	<< Configuration::CsvSeparator <<
-			"ControlMode"		<< endl;
+			"ControlMode"		<< Configuration::CsvSeparator <<
+			"PositionMode"		<< endl;
 	}
 	
+	lTime = 0;
 	nVoltage = 0;
+	nTargetVoltage = 0;
+	nAppliedVoltage = 0;
 	nDriverMode = DriverMode::Coast;
 	
 	MathUtil::setNow(startTime);	
@@ -157,26 +163,32 @@ void PredictiveJointController::setCurrentState()
 		
 	cNonZeroOffsetSensorAngle = getSensorAngleRegisterValue();
 	cRawSensorAngle = MathUtil::offsetAngleSteps(cNonZeroOffsetSensorAngle,jointModel->sensorZeroPosition);
+	
+	lTime = cTime;
 	cTime = timeSince(startTime);
 	
 	cVelocity = computeSpeed(cRawSensorAngle);	
 	cSensorAngle = filterAngle(cRawSensorAngle); //Filter for position
 
+	double velocityMag;
 	if (controlMode == ControlMode::Hold)
 	{
 		if (motionPlan == NULL)
-			cTargetAngleDistance = AS5048::getAngleError(cSensorAngle,setpointHoldAngle);
+			cTargetAngle = setpointHoldAngle;
 		else
-			cTargetAngleDistance = AS5048::getAngleError(cSensorAngle,motionPlan->finalAngle);
+			cTargetAngle = motionPlan->finalAngle;
 
-		cTargetVelocity = 0;
+		velocityMag = 0;
 	}
 	else
 	{
-		cTargetAngleDistance = AS5048::getAngleError(cSensorAngle,motionPlan->finalAngle);
-		double targetDirection = MathUtils::sgn<double>(cTargetAngleDistance);
-		cTargetVelocity = std::abs(motionPlan->getSpeedAtTime(MathUtil::timeSince(planStartTime)))*targetDirection;
+		cTargetAngle = motionPlan->finalAngle;
+		velocityMag = std::abs(motionPlan->getSpeedAtTime(MathUtil::timeSince(planStartTime)));
 	}
+
+	cTargetAngleDistance = AS5048::getAngleError(cSensorAngle,cTargetAngle);
+	double targetDirection = MathUtils::sgn<double>(cTargetAngleDistance);
+	cTargetVelocity = velocityMag*targetDirection;
 							   
 	//Static torque resulting from current arm pose. Zero for now.
 	//TODO: Also need to consider torque that results from angular acceleration
@@ -197,7 +209,7 @@ void PredictiveJointController::setCurrentState()
  More investigation is needed to determine the optimal filtering strategy.
  Minimizing delay is critical to obtain smooth motion.
  */
-double PredictiveJointController::computeSpeed(int rawSensorAngle)
+double PredictiveJointController::computeSpeed(double rawSensorAngle)
 {
 	//	filter_lowpass_angle_for_speed
 	//	filter_sma_angle_for_speed
@@ -206,11 +218,14 @@ double PredictiveJointController::computeSpeed(int rawSensorAngle)
 	double filteredAngle = filter_sma_angle_for_speed->avg();
 	
 	double delta = MathUtil::subtractAngles(filteredAngle,lFilteredAngleForSpeed,MathUtil::PI_STEPS);
-	
+	lFilteredAngleForSpeed = filteredAngle;
+
 	//lowpass filter on speed
-	delta = filter_lowpass_speed->next(delta);
+	//delta = filter_lowpass_speed->next(delta);
 	
-	return delta;
+	double velocity = delta/(cTime - lTime);
+
+	return velocity;
 }
 
 double PredictiveJointController::filterAngle(int rawSensorAngle)
@@ -334,6 +349,7 @@ void PredictiveJointController::run()
 				if (std::abs(cTargetAngleDistance) < MaxSetpointError)
 				{
 					controlMode = ControlMode::Hold;
+					commandDriver(0,DriverMode::Brake);
 				}
 				else
 				{
@@ -345,16 +361,14 @@ void PredictiveJointController::run()
 		//Could transition states in above block without generating a command
 		if (!cDriverCommanded && positionControlState == PositionControlState::Missed) 
 		{
-			double targetDistance = MathUtil::subtractAngles(cTargetAngle,cSensorAngle,MathUtil::PI_STEPS);
-
-			if (std::abs(targetDistance) < MinContinuousApproachDistance)
+			if (std::abs(cTargetAngleDistance) < MinContinuousApproachDistance)
 			{
 				controlMode = ControlMode::StepControl;
-				executeStep(BaseStepVoltage*MathUtils::sgn<double>(targetDistance));
+				executeStep(BaseStepVoltage*MathUtils::sgn<double>(cTargetAngleDistance),1);
 			}
 			else
 			{
-				double minVoltage = servoModel->getVoltageForTorqueSpeed(cMotorTorque*MinTorqueScale,MathUtils::sgn<double>(targetDistance)*MinApproachSpeed);
+				double minVoltage = servoModel->getVoltageForTorqueSpeed(cMotorTorque*MinTorqueScale,MathUtils::sgn<double>(cTargetAngleDistance)*MinApproachSpeed);
 				positionControlState = PositionControlState::Approaching;										
 				commandDriver(minVoltage,DriverMode::ConstantVoltage);
 			}
@@ -363,10 +377,7 @@ void PredictiveJointController::run()
 	
 	if (!cDriverCommanded && controlMode == ControlMode::StepControl) {
 		
-		//Filter?
-		double targetDistance = MathUtil::subtractAngles(cTargetAngle,cSensorAngle,MathUtil::PI_STEPS);
-
-		if (std::abs(targetDistance) > MaxSetpointError) {
+		if (std::abs(cTargetAngleDistance) > MaxSetpointError) {
 
 			switch (steppingState)
 			{
@@ -380,30 +391,40 @@ void PredictiveJointController::run()
 			case SteppingState::Braking:
 				steppingState = SteppingState::Reading;
 				MathUtil::setNow(readDelayStart);
-				commandDriver(0,DriverMode::Brake);
+				commandDriver(0,DriverMode::Coast);
 				break;
 			case SteppingState::Reading:
 				if (MathUtil::timeSince(readDelayStart) > SteppingModeReadDelay) 
 				{
-					int stepDirection = -MathUtils::sgn<double>(targetDistance);
+					int stepDirection = MathUtils::sgn<double>(cTargetAngleDistance);
 					
 					//Overshoot, reverse direction and step again.
-					if (MathUtils::sgn<double>(targetDistance) != MathUtils::sgn<double>(stepInitialTargetDistance))
+					if (MathUtils::sgn<double>(cTargetAngleDistance) != MathUtils::sgn<double>(stepInitialTargetDistance))
 					{						
-						executeStep(BaseStepVoltage*stepDirection);
+						executeStep(BaseStepVoltage*stepDirection,1);
 					}
 					//Didn't go far enough to count as motion, or went backwards. Step again with higher voltage
-					else if ((targetDistance - stepInitialTargetDistance) < MaxMotionForValidStep*stepExpectedDirection) 
+					else if (std::abs(cTargetAngleDistance - stepInitialTargetDistance) < MaxMotionForValidStep) 
 					{
-						int vSteps = DRV8830::voltageToSteps(std::abs(stepVoltages.at(0))) + 1;
-						executeStep(vSteps*stepDirection);
+						int length = 1;
+						int vSteps = DRV8830::voltageToSteps(std::abs(stepVoltages.at(0)));
+						if (vSteps >= DRV8830::MaxVoltageStep)
+							length = 2;
+						else
+							vSteps++;
+
+						executeStep(DRV8830::stepsToVoltage(vSteps)*stepDirection,length);
 					}
 					//Didn't make it, repeat step at same voltage
 					else 
 					{
 						int vSteps = DRV8830::voltageToSteps(std::abs(stepVoltages.at(0)));
-						executeStep(DRV8830::stepsToVoltage(vSteps)*stepDirection);
+						executeStep(DRV8830::stepsToVoltage(vSteps)*stepDirection,1);
 					}
+				}
+				else
+				{
+					commandDriver(0,DriverMode::Brake);
 				}
 				break;
 			}
@@ -417,12 +438,15 @@ void PredictiveJointController::run()
 	logState();
 }
 
-void PredictiveJointController::executeStep(double voltage) 
+void PredictiveJointController::executeStep(double voltage, int energizeLength) 
 {
 	stepInitialTargetDistance = MathUtil::subtractAngles(cTargetAngle,cSensorAngle,MathUtil::PI_STEPS);
 
 	stepVoltages.clear();
-	stepVoltages.push_back(voltage);
+	
+	for (int i=0;i<energizeLength;i++)
+		stepVoltages.push_back(voltage);
+
 	stepVoltages.push_back(0);
 
 	stepStartPosition = cSensorAngle;
@@ -440,7 +464,7 @@ void PredictiveJointController::executeStep(double voltage)
 void PredictiveJointController::commandDriver(double voltage, DriverMode mode) 
 {
 	cDriverCommanded = true;
-
+	nTargetVoltage = voltage;
 	if (mode == DriverMode::TMVoltage)
 	{
 		nAppliedVoltage = voltageConverter->nextVoltage(voltage);
@@ -498,6 +522,7 @@ void PredictiveJointController::logState()
 {
 	csvLog 		
 		<< cTime			<< Configuration::CsvSeparator
+		<< jointStatus		<< Configuration::CsvSeparator
 		<< cRawSensorAngle	<< Configuration::CsvSeparator
 		<< cSensorAngle		<< Configuration::CsvSeparator
 		<< cTargetAngle		<< Configuration::CsvSeparator
@@ -509,7 +534,7 @@ void PredictiveJointController::logState()
 		<< cTargetVoltage	<< Configuration::CsvSeparator
 		<< cAppliedVoltage	<< Configuration::CsvSeparator
 		<< controlMode		<< Configuration::CsvSeparator
-		<< endl;
+		<< positionControlState << endl;
 }
 
 void PredictiveJointController::printState()

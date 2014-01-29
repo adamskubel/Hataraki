@@ -103,6 +103,15 @@ public:
 	static double radPerSecondToRPM(double radPerSecond) {
 		return (radPerSecond*60.0)/2.0*PI;
 	}
+	
+	static double rpmToStepsPerSecond(double rpm) {
+		return (rpm*2.0*PI_STEPS)/60.0;
+	}
+
+	static double stepsPerSecondToRPM(double stepsPerSecond) {
+		return (stepsPerSecond*60.0)/2.0*PI_STEPS;
+	}
+
 
 	static void addVectors(const double * v0, const double * v1, double * v01) {
 		for (int i=0;i<3;i++){

@@ -27,7 +27,7 @@ double TimeMultiplexedVoltageConverter::nextVoltage(double targetVoltage)
 	double appliedVoltage = 0;
 	double stepError = steps - std::round(steps);
 	
-	if (steps > 6.0 && std::abs(stepError) > 0.25) 
+	if (steps > 6.0 && std::abs(stepError) > 0.25 && steps < 63.0) 
 	{		
 		double upper = DRV8830::fractionalStepsToVoltage(std::ceil(steps));
 		double lower = DRV8830::fractionalStepsToVoltage(std::floor(steps));
@@ -47,10 +47,10 @@ double TimeMultiplexedVoltageConverter::nextVoltage(double targetVoltage)
 	}
 	else
 	{
-		appliedVoltage = DRV8830::getNearestVoltage(targetVoltage);
+		appliedVoltage = DRV8830::getNearestVoltage(std::abs(targetVoltage));
 	}
 
-	voltageHistory.push_back(appliedVoltage);
+	voltageHistory.push_back(appliedVoltage*sign);
 
 	if (voltageHistory.size() > maxMultiplexPeriods)
 		voltageHistory.pop_front();
@@ -60,5 +60,8 @@ double TimeMultiplexedVoltageConverter::nextVoltage(double targetVoltage)
 
 double TimeMultiplexedVoltageConverter::getAverageVoltage()
 {
-	return std::accumulate(voltageHistory.begin(), voltageHistory.end(), 0.0)/voltageHistory.size();
+	if (voltageHistory.size() > 0)
+		return std::accumulate(voltageHistory.begin(), voltageHistory.end(), 0.0)/voltageHistory.size();
+	else
+		return 0;
 }
