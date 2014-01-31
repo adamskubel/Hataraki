@@ -37,7 +37,7 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <IncludePath>C:\Users\Adam\Google Drive\Hataraki\BeagleBone\VisualStudioProjects\rapidjson\include;C:\Users\Adam\Google Drive\Hataraki\BeagleBone\VisualStudioProjects\LinuxHeaders;$(IncludePath)</IncludePath>
+    <IncludePath>$(IncludePath)</IncludePath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -75,6 +75,7 @@
     <ClCompile Include="PredictiveJointController.cpp" />
     <ClCompile Include="ServoUtil.cpp" />
     <ClCompile Include="SpeedController.cpp" />
+    <ClCompile Include="Test.cpp" />
     <ClCompile Include="TimeMultiplexedVoltageConverter.cpp" />
     <ClCompile Include="vmath.cpp" />
   </ItemGroup>

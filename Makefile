@@ -10,27 +10,35 @@ LIB_DIR_PARAMS=$(foreach l, $(LIBDIR),-L$l)
 INC=
 INC_PARAMS=$(foreach d, $(INC),-I$d)
 
-#MAINFILE=Main.cpp
-#TESTFILE=Test.cpp
-SOURCES=Main.cpp DRV8830.cpp AS5048.cpp I2CBus.cpp PredictiveJointController.cpp cJSON.cpp ikfastsolution.cpp Configuration.cpp MotionController.cpp TimeMultiplexedVoltageConverter.cpp vmath.cpp MathUtils.cpp ServoUtil.cpp 
+MAINFILE=Main.cpp
+TESTFILE=Test.cpp
+
+SOURCES=DRV8830.cpp AS5048.cpp I2CBus.cpp PredictiveJointController.cpp cJSON.cpp ikfastsolution.cpp Configuration.cpp MotionController.cpp TimeMultiplexedVoltageConverter.cpp vmath.cpp MathUtils.cpp ServoUtil.cpp 
+
+CLEAN=Main.cpp DRV8830.cpp AS5048.cpp I2CBus.cpp PredictiveJointController.cpp Configuration.cpp MotionController.cpp TimeMultiplexedVoltageConverter.cpp MathUtils.cpp ServoUtil.cpp 
+
 OBJECTS=$(SOURCES:.cpp=.o)
+CLEANOBJ=$(CLEAN:.cpp=.o)
+MAINOBJ=$(MAINFILE:.cpp=.o)
+TESTOBJ=$(TESTFILE:.cpp=.o)
 
 EXECUTABLE=BasicMotion
+TEST_EXECUTABLE=BasicMotionTests
 
 default: all
 
-all:  $(SOURCES) $(EXECUTABLE)
+all:  $(MAINFILE) $(SOURCES) $(EXECUTABLE)
 
-$(EXECUTABLE): $(OBJECTS)
-	$(CXX) $(LIB_DIR_PARAMS) $(LIB_PARAMS) -o $@ $(OBJECTS)
+$(EXECUTABLE): $(MAINOBJ) $(OBJECTS)
+	$(CXX) $(LIB_DIR_PARAMS) $(LIB_PARAMS) -o $@ $(MAINOBJ) $(OBJECTS)
 
-#test: $(SOURCES) $(EXECUTABLE)
+test: $(TESTFILE) $(SOURCES) $(TEST_EXECUTABLE)
 
-#$(EXECUTABLE): $(OBJECTS)
-#	$(CXX) $(LIB_DIR_PARAMS) $(LIB_PARAMS) -o $@ $(OBJECTS)
+$(TEST_EXECUTABLE): $(TESTOBJ) $(OBJECTS)
+	$(CXX) $(LIB_DIR_PARAMS) $(LIB_PARAMS) -o $@ $(TESTOBJ) $(OBJECTS)
 
 clean:
-	rm -f $(OBJECTS) $(EXECUTABLE)
+	rm -f $(CLEANOBJ) $(MAINOBJ) $(TESTOBJ) $(EXECUTABLE) $(TEST_EXECUTABLE)
 
 .cpp.o:
 	$(CXX) $(CXXFLAGS) $(INC_PARAMS) -c -o $@ $<

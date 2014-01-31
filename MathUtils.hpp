@@ -3,9 +3,12 @@
 
 
 #include <time.h>
+#include <math.h>
+
 #include <cmath>
 #include <limits>
-#include <math.h>
+#include <vector>
+#include <list>
 
 
 namespace MathUtils {
@@ -76,15 +79,6 @@ public:
 
 	static int offsetAngleSteps(int angle, int zeroPosition) 
 	{
-	//	int newAngle = angle - zeroPosition;
-
-	//	if (newAngle < -AS5048::PI_STEPS)
-	//		newAngle += AS5048::TAU_STEPS;
-	//	else if (newAngle > AS5048::PI_STEPS)
-	//		newAngle -= AS5048::TAU_STEPS;
-
-	//	return newAngle;
-
 		return subtractAngles(angle,zeroPosition,16384.0);
 	}
 
@@ -109,7 +103,7 @@ public:
 	}
 
 	static double stepsPerSecondToRPM(double stepsPerSecond) {
-		return (stepsPerSecond*60.0)/2.0*PI_STEPS;
+		return (stepsPerSecond*60.0)/(2.0*PI_STEPS);
 	}
 
 
@@ -141,6 +135,8 @@ public:
 		clock_gettime(CLOCK_REALTIME, &now);
 		return getTimeDelta(sinceTime,now);
 	}
+
+	static bool linearRegression(std::list<std::pair<double, double> > data, double & slope, double & intercept, double & rValue);
 
 
 };

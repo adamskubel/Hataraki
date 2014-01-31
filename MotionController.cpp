@@ -123,15 +123,8 @@ void MotionController::enableAllJoints()
 
 void MotionController::moveToPosition(Vector3d targetPosition)
 {	
-	if (state == MotionControllerState::Stepping)
-	{
-		cout << "Cannot command new movement until current motion plan completes." << endl;
-		return;
-	}
-
 	vector<MotionStep*> motionSteps;
 	bool solutionFound = buildMotionSteps(targetPosition,motionSteps);
-	std::for_each( motionSteps.begin(), motionSteps.end(),[](MotionStep * step){delete step;});
 
 	if (solutionFound) {
 	
@@ -166,6 +159,8 @@ void MotionController::moveToPosition(Vector3d targetPosition)
 	else {
 		cout << "Failed to construct motion plan for target. " << endl;
 	}
+	
+	std::for_each( motionSteps.begin(), motionSteps.end(),[](MotionStep * step){delete step;});
 }
 
 

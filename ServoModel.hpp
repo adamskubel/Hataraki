@@ -88,7 +88,13 @@ public:
 	//These functions are here because they incorporate both gearbox and motor parameters
 	double getNoLoadSpeedForVoltage(double voltage) 
 	{
-		return (voltage - motor.noLoadCurrent*motor.armatureResistance)/motor.backEmfConstant;
+		double sign = MathUtils::sgn<double>(voltage);
+		double speed = (voltage - sign*motor.noLoadCurrent*motor.armatureResistance)/motor.backEmfConstant;
+		
+		if (sign > 0)
+			return std::max<double>(speed,0);
+		else
+			return std::min<double>(0,speed);
 	}
 		
 	double getTorqueSpeedSlope() 
@@ -105,8 +111,10 @@ public:
 
 	double getVoltageForTorqueSpeed(double torque, double speed)
 	{
+		double sign = MathUtils::sgn<double>(speed);
+
 		double torqueSpeedSlope = getTorqueSpeedSlope();
-		return (speed - ((torque-motor.noLoadTorque)*torqueSpeedSlope))*motor.backEmfConstant;
+		return (speed - ((torque-(sign*motor.noLoadTorque))*torqueSpeedSlope))*motor.backEmfConstant;
 	}
 
 	double getSpeedForTorqueVoltage(double torque, double voltage)

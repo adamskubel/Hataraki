@@ -101,13 +101,6 @@ void handle(int sig) {
 	backtrace_symbols_fd(array, size, STDERR_FILENO);
 	exit(1);
 }
-//
-//void handleFatalError(string errorText, int sig) {
-//	fprintf(stderr,"Exception: %s\n",errorText.c_str());
-//	handle(sig);
-//}
-
-
 
 int main(int argc, char *argv[])
 {
@@ -151,7 +144,7 @@ int main(int argc, char *argv[])
 		cJSON * jointItem =cJSON_GetArrayItem(jointArray,i);
 
 		cout << "Adding joint with name '" << cJSON_GetObjectItem(jointItem,"Name")->valuestring<< "'" << endl;
-		PredictiveJointController * pjc = new PredictiveJointController(jointItem,bus);
+		PredictiveJointController * pjc = new PredictiveJointController(jointItem,bus, samplePeriod);
 		cout << "Done." << endl;
 		
 		controllers.push_back(pjc);
@@ -218,7 +211,7 @@ int main(int argc, char *argv[])
 					else
 					{
 						motionController->postTask([jointIndex,angle,velocity](){
-							motionController->setJointPosition(jointIndex, angle, velocity);
+							motionController->setJointPosition(jointIndex, AS5048::degreesToSteps(angle), AS5048::degreesToSteps(velocity));
 						});
 					}
 					

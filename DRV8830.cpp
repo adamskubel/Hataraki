@@ -19,9 +19,6 @@ int DRV8830::voltageToSteps(double input)
 	if (vset > DRV8830::MaxVoltageStep) 
 		vset = DRV8830::MaxVoltageStep;
 
-	//if (vset < MIN_DRIVER_VOLTAGE_STEP) //0.48V is controller lower limit
-		//vset = 0;
-		
 	return vset;
 }
 
