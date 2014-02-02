@@ -4,23 +4,38 @@
 #include <stdexcept>
 
 //Invalid input by user
-class IllegalCommandException : std::runtime_error
+class IllegalCommandException : public std::runtime_error
 {
 public:
-	IllegalCommandException(std::string message)
+	IllegalCommandException(std::string message):
+	  std::runtime_error(message)
 	{
 		
 	}
 };
 
 //Potential loss of control
-class CriticalException : std::runtime_error
+class CriticalException : public  std::runtime_error
 {
 public:
-	CriticalException(std::string message)
+	CriticalException(std::string message):
+	  std::runtime_error(message)
 	{
 		
 	}
+};
+
+
+//Configuration error
+class ConfigurationException : public std::runtime_error
+{
+public:
+	ConfigurationException(std::string message) :
+	  std::runtime_error(message)
+	{
+
+	}
+
 };
 
 

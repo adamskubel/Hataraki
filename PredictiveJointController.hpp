@@ -20,10 +20,10 @@
 #include "Configuration.hpp"
 #include "ServoModel.hpp"
 #include "SimpleMovingAverage.hpp"
-//#include "PoseDynamics.hpp"
 #include "LowpassFilter.hpp"
 #include "TimeMultiplexedVoltageConverter.hpp"
 #include "ServoUtil.hpp"
+#include "PoseDynamics.hpp"
 
 
 class MotionInterval {
@@ -97,7 +97,8 @@ enum JointStatus {
 	New,
 	Ready,
 	Active,
-	Error
+	Error,
+	Paused
 };
 
 enum ControlMode {
@@ -188,7 +189,8 @@ private:
 	double cVelocity;		
 	double cVelocityApproximationError;
 
-	double cModelJointTorque;	
+	//double cModelJointTorque;	
+	double cPredictedTorque;
 	double cMotorTorque;
 	double cDisturbanceTorque;
 	
@@ -199,6 +201,11 @@ private:
 	double cAverageVoltage;
 
 	bool cDriverCommanded;
+	int cDriverCommand;
+
+	double cSensorWriteTime;
+	double cSensorReadTime;
+	double cDriverWriteTime;
 	
 	//Next state
 	double nVoltage;
@@ -207,7 +214,7 @@ private:
 	DriverMode nDriverMode;
 	
 	//Long term states
-	timespec startTime;
+	timespec controllerStartTime;
 	PositionControlState positionControlState;
 	SpeedControlState speedControlState;
 	ControlMode controlMode;
@@ -258,26 +265,26 @@ private:
 	
 	void init();
 
+	double getMaxVoltageSteps();
+
 public:
-	PredictiveJointController (cJSON * rawConfig, I2CBus * _bus, double _samplePeriod) 
-		//: config(rawConfig)
+	PredictiveJointController (JointModel * _jointModel, I2CBus * _bus, double _samplePeriod) 
 	{
 		this->bus = _bus;
-
-		Configuration::AssertConfigExists(rawConfig,"JointConfig");
+		this->samplePeriod = _samplePeriod;
 		
-		jointModel = new JointModel(rawConfig);
+		jointModel = _jointModel;
 		servoModel = &(jointModel->servoModel);
 		
 		jointStatus = JointStatus::New;		
 		init();
-
-		this->samplePeriod = _samplePeriod;
 	}
 	
 	void prepare();
 	void enable();
 	void disable();
+	void pause();
+	void resume();
 	
 	void emergencyHalt(std::string reason);
 

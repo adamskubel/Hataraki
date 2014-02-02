@@ -15,10 +15,10 @@
 
 namespace AS5048Registers
 {
-	static int AUTOGAINCNTRL = 251;//250;
-	static int DIAGNOSTICS = 252;//251;
-	static int MAGNITUDE = 253;//252;
-	static int ANGLE = 255;//254;
+	const unsigned char AUTOGAINCNTRL = 251;//250;
+	const unsigned char DIAGNOSTICS = 252;//251;
+	const unsigned char MAGNITUDE = 253;//252;
+	const unsigned char ANGLE = 255;//254;
 }
 
 class AS5048 {

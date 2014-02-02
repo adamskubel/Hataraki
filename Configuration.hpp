@@ -8,7 +8,11 @@
 #include <iostream>
 #include <fstream>
 
+#define VMATH_NAMESPACE vmath
+#include "vmath.h"
 #include "cJSON.h"
+
+#include "Exceptions.hpp"
 
 class Configuration {
 
@@ -31,6 +35,7 @@ public:
 	static Configuration & getInstance();
 	
 	static void AssertConfigExists(cJSON * configItem,std::string configItemName);
+	static vmath::Vector3d getVectorFromJSON(cJSON * vectorObj);
 
 	cJSON * getRoot();
 
@@ -38,6 +43,8 @@ public:
 
 	cJSON * getObject(std::string childPath);
 	cJSON * getObject(cJSON * parent, std::string childPath);
+
+	
 
 
 };

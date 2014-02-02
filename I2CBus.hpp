@@ -18,10 +18,14 @@
 #include <stdexcept>
 #include <sstream>
 
+#include "SimpleMovingAverage.hpp"
+
 class I2CBus {
 
 private:
 	int file,currentAddr;
+
+	SimpleMovingAverage * sma;
 
 public:
 //	static I2CBus * getBus(string busname);
@@ -35,6 +39,8 @@ public:
 	
 	void setRegister(unsigned char regAddr, unsigned char regValue);
 	int getRegisterValue(unsigned char regAddr);		
+
+	double getAverageDataRate(); //bits per second
 
 };
 

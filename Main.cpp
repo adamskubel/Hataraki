@@ -48,6 +48,7 @@
 
 using namespace std;
 using namespace ikfast2;
+using namespace vmath;
 
 volatile bool running;
 
@@ -81,14 +82,6 @@ void printPositionForAngles(IkReal * jointAngles) {
 	cout << endl;
 }
 
-void testFK()
-{	
-	IkReal jointAngles[6] = {0,0,0,0,0,0};
-	printPositionForAngles(jointAngles);
-	IkReal jointAngles2[6] = {1,-20,0,13,88,-90};
-	printPositionForAngles(jointAngles2);
-}
-
 void handle(int sig) {
 	void *array[30];
 	size_t size;
@@ -105,64 +98,63 @@ void handle(int sig) {
 int main(int argc, char *argv[])
 {
 	double samplePeriod;
+	vector<PredictiveJointController*> controllers;
+	cJSON * globalConfig;
+	ArmModel * armModel;
+	std::string configFileName = "config.json";
+	I2CBus * bus = NULL;
+
+	running = false;
 
 	signal(SIGSEGV, handle);
-	
-	//signal(SIGINT, signal_callback_handler);
-
-	std::string configFileName = "config.json";
 
 	if (argc >= 2)
 	{
 		configFileName = std::string(argv[1]);
 	}
 
-	Configuration::getInstance().loadConfig(configFileName);
+	//Configuration
 
-	cJSON * globalConfig = cJSON_GetObjectItem(Configuration::getInstance().getRoot(),"GlobalSettings");
-	
-	samplePeriod = 1.0/cJSON_GetObjectItem(globalConfig,"UpdateFrequency")->valuedouble;
-	cout << "Operating with period of " << samplePeriod << " seconds. " <<endl;
-
-	long sleepTime = (long)(samplePeriod*1000000.0);	
-
-	DRV8830::MaxVoltageStep = DRV8830::voltageToSteps(cJSON_GetObjectItem(globalConfig,"MaxVoltage")->valuedouble);	
-	cout << "Setting maximum voltage to " << DRV8830::stepsToVoltage(DRV8830::MaxVoltageStep) << " V (Step=0x" << hex << DRV8830::MaxVoltageStep << ")" << endl;
-
-	MotionController::PlanStepCount = cJSON_GetObjectItem(globalConfig,"MotionPlanSteps")->valueint;
-	
-	cout << "Opening I2C bus... " << endl;
-	I2CBus * bus = new I2CBus("/dev/i2c-1");
-				
-	cout << "Reading joints from JSON." << endl;
-	cJSON * jointArray = cJSON_GetObjectItem(Configuration::getInstance().getRoot(),"JointDefinitions");
-	
-	vector<PredictiveJointController*> controllers;
-
-	for (int i=0;i<cJSON_GetArraySize(jointArray);i++)
+	try
 	{
-		cJSON * jointItem =cJSON_GetArrayItem(jointArray,i);
 
-		cout << "Adding joint with name '" << cJSON_GetObjectItem(jointItem,"Name")->valuestring<< "'" << endl;
-		PredictiveJointController * pjc = new PredictiveJointController(jointItem,bus, samplePeriod);
-		cout << "Done." << endl;
-		
-		controllers.push_back(pjc);
+		Configuration::getInstance().loadConfig(configFileName);
+
+		globalConfig = cJSON_GetObjectItem(Configuration::getInstance().getRoot(),"GlobalSettings");	
+
+		samplePeriod = 1.0/cJSON_GetObjectItem(globalConfig,"UpdateFrequency")->valuedouble;
+		cout << "Operating with period of " << samplePeriod << " seconds. " <<endl;
+
+		DRV8830::MaxVoltageStep = DRV8830::voltageToSteps(cJSON_GetObjectItem(globalConfig,"MaxVoltage")->valuedouble);	
+		cout << "Setting maximum voltage to " << DRV8830::stepsToVoltage(DRV8830::MaxVoltageStep) << " V (Step=0x" << hex << DRV8830::MaxVoltageStep << ")" << endl;
+
+		armModel = new ArmModel(cJSON_GetObjectItem(Configuration::getInstance().getRoot(),"ArmModel"));
+
+		cout << "Opening I2C bus... " << endl;
+		bus = new I2CBus("/dev/i2c-1");
+
+		for (int i=0;i<armModel->joints.size();i++)
+		{
+			PredictiveJointController * pjc = new PredictiveJointController(&(armModel->joints.at(i)),bus, samplePeriod);		
+			controllers.push_back(pjc);
+		}
 	}
-
-	motionController = new MotionController(controllers,sleepTime);
+	catch (ConfigurationException & confEx)
+	{
+		cout << "Configuration error: " << confEx.what() << endl;
+		cout << "Exiting." << endl;
+		return 1;
+	}
+	
+	PoseDynamics::getInstance().setArmModel(armModel);
 		
-
-	motionController->prepareAllJoints();
+	motionController = new MotionController(controllers,samplePeriod,cJSON_GetObjectItem(globalConfig,"MotionPlanSteps")->valueint);
+	
+	motionController->prepareAllJoints();		
 		
 	running = true;
-	
-	cout << "Starting joint thread" << endl;
 	std::thread jointUpdate(updateController);
-
-	//motionController->postTask([](){
-	//});
-
+	
 	try
 	{
 
@@ -189,6 +181,21 @@ int main(int argc, char *argv[])
 					motionController->postTask([](){
 						motionController->enableAllJoints();
 					});
+				}
+				else if (command.compare("enable_") == 0)
+				{
+					int jointIndex;
+					input >> jointIndex;
+
+					if (input.fail()) {
+						cout << "Invalid input. Usage: enable_ <index>" << endl;
+					}
+					else
+					{
+						motionController->postTask([jointIndex,controllers](){
+							controllers.at(jointIndex)->enable();
+						});
+					}
 				}
 				else if (command.compare("home") == 0) {
 					
@@ -221,7 +228,7 @@ int main(int argc, char *argv[])
 					cout << "Angles: ";
 					for (auto it = controllers.begin(); it != controllers.end(); it++)
 					{					
-						cout << MathUtil::radiansToDegrees((*it)->getCurrentAngle()) << " ";
+						cout << AS5048::stepsToDegrees((*it)->getCurrentAngle()) << " ";
 					}
 					cout << endl;
 				}
@@ -252,16 +259,24 @@ int main(int argc, char *argv[])
 					{					
 						angles[i] = MathUtil::degreesToRadians((*it)->getCurrentAngle());
 					}
-
-					angles[1] *= -1.0;
-					angles[3] *= -1.0;
-					angles[4] *= -1.0;
 					
 					printPositionForAngles(angles);
 				}
-				else 
+				else if (command.compare("pause") == 0)
 				{
-					cout << "Invalid entry. Valid commands are: enable, exit, home, set, list, getpos, setpos " << endl;
+					int jointIndex;
+					input >> jointIndex;
+					if (input.fail()) {
+						cout << "Usage: pause <jointIndex>" << endl;
+					} else {
+						motionController->postTask([controllers,jointIndex](){
+							controllers.at(jointIndex)->pause();
+						});
+					}
+				}
+				else
+				{
+					cout << "Invalid entry. Valid commands are: enable, exit, home, set, list, getpos, setpos, pause " << endl;
 				}
 			}
 			catch (std::runtime_error & commandException)

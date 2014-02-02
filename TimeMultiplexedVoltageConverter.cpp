@@ -1,8 +1,12 @@
 #include "TimeMultiplexedVoltageConverter.hpp"
 
-TimeMultiplexedVoltageConverter::TimeMultiplexedVoltageConverter(int _maxMultiplexingPeriods)
+TimeMultiplexedVoltageConverter::TimeMultiplexedVoltageConverter(int _maxMultiplexingPeriods, double _maxVoltage)
 {
 	this->maxMultiplexPeriods = _maxMultiplexingPeriods;
+	this->maxVoltage = DRV8830::getNearestVoltage(_maxVoltage);
+
+	if (this->maxVoltage < 0)
+		throw std::runtime_error("Maximum voltage must be >= 0");
 }
 
 void TimeMultiplexedVoltageConverter::setActualVoltage(double voltage) 
@@ -26,8 +30,10 @@ double TimeMultiplexedVoltageConverter::nextVoltage(double targetVoltage)
 	
 	double appliedVoltage = 0;
 	double stepError = steps - std::round(steps);
+
+	double maxStep = std::min((double)DRV8830::MaxVoltageStep,DRV8830::getNearestVoltage(maxVoltage));
 	
-	if (steps > 5.0 && std::abs(stepError) > 0.25 && steps < ((double)DRV8830::MaxVoltageStep)) 
+	if (steps > 5.0 && std::abs(stepError) > 0.25 && steps < maxStep) 
 	{		
 		double upper = DRV8830::fractionalStepsToVoltage(std::ceil(steps*sign));
 		double lower = DRV8830::fractionalStepsToVoltage(std::floor(steps*sign));
@@ -48,6 +54,8 @@ double TimeMultiplexedVoltageConverter::nextVoltage(double targetVoltage)
 	else
 	{
 		appliedVoltage = DRV8830::getNearestVoltage(targetVoltage);
+		if (appliedVoltage > maxVoltage) appliedVoltage = maxVoltage;
+		if (appliedVoltage < -maxVoltage) appliedVoltage = -maxVoltage;
 	}
 
 	voltageHistory.push_back(appliedVoltage);

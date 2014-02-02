@@ -13,9 +13,9 @@ INC_PARAMS=$(foreach d, $(INC),-I$d)
 MAINFILE=Main.cpp
 TESTFILE=Test.cpp
 
-SOURCES=DRV8830.cpp AS5048.cpp I2CBus.cpp PredictiveJointController.cpp cJSON.cpp ikfastsolution.cpp Configuration.cpp MotionController.cpp TimeMultiplexedVoltageConverter.cpp vmath.cpp MathUtils.cpp ServoUtil.cpp 
+SOURCES=DRV8830.cpp AS5048.cpp I2CBus.cpp PredictiveJointController.cpp cJSON.cpp ikfastsolution.cpp Configuration.cpp MotionController.cpp TimeMultiplexedVoltageConverter.cpp vmath.cpp MathUtils.cpp ServoUtil.cpp PoseDynamics.cpp
 
-CLEAN=Main.cpp DRV8830.cpp AS5048.cpp I2CBus.cpp PredictiveJointController.cpp Configuration.cpp MotionController.cpp TimeMultiplexedVoltageConverter.cpp MathUtils.cpp ServoUtil.cpp 
+CLEAN=Main.cpp DRV8830.cpp AS5048.cpp I2CBus.cpp PredictiveJointController.cpp Configuration.cpp MotionController.cpp TimeMultiplexedVoltageConverter.cpp MathUtils.cpp ServoUtil.cpp PoseDynamics.cpp
 
 OBJECTS=$(SOURCES:.cpp=.o)
 CLEANOBJ=$(CLEAN:.cpp=.o)
@@ -23,7 +23,7 @@ MAINOBJ=$(MAINFILE:.cpp=.o)
 TESTOBJ=$(TESTFILE:.cpp=.o)
 
 EXECUTABLE=BasicMotion
-TEST_EXECUTABLE=BasicMotionTests
+TEST_EXECUTABLE=TestMotion
 
 default: all
 

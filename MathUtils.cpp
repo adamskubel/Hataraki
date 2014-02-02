@@ -5,6 +5,8 @@ double MathUtil::TAU = 6.28318530718;
 
 double MathUtil::PI_STEPS = 8192;
 
+using namespace vmath;
+
 
 //int linreg(int n, const REAL x[], const REAL y[], REAL* m, REAL* b, REAL* r)
 bool MathUtil::linearRegression(std::list<std::pair<double, double> > data, double & slope, double & intercept, double & rValue)
@@ -46,4 +48,20 @@ bool MathUtil::linearRegression(std::list<std::pair<double, double> > data, doub
 	
 
 	return true; 
+}
+
+
+
+Vector3d MathUtil::projectOntoPlane(vmath::Vector4d plane,  vmath::Vector3d point) {
+
+	Vector3d planeNormal = Vector3d(plane.x,plane.y,plane.z);
+
+	double dist = point.dotProduct(planeNormal) + plane.w;
+	Vector3d proj = point - (planeNormal * dist);
+	return proj;
+}
+
+Vector4d MathUtil::constructPlane(vmath::Vector3d normal, vmath::Vector3d point)
+{
+	return vmath::Vector4d(normal.x,normal.y,normal.z,-(normal.x * point.x + normal.y * point.y + point.z * normal.z));
 }

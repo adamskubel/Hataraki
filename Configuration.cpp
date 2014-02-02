@@ -4,6 +4,7 @@ bool Configuration::CsvLoggingEnabled = false;
 std::string Configuration::CsvSeparator = ",";
 
 using namespace std;
+using namespace vmath;
 
 Configuration::Configuration()
 {	
@@ -22,6 +23,16 @@ Configuration & Configuration::getInstance()
 	return instance;
 }
 
+Vector3d Configuration::getVectorFromJSON(cJSON * vectorObj)
+{
+	if (cJSON_GetArraySize(vectorObj) != 3)
+		throw ConfigurationException("JSON vector representation requires 3 values");
+
+	return Vector3d(cJSON_GetArrayItem(vectorObj,0)->valuedouble,
+		cJSON_GetArrayItem(vectorObj,1)->valuedouble,
+		cJSON_GetArrayItem(vectorObj,2)->valuedouble);
+}
+
 cJSON * Configuration::getObject(std::string childPath)
 {
 	return getObject(root,childPath);
@@ -30,7 +41,7 @@ cJSON * Configuration::getObject(std::string childPath)
 void Configuration::AssertConfigExists(cJSON * configItem,std::string configItemName) 
 {
 	if (configItem == NULL)
-		throw std::runtime_error("Configuration error, JSON object " + configItemName + " is missing");
+		throw ConfigurationException("Configuration error, JSON object " + configItemName + " is missing");
 
 	//std::cout << "Item " << configItemName << " exists" << std::endl;
 }
@@ -132,7 +143,7 @@ void Configuration::loadConfig(std::string configFileName)
 	if (!root)
 	{		
 		cout << "Error parsing configuration. Exiting." << endl;
-		throw std::runtime_error("Invalid JSON syntax");
+		throw ConfigurationException("Invalid JSON syntax");
 	}	 
 	cout << "Done." << endl;
 					

@@ -3,14 +3,12 @@
 using namespace std;
 using namespace ikfast2;
 using namespace ikfast;
+using namespace vmath;
 
-int MotionController::PlanStepCount = 1;
-
-
-MotionController::MotionController(vector<PredictiveJointController*> & _joints, long _updatePeriod) {
+MotionController::MotionController(vector<PredictiveJointController*> & _joints, double samplePeriod, int _planStepCount) {
 	this->joints = _joints;
-	this->updatePeriod = _updatePeriod;
-
+	this->updatePeriod = (long)(samplePeriod*1000000.0); //seconds to microseconds
+	this->planStepCount = _planStepCount;
 	state = MotionControllerState::Waiting;
 }
 
@@ -21,10 +19,16 @@ void MotionController::updateController(){
 		struct timespec start,end;
 		clock_gettime(CLOCK_REALTIME, &start);
 
+		std::vector<double> jointAngles;
+
 		for (auto it = joints.begin(); it != joints.end(); it++)
 		{
 			(*it)->run();
+			jointAngles.push_back(AS5048::stepsToRadians((*it)->getCurrentAngle()));
 		}
+
+		PoseDynamics::getInstance().setJointAngles(jointAngles);
+		PoseDynamics::getInstance().update();
 
 		if (taskQueueMutex.try_lock()) {		
 			while (!taskQueue.empty()) {
@@ -40,7 +44,7 @@ void MotionController::updateController(){
 			}
 			taskQueueMutex.unlock();
 		}
-
+		
 		double totalTime = MathUtil::timeSince(start);
 
 		long adjustedSleep = updatePeriod - (totalTime*1000000);
@@ -131,7 +135,12 @@ void MotionController::moveToPosition(Vector3d targetPosition)
 		currentPlan.clear();
 		currentPlan = createMotionPlans(motionSteps);
 
-		cout << "Motion plan created: " << endl;
+		cout << "Motion plan created: ";
+		for (auto it = currentPlan.begin(); it != currentPlan.end(); it++)
+		{
+			cout << AS5048::stepsToDegrees((*it)->finalAngle) << "  ";
+		}
+		cout << endl;
 
 		cout << "Commence motion? [y]es/[a]bort :" << endl;
 
@@ -192,6 +201,7 @@ vector<shared_ptr<JointMotionPlan> > MotionController::createMotionPlans(vector<
 		{			
 			double velocity = (*it)->maxJointVelocities[i]/stepTime;
 			motionPlan.at(i)->motionIntervals.push_back(new MotionInterval(velocity,stepTime));
+			motionPlan.at(i)->finalAngle = AS5048::radiansToSteps((*it)->targetJointAngles[i]);
 		}
 	}
 
@@ -286,7 +296,7 @@ bool MotionController::getEasiestSolution(const double * currentAngles, const do
 
 bool MotionController::buildMotionSteps(double * targetPosition,vector<MotionStep*> & steps)
 {
-	int numSteps = MotionController::PlanStepCount;
+	int numSteps = planStepCount;
 
 	double currentPosition[3];
 	double rotationMatrix[9];

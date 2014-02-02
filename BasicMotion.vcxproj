@@ -84,6 +84,7 @@
     <ClInclude Include="AS5048.hpp" />
     <ClInclude Include="Configuration.hpp" />
     <ClInclude Include="DRV8830.hpp" />
+    <ClInclude Include="Exceptions.hpp" />
     <ClInclude Include="I2CBus.hpp" />
     <ClInclude Include="ikfast.h" />
     <ClInclude Include="JointLoop.hpp" />

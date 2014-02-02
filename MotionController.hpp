@@ -5,7 +5,7 @@
 #define IKFAST_HAS_LIBRARY
 #define IKFAST_NAMESPACE ikfast2
 
-#define InvertPitchJoints true
+#define InvertPitchJoints false
 
 #include <unistd.h>
 
@@ -16,6 +16,7 @@
 #include <memory>
 #include <algorithm> 
 
+#define VMATH_NAMESPACE vmath
 #include "vmath.h"
 
 #include "ikfast.h"
@@ -43,7 +44,7 @@ class MotionController {
 
 private:
 	std::vector<PredictiveJointController*> joints;
-	int numSteps, state;
+	int numSteps, state, planStepCount;
 	std::vector<std::shared_ptr<JointMotionPlan> > currentPlan;
 	std::queue<std::function<void()> > taskQueue;
 	std::mutex taskQueueMutex;
@@ -63,11 +64,11 @@ private:
 	std::vector<std::shared_ptr<JointMotionPlan> > createMotionPlans(std::vector<MotionStep*> & steps);
 
 public:
-	static int PlanStepCount;
+	
 
-	MotionController(std::vector<PredictiveJointController*> & joints, long updatePeriod);
+	MotionController(std::vector<PredictiveJointController*> & joints, double samplePeriod, int planStepCount);
 		
-	void moveToPosition(Vector3d position);
+	void moveToPosition(vmath::Vector3d position);
 	
 	void setJointPosition(int jointIndex, double angle, double velocity);
 

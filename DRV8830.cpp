@@ -126,6 +126,21 @@ int DRV8830::buildCommand(double voltageMag, int mode)
 	return command;
 }
 
+int DRV8830::buildCommand(double voltage)
+{	
+	int mode = DriveMode::FORWARD;
+
+	if (voltage > MAX_OFF_VOLTAGE) 
+		mode = DriveMode::FORWARD;
+	else if (voltage < -MAX_OFF_VOLTAGE)
+		mode = DriveMode::BACKWARD;
+
+	int command = voltageToSteps(voltage);
+	command = (command << 2) | mode;
+
+	return command;
+}
+
 
 void DRV8830::writeVoltage(I2CBus * bus, double voltage)
 {
@@ -145,6 +160,11 @@ void DRV8830::writeVoltageMode(I2CBus * bus, double voltage, int mode)
 	int command = buildCommand(voltage,mode);
 
 	unsigned char buffer[2] = {DRV8830Registers::CONTROL,command};
+	bus->writeToBus(buffer,2);
+}
 
+void DRV8830::writeCommand(I2CBus * bus,int command)
+{
+	unsigned char buffer[2] = {DRV8830Registers::CONTROL,command};
 	bus->writeToBus(buffer,2);
 }

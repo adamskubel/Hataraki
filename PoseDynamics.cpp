@@ -1,19 +1,21 @@
 #include "PoseDynamics.hpp"
 
 using namespace vmath;
+using namespace std;
 
 
-PoseDynamics::PoseDynamics()
+PoseDynamics::PoseDynamics() 
 {
 
 }
 
-void PoseDynamics::setConfiguration(cJSON * jsonConfig)
+void PoseDynamics::setArmModel(ArmModel * _armModel)
 {
-
+	this->armModel = _armModel;
 }
 
-void PoseDynamics::computeSegmentTransform(int targetJoint, const double * jointAngles, Vector3d & segmentPosition, Matrix3d & segmentRotationMatrix)
+
+void PoseDynamics::computeSegmentTransform(int targetJoint, Vector3d & segmentPosition, Matrix3d & segmentRotationMatrix)
 {
 
 	double fkAngles[JointCount];
@@ -21,17 +23,20 @@ void PoseDynamics::computeSegmentTransform(int targetJoint, const double * joint
 
 	for (int i=0;i<JointCount;i++) {
 
-		if (i > targetJoint) {
-			fkAngles[i] = 0;
-			tipDistance += armConfiguration.at(i)->length;
-		}
+		if (i > targetJoint)
+			fkAngles[i] = 0;		
 		else
 			fkAngles[i] = jointAngles[i];
+
+		if (i >= targetJoint)			
+		{
+			tipDistance += armModel->segments.at(i).boneLength;
+		}
 	}
 		
 
 	double r[9]; Vector3d translation;
-	ikfast::ComputeFk(fkAngles,translation,r);	
+	ikfast2::ComputeFk(fkAngles,translation,r);	
 	Matrix3d rotationMatrix = Matrix3d::fromRowMajorArray(r);	
 	
 		
@@ -43,65 +48,124 @@ void PoseDynamics::computeSegmentTransform(int targetJoint, const double * joint
 	segmentRotationMatrix = rotationMatrix;
 }
 
-void PoseDynamics::computeSegmentCoG(int targetJoint, const double * jointAngles, Vector3d & segmentCoG)
+void PoseDynamics::computeChildPointMass(int targetJoint, Vector3d & pointMassPosition, double & pointMassValue)
 {
-	Matrix3d segmentRotation;
-	Vector3d segmentPosition;
-
-	computeSegmentTransform(targetJoint,jointAngles,segmentPosition,segmentRotation);
-	
-	Vector3d worldCoG = segmentRotation * armConfiguration.at(targetJoint)->centerOfGravity;
-	worldCoG += segmentPosition;
-
-	segmentCoG = worldCoG;
-}
-
-Vector3d projectOntoPlane(Vector4d plane,  Vector3d point) {
-		
-	Vector3d planeNormal = Vector3d(plane.x,plane.y,plane.z);
-
-	double dist = point.dotProduct(planeNormal) + plane.w;
-	Vector3d proj = point - (planeNormal * dist);
-	return proj;
-}
-
-Vector4d constructPlane(Vector3d normal, Vector3d point)
-{
-	return Vector4d(normal.x,normal.y,normal.z,-(normal.x * point.x + normal.y * point.y + point.z * normal.z));
-}
-
-double PoseDynamics::computeTorqueOnJoint(int targetJoint, double * jointAngles)
-{
-	double totalMass = 0;
-	for (auto it = armConfiguration.begin(); it != armConfiguration.end(); it++)
+	pointMassValue = 0;
+	for (int i=targetJoint;i<JointCount;i++)
 	{
-		totalMass += (*it)->mass;
+		pointMassValue += armModel->segments.at(i).mass;
 	}
-	
-	Vector3d targetJointPosition;
-	Matrix3d targetJointRotation;
-	computeSegmentTransform(targetJoint,jointAngles,targetJointPosition,targetJointRotation);
 
-	Matrix3d inverseRotation = targetJointRotation.inverse();
-
-	Vector3d centerOfGravity;
-
-	for (int i=targetJoint;i<JointCount;i++) {
+	pointMassPosition = Vector3d(0,0,0);
+	for (int i=targetJoint;i<JointCount;i++)
+	{
+		Matrix3d segmentRotation = segmentTransforms[i].Rotation;
+		Vector3d segmentPosition = segmentTransforms[i].Translation;
 		
-		Vector3d segmentCoG;
-		computeSegmentCoG(i,jointAngles,segmentCoG);
-		centerOfGravity += segmentCoG * armConfiguration.at(i)->mass/totalMass;
+		Vector3d segmentCoG = (segmentRotation * armModel->segments.at(i).centerOfMass) + segmentPosition;
+
+		pointMassPosition += segmentCoG * (armModel->segments.at(i).mass/pointMassValue);
+	}
+}
+
+
+//Compute moment of inertia and position of each segment
+//JointControllers provide current angular velocities
+//Thus determining the angular momentum of a point mass rotating about each joint
+//There will be two sources of torque:
+// - Change of angular momentum resulting from joint angles changing
+// - Result of force applied on point mass due to gravity
+//Summing the two torque vectors provides the net torque
+//I THINK this net torque vector is then projected onto the axis of rotation to determine the relevant
+//the torque about the joint
+//Return current torque and predicted torque for a given input (or return angular momentum?)
+
+//Step 1: Compute CoG of each segment <-- done
+//Step 2: Determine angular momentum using velocities
+//Step 3: Determine torque due to forces
+
+Vector3d PoseDynamics::computeTorqueFromAngularAcceleration(int targetJoint)
+{
+	//torque = dL/dt
+	//L = r x p
+	//L = I*dP
+	//p0 = inertia * angularVelocity0
+	//p1 = inertia * angularVelocity1
+	
+	SegmentModel * segment = &(armModel->segments[targetJoint]);
+	JointModel * joint = &(armModel->joints[targetJoint]);
+		
+	Matrix3d segmentRotation = segmentTransforms[targetJoint].Rotation;
+	Vector3d segmentPosition = segmentTransforms[targetJoint].Translation;
+	double momentOfIntertia =  0;//[targetJoint];
+
+	double dT = nTime - cTime;
+	
+	Vector3d angularAcceleration = joint->axisOfRotation * (nJointVelocities.at(targetJoint) - cJointVelocities.at(targetJoint))/dT;
+	
+	Vector3d dL =  angularAcceleration * momentOfIntertia;
+	
+	return dL;
+}
+
+Vector3d PoseDynamics::computeTorqueFromForces(int targetJoint)
+{
+	//torque = r x F
+	//F = gravity vector ([0,0,-9.8]*mass)
+	//r = distance to CoG
+	
+	const Vector3d Gravity(0,0,-9.8);
+
+	Vector3d position = segmentTransforms[targetJoint].Translation;
+
+	Vector3d r = childPointMassPosition[targetJoint] - position;
+	double mass = childPointMassValue[targetJoint];
+	
+	Vector3d F = Gravity * mass;
+	
+	Vector3d torque = r.crossProduct(F);
+	return torque;
+}
+
+double PoseDynamics::computeJointTorque(int targetJoint)
+{
+	Vector3d tAccel = Vector3d(0,0,0);//computeTorqueFromAngularAcceleration(targetJoint);
+	Vector3d tGravity = computeTorqueFromForces(targetJoint);
+
+	Vector3d jointAxis = armModel->joints.at(targetJoint).axisOfRotation;
+	
+	jointAxis = segmentTransforms[targetJoint].transformVector(jointAxis);
+
+	return jointAxis.dotProduct(tAccel+tGravity);
+}
+
+void PoseDynamics::update()
+{
+	segmentTransforms.clear();
+	childPointMassPosition.clear();
+	childPointMassValue.clear();
+
+	for (int i=0;i<JointCount;i++)
+	{		
+		Matrix3d rotation;
+		Vector3d translation;
+		computeSegmentTransform(i,translation,rotation);
+		segmentTransforms.push_back(SegmentTransform(translation,rotation));
 	}
 
-	Vector3d transformedJointAxis = targetJointRotation * armConfiguration.at(targetJoint)->jointAxis;
-	Vector4d jointPlane = constructPlane(targetJointPosition,transformedJointAxis );
+	for (int i=0;i<JointCount;i++)
+	{	
+		Vector3d pointMassPosition;
+		double massValue;
 
-	Vector3d projectedCoG = projectOntoPlane(jointPlane,centerOfGravity); //Project CoG onto joint rotation plane
+		computeChildPointMass(i,pointMassPosition,massValue);
 
-	Vector3d gravityVector(0,0,-9.8);
+		childPointMassPosition.push_back(pointMassPosition);
+		childPointMassValue.push_back(massValue);
+	}
+}
 
-	double gravityScale = transformedJointAxis.crossProduct(gravityVector).length();
-
-	
-
+void PoseDynamics::setJointAngles(vector<double> _jointAngles)
+{
+	this->jointAngles = _jointAngles;
 }

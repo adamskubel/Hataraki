@@ -12,6 +12,8 @@ I2CBus::I2CBus(const char * busname)
 		ss << "Failed to open the bus. Name=" << filename << ", Error=" << strerror(errno);        
 		throw std::runtime_error(ss.str());
     }	   
+
+	sma = new SimpleMovingAverage(10);
 }
 
 void I2CBus::writeToBus(unsigned char * buf, int length)
@@ -45,4 +47,10 @@ void I2CBus::selectAddress(int addr)
 		}
 		currentAddr = addr;
 	}
+}
+
+
+double I2CBus::getAverageDataRate()
+{
+	return sma->avg();
 }

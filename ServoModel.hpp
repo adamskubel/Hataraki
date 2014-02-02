@@ -6,6 +6,9 @@
 #include "MathUtils.hpp"
 #include "AS5048.hpp"
 
+#define VMATH_NAMESPACE vmath
+#include "vmath.h"
+
 
 struct GearboxModel {
 
@@ -134,6 +137,10 @@ public:
 	double sensorZeroPosition;
 
 	std::string name;
+	
+	vmath::Vector3d axisOfRotation;
+
+	int index;
 
 	JointModel(cJSON * rawConfig) :
 		servoModel(cJSON_GetObjectItem(rawConfig,"Servo"))
@@ -145,22 +152,49 @@ public:
 		maxAngle = AS5048::degreesToSteps(cJSON_GetObjectItem(rawConfig,"MaxAngle")->valuedouble);
 		minAngle = AS5048::degreesToSteps(cJSON_GetObjectItem(rawConfig,"MinAngle")->valuedouble);
 		sensorZeroPosition = AS5048::degreesToSteps(cJSON_GetObjectItem(rawConfig,"ZeroPosition")->valuedouble);
+
+		axisOfRotation = Configuration::getVectorFromJSON(cJSON_GetObjectItem(rawConfig,"AxisOfRotation"));
 	}
 
 };
 
+//Rigid bodies connecting joints
 struct SegmentModel {
+	
+	double mass; //Kg
+	double boneLength; 
 
-
+	vmath::Vector3d centerOfMass; //Relative to joint origin	
+	
 	SegmentModel(cJSON * rawConfig) {
 		
+		mass = cJSON_GetObjectItem(rawConfig,"Mass")->valuedouble;
+		centerOfMass = Configuration::getVectorFromJSON(cJSON_GetObjectItem(rawConfig,"CenterOfMass"));
+		boneLength = cJSON_GetObjectItem(rawConfig,"BoneLength")->valuedouble;
 	}
 
 };
 
 struct ArmModel {
 	
+	std::vector<JointModel> joints;
+	std::vector<SegmentModel> segments;
 
+	ArmModel(cJSON * rawConfig) 
+	{
+		cJSON * jointArray = cJSON_GetObjectItem(rawConfig,"Joints");
+		cJSON * segmentArray = cJSON_GetObjectItem(rawConfig,"Segments");
+
+		for (int i=0;i<cJSON_GetArraySize(jointArray);i++)
+		{
+			joints.push_back(JointModel(Configuration::getInstance().getObject(cJSON_GetArrayItem(jointArray,i)->valuestring)));
+			joints.back().index = i;
+		}
+		
+		for (int i=0;i<cJSON_GetArraySize(segmentArray);i++)
+			segments.push_back(SegmentModel(Configuration::getInstance().getObject(cJSON_GetArrayItem(segmentArray,i)->valuestring)));
+		
+	}
 
 };
 

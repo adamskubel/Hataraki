@@ -16,9 +16,10 @@ private:
 	int maxMultiplexPeriods;	
 	std::list<double> voltageHistory;
 	int cycleIndex;
+	double maxVoltage;
 
 public:
-	TimeMultiplexedVoltageConverter(int maxMultiplexPeriods);
+	TimeMultiplexedVoltageConverter(int maxMultiplexPeriods, double maxVoltage);
 	
 	void setActualVoltage(double voltage);
 	double nextVoltage(double targetVoltage);

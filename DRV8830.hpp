@@ -10,10 +10,10 @@
 
 namespace DriveMode
 {
-	static int OFF = 0x00;
-	static int FORWARD = 0x01;
-	static int BACKWARD = 0x02;
-	static int BRAKE = 0x03;
+	const int OFF = 0x00;
+	const int FORWARD = 0x01;
+	const int BACKWARD = 0x02;
+	const int BRAKE = 0x03;
 }
 
 namespace DRV8830Registers
@@ -70,6 +70,9 @@ public:
 	static double getNearestVoltage(double voltage);
 
 	static int buildCommand(double voltageMagnitude, int mode);
+	static int buildCommand(double voltage);
+
+	static void writeCommand(I2CBus * bus,int command);
 
 	//static void buildVoltageDitherArray(double vTarget,int * vCmdArray, int cycleLength,int cycleCount);
 

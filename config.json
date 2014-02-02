@@ -9,23 +9,44 @@
 		"MotionPlanSteps" : 1,
 		"UpdateFrequency" : 100
 	},
+	"ArmModel" : 
+	{
+		"Joints" :
+		[
+			"JointDefinitions.Roll_0",
+			"JointDefinitions.Pitch_0",
+			"JointDefinitions.Roll_1",
+			"JointDefinitions.Pitch_1",
+			"JointDefinitions.Pitch_2",
+			"JointDefinitions.Roll_2"
+		],
+		"Segments" : 
+		[
+			"SegmentDefinitions.DefaultSegment",
+			"SegmentDefinitions.DefaultPitchArm",
+			"SegmentDefinitions.DefaultSegment",
+			"SegmentDefinitions.PitchOnlySegment",
+			"SegmentDefinitions.DefaultPitchArm",
+			"SegmentDefinitions.TipSegment"
+		]
+	},
 	"Motors" :
 	[
 		{
 			"Name" : "GM12-1000",
-			"TorqueConstant" : 5.769,
+			"TorqueConstant" : 0.565,
 			"BackEmfConstant" : 0.315655,
 			"ArmatureResistance" : 9.4,
-			"StallTorque" : 3.0,
+			"StallTorque" : 0.294,
 			"NoLoadSpeed" : 14.5,
 			"NoLoadTorque" : 0
 		},
 		{
 			"Name" : "GM12-298",
-			"TorqueConstant" : 2.0,
-			"BackEmfConstant" : 0.93,
+			"TorqueConstant" : 0.169,
+			"BackEmfConstant" : 0.105,
 			"ArmatureResistance" : 9.4,
-			"StallTorque" : 1.0,
+			"StallTorque" : 0.98,
 			"NoLoadSpeed" : 43.5,
 			"NoLoadTorque" : 0
 		}		
@@ -54,12 +75,39 @@
 			"ViscousFriction" : 0
 		}
 	],
+	"SegmentDefinitions" : [
+		{
+			"Name" : "DefaultSegment",
+			"Mass" : 0.046,
+			"BoneLength" : 0.026, 
+			"CenterOfMass" : [0.013,0.013,0]
+		},
+		{
+			"Name" : "DefaultPitchArm",
+			"Mass" : 0.004,
+			"BoneLength" : 0.0186,
+			"CenterOfMass" : [0.0093,0,0]
+		},
+		{
+			"Name" : "PitchOnlySegment",
+			"Mass" : 0.036,
+			"BoneLength" : 0.0446, 
+			"CenterOfMass" : [0.0263,0.012,0]
+		},
+		{
+			"Name" : "TipSegment",
+			"Mass" : 0.030,
+			"BoneLength" : 0.026, 
+			"CenterOfMass" : [0.013,0.008,0]
+		}
+	],	
 	"JointDefinitions" : [
 		{
 			"Name" : "Roll_0",
 			"ZeroPosition" : 285, 
 			"MinAngle" : -90,
 			"MaxAngle" : 90,
+			"AxisOfRotation" : [1,0,0],
 			"Servo" : 
 			{
 				"DriverAddress" : 100,
@@ -76,12 +124,13 @@
 			"ZeroPosition" : 30,
 			"MinAngle" : -35,
 			"MaxAngle" : 90,
+			"AxisOfRotation" : [0,-1,0],
 			"Servo" : 
 			{
 				"DriverAddress" : 101,
 				"SensorAddress" : 75,
 				"DriverDelay" : 0.0004,
-				"SensorDelay" : 0.0012,
+				"SensorDelay" : 0.0,
 				"MaxDriverVoltage" : 1.5,
 				"Motor" : "Motors.GM12-1000",
 				"Gearbox" : "Gearboxes.Ideal"
@@ -92,12 +141,13 @@
 			"ZeroPosition" : 92, 
 			"MinAngle" : -90,
 			"MaxAngle" : 90,
+			"AxisOfRotation" : [1,0,0],
 			"Servo" : 
 			{
 				"DriverAddress" : 103,
 				"SensorAddress" : 65,				
 				"DriverDelay" : 0.0004,
-				"SensorDelay" : 0.0012,
+				"SensorDelay" : 0.0,
 				"MaxDriverVoltage" : 1.5,
 				"Motor" : "Motors.GM12-1000",
 				"Gearbox" : "Gearboxes.Ideal"
@@ -108,48 +158,48 @@
 			"ZeroPosition" : 40,
 			"MinAngle" : -40,
 			"MaxAngle" : 90,
+			"AxisOfRotation" : [0,-1,0],
 			"Servo" : 
 			{
 				"DriverAddress" : 99,
 				"SensorAddress" : 66,
 				"DriverDelay" : 0.0004,
-				"SensorDelay" : 0.0012,
+				"SensorDelay" : 0.0,
 				"MaxDriverVoltage" : 1.5,
 				"Motor" : "Motors.GM12-1000",
 				"Gearbox" : "Gearboxes.Ideal"
 			}
-		}
-	],
-	"J2" : 
-	[
+		},
 		{
 			"Name" : "Pitch_2",
 			"ZeroPosition" : 325,
 			"MinAngle" : -60,
 			"MaxAngle" : 95,
+			"AxisOfRotation" : [0,-1,0],
 			"Servo" : 
 			{
 				"DriverAddress" : 104,
 				"SensorAddress" : 67,
 				"DriverDelay" : 0.0004,
-				"SensorDelay" : 0.0012,
-				"MaxDriverVoltage" : 1.5,
+				"SensorDelay" : 0.0,
+				"MaxDriverVoltage" : 1.0,
 				"Motor" : "Motors.GM12-298",
 				"Gearbox" : "Gearboxes.Ideal"
 			}
 		},
 		{
-			"Name" : "Roll_3",
+			"Name" : "Roll_2",
 			"ZeroPosition" : 145,
 			"MinAngle" : -170,
 			"MaxAngle" : 170,
+			"AxisOfRotation" : [1,0,0],
 			"Servo" : 
 			{
 				"DriverAddress" : 102,
 				"SensorAddress" : 64,
 				"DriverDelay" : 0.0004,
-				"SensorDelay" : 0.0012,
-				"MaxDriverVoltage" : 1.5,
+				"SensorDelay" : 0.0,
+				"MaxDriverVoltage" : 1.0,
 				"Motor" : "Motors.GM12-298",
 				"Gearbox" : "Gearboxes.Ideal"
 			}

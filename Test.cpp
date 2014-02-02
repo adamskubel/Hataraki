@@ -44,11 +44,42 @@
 #define VMATH_NAMESPACE vmath
 #include "vmath.h"
 
+#include "PoseDynamics.hpp"
 
 
 using namespace std;
 using namespace ikfast2;
 
+void testCsvWriteTime()
+{	
+	std::ofstream csvLog;
+	csvLog.open("TestFile.csv");
+	timespec start;
+	MathUtil::setNow(start);
+	for (int i=0;i<100;i++)
+	{
+		csvLog <<
+			"Time"				<< Configuration::CsvSeparator <<
+			"JointStatus"		<< Configuration::CsvSeparator <<
+			"RawSensorAngle"	<< Configuration::CsvSeparator <<
+			"SensorAngle"		<< Configuration::CsvSeparator <<
+			"TargetAngle"		<< Configuration::CsvSeparator <<
+			"Velocity"			<< Configuration::CsvSeparator <<
+			"VelocityR2"		<< Configuration::CsvSeparator << 
+			"TargetVelocity"	<< Configuration::CsvSeparator <<
+			"DisturbanceTorque" << Configuration::CsvSeparator <<
+			"MotorTorque"		<< Configuration::CsvSeparator <<
+			"EffectiveVoltage"	<< Configuration::CsvSeparator <<
+			"AverageVoltaged"	<< Configuration::CsvSeparator <<
+			"AppliedVoltage"	<< Configuration::CsvSeparator <<
+			"ControlMode"		<< Configuration::CsvSeparator <<
+			"SecondaryState"	<< Configuration::CsvSeparator <<
+			"SensorWriteTime"	<< Configuration::CsvSeparator <<
+			"SensorReadTime"	<< Configuration::CsvSeparator <<
+			"DriverWriteTime"	<< Configuration::CsvSeparator << endl;
+	}
+	cout << "Average write time = " << MathUtil::timeSince(start)*10.0 << " ms." << endl;
+}
 
 void testServoModel(ServoModel * sm)
 {	
@@ -78,6 +109,93 @@ void testServoModel(ServoModel * sm)
 	cout << "T=" << torque << ", S=-1000, V=" << sm->getVoltageForTorqueSpeed(torque,-1000) << endl;
 }
 
+void testArmModel(ArmModel * armModel)
+{
+	for (int i=0;i<6;i++)
+	{
+		SegmentModel * segment = &(armModel->segments[i]);
+		JointModel * joint = &(armModel->joints[i]);
+
+		cout << "Segment[" << i << "]: Mass = " << segment->mass << endl;
+		cout << "Joint[" << i << "]: Axis = " << joint->axisOfRotation.toString() << endl;
+		cout << endl;
+	}
+}
+
+void testPoseDynamics(ArmModel * armModel, double * angles)
+{
+	PoseDynamics::getInstance().setArmModel(armModel);
+		
+	vector<double> jointAngles;
+	for (int i=0;i<6;i++)
+	{
+		jointAngles.push_back(MathUtil::degreesToRadians(angles[i]));
+	}
+
+	PoseDynamics::getInstance().setJointAngles(jointAngles);
+
+	timespec startTime;
+	MathUtil::setNow(startTime);
+
+	PoseDynamics::getInstance().update();
+
+	cout << "Update took " << MathUtil::timeSince(startTime)*1000.0 << " ms." << endl;
+	
+	MathUtil::setNow(startTime);
+
+	vector<double> torques;
+	for (int i=0;i<6;i++)
+	{
+		torques.push_back(PoseDynamics::getInstance().computeJointTorque(i));
+	}
+	cout << "All computes took " << MathUtil::timeSince(startTime)*1000.0 << " ms." << endl;
+
+	for (int i=0;i<6;i++)
+	{
+		//cout << "Angle       [" << i << "]\t= " << MathUtil::radiansToDegrees(PoseDynamics::getInstance().jointAngles[i]) << endl;
+		cout << "Torque      [" << i << "]\t= " << torques[i] << endl;
+		//cout << "ChildMass   [" << i << "]\t= " << PoseDynamics::getInstance().childPointMassValue[i] << endl;
+		//cout << "ChildMassPos[" << i << "]\t= " << PoseDynamics::getInstance().childPointMassPosition[i].toString() << endl;
+		//cout << "SegmentPos  [" << i << "]\t= " << PoseDynamics::getInstance().segmentTransforms[i].Translation.toString() << endl;
+		cout << endl;
+	}
+
+
+
+	cout << endl;
+}
+
+
+void printPositionForAngles(double * jointAngles) {
+	
+	double radAngles[6];
+
+	for (int i=0;i<6;i++)
+	{
+		radAngles[i] = MathUtil::degreesToRadians(jointAngles[i]);
+	}
+
+	IkReal translationMatrix[3];
+	IkReal rotationMatrix[9];
+	
+	ikfast2::ComputeFk(radAngles,translationMatrix,rotationMatrix);
+	
+	cout << "Endpoint position is " << translationMatrix[0]*100.0 << "," << translationMatrix[1]*100.0 << "," << translationMatrix[2]*100.0 <<endl;
+	cout << "Rotation matrix is: ";
+	for (int i=0;i<9;i++)
+	{
+		cout << rotationMatrix[i] << " ";
+	}
+	cout << endl;
+}
+
+void testFK()
+{	
+	IkReal jointAngles[6] = {0,0,0,0,0,0};
+	printPositionForAngles(jointAngles);
+	IkReal jointAngles2[6] = {1,20,0,13,88,90};
+	printPositionForAngles(jointAngles2);
+}
 
 void handle(int sig) {
 	void *array[30];
@@ -111,21 +229,31 @@ int main(int argc, char *argv[])
 	Configuration::getInstance().loadConfig(configFileName);
 
 	cJSON * globalConfig = cJSON_GetObjectItem(Configuration::getInstance().getRoot(),"GlobalSettings");	
-	DRV8830::MaxVoltageStep = DRV8830::voltageToSteps(cJSON_GetObjectItem(globalConfig,"MaxVoltage")->valuedouble);	
-	MotionController::PlanStepCount = cJSON_GetObjectItem(globalConfig,"MotionPlanSteps")->valueint;
-	
+	DRV8830::MaxVoltageStep = DRV8830::voltageToSteps(cJSON_GetObjectItem(globalConfig,"MaxVoltage")->valuedouble);		
 	cJSON * jointArray = cJSON_GetObjectItem(Configuration::getInstance().getRoot(),"JointDefinitions");
 	
+	ArmModel * armModel = new ArmModel(cJSON_GetObjectItem(Configuration::getInstance().getRoot(),"ArmModel"));
+
 	vector<PredictiveJointController*> controllers;
 
-	for (int i=0;i<cJSON_GetArraySize(jointArray);i++)
+	for (int i=0;i<armModel->joints.size();i++)
 	{
-		cJSON * jointItem =cJSON_GetArrayItem(jointArray,i);
-		cout << "Adding joint with name '" << cJSON_GetObjectItem(jointItem,"Name")->valuestring<< "'" << endl;
-		PredictiveJointController * pjc = new PredictiveJointController(jointItem,NULL,0.01);		
+		PredictiveJointController * pjc = new PredictiveJointController(&(armModel->joints.at(i)),NULL, 0.01);	
 		controllers.push_back(pjc);
 	}
 
 	testServoModel(&(controllers.at(0)->getJointModel()->servoModel));
+	testArmModel(armModel);
+
+	double angles[] = {0,0.1,0,0.1,0.1,0};
+	testPoseDynamics(armModel,angles);
+
+
+	double angles2[] = {0,15,0,15,15,0};
+	testPoseDynamics(armModel,angles2);
+
+	testCsvWriteTime();
+	
+	testFK();
 	
 }

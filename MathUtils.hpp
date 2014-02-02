@@ -10,6 +10,9 @@
 #include <vector>
 #include <list>
 
+#define VMATH_NAMESPACE vmath
+#include "vmath.h"
+
 
 namespace MathUtils {
 	
@@ -137,7 +140,10 @@ public:
 	}
 
 	static bool linearRegression(std::list<std::pair<double, double> > data, double & slope, double & intercept, double & rValue);
+	
+	static vmath::Vector3d projectOntoPlane(vmath::Vector4d plane,  vmath::Vector3d point);
 
+	static vmath::Vector4d constructPlane(vmath::Vector3d normal, vmath::Vector3d point);
 
 };
 
