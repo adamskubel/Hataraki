@@ -34,21 +34,25 @@
 	[
 		{
 			"Name" : "GM12-1000",
-			"TorqueConstant" : 0.565,
+			"TorqueConstant2" : 0.565,
+			"TorqueConstant" : 1.328,
 			"BackEmfConstant" : 0.315655,
 			"ArmatureResistance" : 9.4,
-			"StallTorque" : 0.294,
+			"StallTorque" : 0.0,
 			"NoLoadSpeed" : 14.5,
-			"NoLoadTorque" : 0
+			"NoLoadTorque" : 0.0,
+			"NoLoadCurrent" : 0.020
 		},
 		{
 			"Name" : "GM12-298",
-			"TorqueConstant" : 0.169,
+			"TorqueConstant2" : 0.169,
+			"TorqueConstant" : 0.412,
 			"BackEmfConstant" : 0.105,
 			"ArmatureResistance" : 9.4,
-			"StallTorque" : 0.98,
+			"StallTorque" : 0.0,
 			"NoLoadSpeed" : 43.5,
-			"NoLoadTorque" : 0
+			"NoLoadTorque" : 0.0,
+			"NoLoadCurrent" : 0.020
 		}		
 	],
 	"Gearboxes" : 
@@ -105,8 +109,8 @@
 		{
 			"Name" : "Roll_0",
 			"ZeroPosition" : 285, 
-			"MinAngle" : -90,
-			"MaxAngle" : 90,
+			"MinAngle" : -100,
+			"MaxAngle" : 100,
 			"AxisOfRotation" : [1,0,0],
 			"Servo" : 
 			{
@@ -114,7 +118,8 @@
 				"SensorAddress" : 68,
 				"DriverDelay" : 0.0004,
 				"SensorDelay" : 0.0012,
-				"MaxDriverVoltage" : 1.5,
+				"MaxDriverVoltage" : 3.6,
+				"FrictionTorque" : 0.02,
 				"Motor" : "Motors.GM12-1000",
 				"Gearbox" : "Gearboxes.Ideal"
 			}
@@ -131,7 +136,8 @@
 				"SensorAddress" : 75,
 				"DriverDelay" : 0.0004,
 				"SensorDelay" : 0.0,
-				"MaxDriverVoltage" : 1.5,
+				"MaxDriverVoltage" : 3.6,
+				"FrictionTorque" : 0.02,
 				"Motor" : "Motors.GM12-1000",
 				"Gearbox" : "Gearboxes.Ideal"
 			}
@@ -148,7 +154,8 @@
 				"SensorAddress" : 65,				
 				"DriverDelay" : 0.0004,
 				"SensorDelay" : 0.0,
-				"MaxDriverVoltage" : 1.5,
+				"MaxDriverVoltage" : 3.6,
+				"FrictionTorque" : 0.02,
 				"Motor" : "Motors.GM12-1000",
 				"Gearbox" : "Gearboxes.Ideal"
 			}
@@ -165,7 +172,8 @@
 				"SensorAddress" : 66,
 				"DriverDelay" : 0.0004,
 				"SensorDelay" : 0.0,
-				"MaxDriverVoltage" : 1.5,
+				"MaxDriverVoltage" : 3.6,
+				"FrictionTorque" : 0.02,
 				"Motor" : "Motors.GM12-1000",
 				"Gearbox" : "Gearboxes.Ideal"
 			}
@@ -183,6 +191,7 @@
 				"DriverDelay" : 0.0004,
 				"SensorDelay" : 0.0,
 				"MaxDriverVoltage" : 1.0,
+				"FrictionTorque" : 0.02,
 				"Motor" : "Motors.GM12-298",
 				"Gearbox" : "Gearboxes.Ideal"
 			}
@@ -200,6 +209,7 @@
 				"DriverDelay" : 0.0004,
 				"SensorDelay" : 0.0,
 				"MaxDriverVoltage" : 1.0,
+				"FrictionTorque" : 0.02,
 				"Motor" : "Motors.GM12-298",
 				"Gearbox" : "Gearboxes.Ideal"
 			}

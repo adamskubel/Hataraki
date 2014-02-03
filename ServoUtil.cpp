@@ -20,7 +20,7 @@ bool ServoUtils::validateAndPrintJointFunction(I2CBus * bus, JointModel * joint)
 	try
 	{
 		int rawAngle = AS5048::getSensorAngleSteps(bus);
-		int angle = MathUtil::offsetAngleSteps(rawAngle,joint->sensorZeroPosition);
+		int angle = MathUtil::subtractAngles(rawAngle,joint->sensorZeroPosition,AS5048::PI_STEPS);
 		unsigned char diagnosticFlags = AS5048::getDiagnosticFlags(bus);
 		unsigned char agc = AS5048::getAutoGainValue(bus);
 		

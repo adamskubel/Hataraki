@@ -80,6 +80,10 @@ public:
 			}
 			intervalStart = intervalEnd;
 		}
+		if (motionIntervals.size() > 0)
+		{
+			return motionIntervals.at(0)->endSpeed;
+		}
 		return 0;
 	}
 
@@ -189,10 +193,9 @@ private:
 	double cVelocity;		
 	double cVelocityApproximationError;
 
-	//double cModelJointTorque;	
+	double cStaticModelTorque;	
 	double cPredictedTorque;
 	double cMotorTorque;
-	double cDisturbanceTorque;
 	
 	double cVoltage;
 	DriverMode cDriverMode;
@@ -219,10 +222,14 @@ private:
 	SpeedControlState speedControlState;
 	ControlMode controlMode;
 
+	//Torque estimation
+	double stableTorqueEstimate;
+	bool isTorqueEstimateValid;
+
 	//Speed control states
 	double speedControlMeasureVoltage;
-	double speedControlStableTorque;
 	timespec speedControlMeasureStart;
+	
 
 	//Postion control states
 	double setpointHoldAngle;
@@ -253,6 +260,7 @@ private:
 	void doStepControl();
 	
 	void setCurrentState();
+	void setTargetState();
 	void executeStep(double voltage, int energizeLength);
 	void commandDriver(double targetVoltage, DriverMode mode);
 	void performSafetyChecks();
@@ -266,6 +274,8 @@ private:
 	void init();
 
 	double getMaxVoltageSteps();
+
+	double getStableTorqueEstimate();
 
 public:
 	PredictiveJointController (JointModel * _jointModel, I2CBus * _bus, double _samplePeriod) 

@@ -51,10 +51,12 @@ public:
 		backEmfConstant = MathUtil::stepsPerSecondToRPM(cJSON_GetObjectItem(rawConfig,"BackEmfConstant")->valuedouble);
 		armatureResistance = cJSON_GetObjectItem(rawConfig,"ArmatureResistance")->valuedouble;
 		stallTorque = cJSON_GetObjectItem(rawConfig,"StallTorque")->valuedouble;
-		noLoadTorque = cJSON_GetObjectItem(rawConfig,"NoLoadTorque")->valuedouble;
-		noLoadSpeed = MathUtil::rpmToStepsPerSecond(cJSON_GetObjectItem(rawConfig,"NoLoadSpeed")->valuedouble);
+		//noLoadTorque = cJSON_GetObjectItem(rawConfig,"NoLoadTorque")->valuedouble;
+		noLoadSpeed = MathUtil::rpmToStepsPerSecond(cJSON_GetObjectItem(rawConfig,"NoLoadSpeed")->valuedouble);		
+		noLoadCurrent = cJSON_GetObjectItem(rawConfig,"NoLoadCurrent")->valuedouble;
 		
-		noLoadCurrent = noLoadTorque/torqueConstant;
+		noLoadTorque = torqueConstant * noLoadCurrent;
+
 		stallCurrent = stallTorque/torqueConstant;
 	}
 	
@@ -74,7 +76,8 @@ public:
 	int driverAddress;
 	int sensorAddress;
 
-	
+	double frictionTorque;
+		
 	ServoModel(cJSON * rawConfig) :
 		gearbox(Configuration::getInstance().getObject(cJSON_GetObjectItem(rawConfig,"Gearbox")->valuestring)),
 		motor(Configuration::getInstance().getObject(cJSON_GetObjectItem(rawConfig,"Motor")->valuestring))
@@ -86,6 +89,7 @@ public:
 		driverDelay = cJSON_GetObjectItem(rawConfig,"DriverDelay")->valuedouble;
 		sensorDelay = cJSON_GetObjectItem(rawConfig,"SensorDelay")->valuedouble;
 		maxDriverVoltage = cJSON_GetObjectItem(rawConfig,"MaxDriverVoltage")->valuedouble;
+		frictionTorque = cJSON_GetObjectItem(rawConfig,"FrictionTorque")->valuedouble;
 	}
 
 	//These functions are here because they incorporate both gearbox and motor parameters
@@ -108,13 +112,15 @@ public:
 
 	double getTorqueForVoltageSpeed(double voltage, double speed)
 	{
+		double sign = MathUtils::sgn<double>(speed);
+
 		double torqueSpeedSlope = getTorqueSpeedSlope();
-		return ((speed - getNoLoadSpeedForVoltage(voltage))/torqueSpeedSlope) + motor.noLoadTorque;
+		return ((speed - getNoLoadSpeedForVoltage(voltage))/torqueSpeedSlope) + (sign*motor.noLoadTorque);
 	}
 
 	double getVoltageForTorqueSpeed(double torque, double speed)
 	{
-		double sign = MathUtils::sgn<double>(speed);
+		double sign = 0;//MathUtils::sgn<double>(speed);
 
 		double torqueSpeedSlope = getTorqueSpeedSlope();
 		return (speed - ((torque-(sign*motor.noLoadTorque))*torqueSpeedSlope))*motor.backEmfConstant;
@@ -122,8 +128,10 @@ public:
 
 	double getSpeedForTorqueVoltage(double torque, double voltage)
 	{		
+		double sign = MathUtils::sgn<double>(torque);
+
 		double torqueSpeedSlope = getTorqueSpeedSlope();
-		return getNoLoadSpeedForVoltage(voltage) + torqueSpeedSlope*torque;
+		return getNoLoadSpeedForVoltage(voltage) + torqueSpeedSlope*(torque-(sign*motor.noLoadTorque));
 	}
 
 };

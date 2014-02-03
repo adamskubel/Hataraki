@@ -79,12 +79,6 @@ public:
 			return difference;
 	}
 
-
-	static int offsetAngleSteps(int angle, int zeroPosition) 
-	{
-		return subtractAngles(angle,zeroPosition,16384.0);
-	}
-
 	static double degreesToRadians(double angleDeg){
 		return angleDeg*(PI/180.0);
 	}

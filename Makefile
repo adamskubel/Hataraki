@@ -1,5 +1,5 @@
 CXX=g++
-CXXFLAGS=-w -g -std=c++0x 
+CXXFLAGS=-g -std=c++0x 
 	
 LIB=rt
 LIB_PARAMS=$(foreach d,$(LIB),-l$d)
@@ -30,7 +30,7 @@ default: all
 all:  $(MAINFILE) $(SOURCES) $(EXECUTABLE)
 
 $(EXECUTABLE): $(MAINOBJ) $(OBJECTS)
-	$(CXX) $(LIB_DIR_PARAMS) $(LIB_PARAMS) -o $@ $(MAINOBJ) $(OBJECTS)
+	$(CXX) -g $(LIB_DIR_PARAMS) $(LIB_PARAMS) -o $@ $(MAINOBJ) $(OBJECTS)
 
 test: $(TESTFILE) $(SOURCES) $(TEST_EXECUTABLE)
 

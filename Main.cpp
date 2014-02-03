@@ -178,7 +178,7 @@ int main(int argc, char *argv[])
 				}
 				else if (command.compare("enable") == 0)
 				{
-					motionController->postTask([](){
+					motionController->postTask([motionController](){
 						motionController->enableAllJoints();
 					});
 				}
@@ -240,15 +240,15 @@ int main(int argc, char *argv[])
 					input >> targetPosition.y;
 					input >> targetPosition.z;
 					
-					targetPosition = targetPosition * 100.0;
+					targetPosition = targetPosition / 100.0;
 					
 
 					if (input.fail()) {
 						cout << "Usage: planto <x>cm <y>cm <z>cm" << endl;
 					} else {
-						motionController->postTask([targetPosition](){
-							motionController->moveToPosition(targetPosition);
-						});
+						//motionController->postTask([targetPosition](){
+						motionController->moveToPosition(targetPosition);
+						//});
 					}
 				}
 				else if (command.compare("getpos") == 0) {

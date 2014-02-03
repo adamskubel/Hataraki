@@ -141,7 +141,11 @@ void MotionController::moveToPosition(Vector3d targetPosition)
 			cout << AS5048::stepsToDegrees((*it)->finalAngle) << "  ";
 		}
 		cout << endl;
-
+		for (auto it = currentPlan.begin(); it != currentPlan.end(); it++)
+		{
+			cout << AS5048::stepsToDegrees((*it)->getSpeedAtTime(0)) << "  ";
+		}
+		cout << endl;
 		cout << "Commence motion? [y]es/[a]bort :" << endl;
 
 		string strIn;
@@ -149,6 +153,8 @@ void MotionController::moveToPosition(Vector3d targetPosition)
 		
 		if (strIn.compare("y") == 0) {
 			
+			cout << "Executing plan" << endl;
+
 			for (int i=0;i<6;i++)
 			{
 				joints.at(i)->validateMotionPlan(currentPlan.at(i));
@@ -193,13 +199,13 @@ vector<shared_ptr<JointMotionPlan> > MotionController::createMotionPlans(vector<
 		double stepTime = 0;
 		for (int i=0;i<6;i++) 
 		{			
-			double jointTime = std::abs((*it)->maxJointVelocities[i] / joints.at(i)->getMaxJointVelocity());
+			double jointTime = AS5048::radiansToSteps(std::abs((*it)->maxJointVelocities[i])) / joints.at(i)->getMaxJointVelocity();
 			stepTime  = std::max(stepTime ,jointTime);
 		}
 
 		for (int i=0;i<6;i++) 
 		{			
-			double velocity = (*it)->maxJointVelocities[i]/stepTime;
+			double velocity =  AS5048::radiansToSteps((*it)->maxJointVelocities[i]/stepTime);
 			motionPlan.at(i)->motionIntervals.push_back(new MotionInterval(velocity,stepTime));
 			motionPlan.at(i)->finalAngle = AS5048::radiansToSteps((*it)->targetJointAngles[i]);
 		}
@@ -213,7 +219,7 @@ void MotionController::getJointAngles(double * angles)
 	int i=0;
 	for (auto it = joints.begin(); it != joints.end(); it++,i++)
 	{					
-		angles[i] = MathUtil::degreesToRadians((*it)->getCurrentAngle());
+		angles[i] = AS5048::stepsToRadians((*it)->getCurrentAngle());
 	}
 }
 
@@ -253,7 +259,7 @@ double MotionController::calculateMotionEffort(const double * currentSolution, c
 
 bool MotionController::getEasiestSolution(const double * currentAngles, const double * targetPosition, double * result) {
 
-	double targetRotation[9] = {0,0,-1, 0,1,0, 1,0,0}; //-90 about Y
+	double targetRotation[9] = {0,0,1, 0,1,0, -1,0,0}; //+90 about Y
 
 	IkSolutionList<IkReal> solutions;
 	ComputeIk(targetPosition,targetRotation,NULL, solutions);
@@ -266,14 +272,6 @@ bool MotionController::getEasiestSolution(const double * currentAngles, const do
 		double solution[6];
 
 		solutions.GetSolution(i).GetSolution(solution,NULL);
-
-		//Convert to robot space
-		if (InvertPitchJoints) {
-			//Invert pitch joint angles
-			solution[1] *= -1.0;
-			solution[3] *= -1.0;
-			solution[4] *= -1.0;
-		}
 
 		double score = calculateMotionEffort(currentAngles,solution);
 
@@ -307,14 +305,6 @@ bool MotionController::buildMotionSteps(double * targetPosition,vector<MotionSte
 	//Store robot space angles
 	double lastAngles[6];
 	std::copy(std::begin(jointAngles), std::end(jointAngles), std::begin(lastAngles));
-
-	//Convert to IK space for FK calculation
-	if (InvertPitchJoints) {
-		//Invert pitch joint angles
-		jointAngles[1] *= -1.0;
-		jointAngles[3] *= -1.0;
-		jointAngles[4] *= -1.0;
-	}
 
 	ComputeFk(jointAngles,currentPosition,rotationMatrix);
 
