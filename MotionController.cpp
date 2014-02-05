@@ -1,5 +1,7 @@
 #include "MotionController.hpp"
 
+#include "TimeUtil.hpp"
+
 using namespace std;
 using namespace ikfast2;
 using namespace ikfast;
@@ -16,20 +18,25 @@ void MotionController::updateController(){
 
 	try 
 	{
-		struct timespec start,end;
-		clock_gettime(CLOCK_REALTIME, &start);
+		timespec start, step;
+		TimeUtil::setNow(start);
 
 		std::vector<double> jointAngles;
 
 		for (auto it = joints.begin(); it != joints.end(); it++)
 		{
+			TimeUtil::setNow(step);
 			(*it)->run();
 			jointAngles.push_back(AS5048::stepsToRadians((*it)->getCurrentAngle()));
+			TimeUtil::assertTime(step,"Joint " + (*it)->getJointModel()->name + " update");
 		}
 
+		TimeUtil::setNow(step);
 		PoseDynamics::getInstance().setJointAngles(jointAngles);
 		PoseDynamics::getInstance().update();
-
+		TimeUtil::assertTime(step,"Pose dynamics update");
+				
+		TimeUtil::setNow(step);
 		if (taskQueueMutex.try_lock()) {		
 			while (!taskQueue.empty()) {
 				try 
@@ -44,9 +51,9 @@ void MotionController::updateController(){
 			}
 			taskQueueMutex.unlock();
 		}
+		TimeUtil::assertTime(step,"Task execution");
 		
 		double totalTime = MathUtil::timeSince(start);
-
 		long adjustedSleep = updatePeriod - (totalTime*1000000);
 		if (adjustedSleep > 0 && adjustedSleep <= updatePeriod)
 			usleep(adjustedSleep);

@@ -63,6 +63,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="AS5048.cpp" />
+    <ClCompile Include="AsyncLogger.cpp" />
     <ClCompile Include="Configuration.cpp" />
     <ClCompile Include="DRV8830.cpp" />
     <ClCompile Include="I2CBus.cpp" />
@@ -77,11 +78,13 @@
     <ClCompile Include="SpeedController.cpp" />
     <ClCompile Include="Test.cpp" />
     <ClCompile Include="TimeMultiplexedVoltageConverter.cpp" />
+    <ClCompile Include="TimeUtil.cpp" />
     <ClCompile Include="vmath.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AngleUtil.hpp" />
     <ClInclude Include="AS5048.hpp" />
+    <ClInclude Include="AsyncLogger.hpp" />
     <ClInclude Include="Configuration.hpp" />
     <ClInclude Include="DRV8830.hpp" />
     <ClInclude Include="Exceptions.hpp" />
@@ -98,6 +101,7 @@
     <ClInclude Include="SimpleMovingAverage.hpp" />
     <ClInclude Include="SpeedController.hpp" />
     <ClInclude Include="TimeMultiplexedVoltageConverter.hpp" />
+    <ClInclude Include="TimeUtil.hpp" />
     <ClInclude Include="vmath.h" />
   </ItemGroup>
   <ItemGroup>

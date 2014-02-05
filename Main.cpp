@@ -40,6 +40,7 @@
 #include "Configuration.hpp"
 #include "MotionController.hpp"
 #include "MathUtils.hpp"
+#include "AsyncLogger.hpp"
 
 #define VMATH_NAMESPACE vmath
 #include "vmath.h"
@@ -152,6 +153,8 @@ int main(int argc, char *argv[])
 	
 	motionController->prepareAllJoints();		
 		
+	AsyncLogger::getInstance().startThread();
+
 	running = true;
 	std::thread jointUpdate(updateController);
 	
@@ -295,4 +298,6 @@ int main(int argc, char *argv[])
 	cout << "Done." << endl;
 	
 	motionController->shutdown();	
+		
+	AsyncLogger::getInstance().joinThread();
 }

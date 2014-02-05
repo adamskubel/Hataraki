@@ -24,6 +24,8 @@
 #include "TimeMultiplexedVoltageConverter.hpp"
 #include "ServoUtil.hpp"
 #include "PoseDynamics.hpp"
+#include "TimeUtil.hpp"
+#include "AsyncLogger.hpp"
 
 
 class MotionInterval {
@@ -158,7 +160,8 @@ private:
 
 	TimeMultiplexedVoltageConverter * voltageConverter;
 	
-	std::ofstream csvLog;
+	//std::ofstream csvLog;
+	std::string logfileName;
 	
 	//Historical states	
 	LowpassFilter * filter_lowpass_for_motorTorque;	
@@ -177,7 +180,7 @@ private:
 
 	//Motion plan
 	std::shared_ptr<JointMotionPlan> motionPlan;
-	timespec planStartTime;
+	timespec planStartTime, enableTime;
 	
 	//Current state
 	double cTime;
@@ -209,6 +212,7 @@ private:
 	double cSensorWriteTime;
 	double cSensorReadTime;
 	double cDriverWriteTime;
+	double cBusSelectTime;
 	
 	//Next state
 	double nVoltage;
@@ -270,11 +274,11 @@ private:
 
 	void printState();
 	void logState();
+	void writeLogHeader();
 	
 	void init();
 
 	double getMaxVoltageSteps();
-
 	double getStableTorqueEstimate();
 
 public:

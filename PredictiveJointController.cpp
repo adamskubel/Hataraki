@@ -58,49 +58,36 @@ void PredictiveJointController::init()
 	jointStatus = JointStatus::New;
 	motionPlan = NULL;
 
+	logfileName = "Data_" + jointModel->name + ".csv";
+
 	setpointHoldAngle = 0;
 			
 	MathUtil::setNow(controllerStartTime);
 
 	cSensorAngle = 0;
 	cRawSensorAngle = 0;
+	cVelocity = 0;
+	cMotorTorque = 0;
+
 	cTargetAngle = 0;
 	cTargetAngleDistance =0;
 	cTargetVelocity = 0;
+
 	cTargetVoltage = 0;
 	cAppliedVoltage = 0;
-
-	lTime = 0;
 	nVoltage = 0;
 	nTargetVoltage = 0;
 	nAppliedVoltage = 0;
+
+	cTime = 0;
+	lTime = 0;
 	nDriverMode = DriverMode::Coast;	
 	cDriverCommand = 0xFF;
-	
+		
 
 	if (Configuration::CsvLoggingEnabled)
-	{
-		csvLog.open("Data_" + jointModel->name + ".csv");
-		csvLog <<
-			"Time"				<< Configuration::CsvSeparator <<
-			"JointStatus"		<< Configuration::CsvSeparator <<
-			"RawSensorAngle"	<< Configuration::CsvSeparator <<
-			"SensorAngle"		<< Configuration::CsvSeparator <<
-			"TargetAngle"		<< Configuration::CsvSeparator <<
-			"Velocity"			<< Configuration::CsvSeparator <<
-			"VelocityR2"		<< Configuration::CsvSeparator << 
-			"TargetVelocity"	<< Configuration::CsvSeparator <<
-			"DisturbanceTorque" << Configuration::CsvSeparator <<
-			"MotorTorque"		<< Configuration::CsvSeparator <<
-			"EffectiveVoltage"	<< Configuration::CsvSeparator <<
-			"AverageVoltaged"	<< Configuration::CsvSeparator <<
-			"AppliedVoltage"	<< Configuration::CsvSeparator <<
-			"ControlMode"		<< Configuration::CsvSeparator <<
-			"SecondaryState"	<< Configuration::CsvSeparator <<
-			"SensorWriteTime"	<< Configuration::CsvSeparator <<
-			"SensorReadTime"	<< Configuration::CsvSeparator <<
-			"DriverWriteTime"	<< Configuration::CsvSeparator <<
-			"StableTorque"		<< Configuration::CsvSeparator << endl;
+	{		
+		writeLogHeader();
 	}
 	
 }
@@ -130,6 +117,8 @@ void PredictiveJointController::enable()
 		controlMode = ControlMode::Hold;
 
 		cout << "JOINT " << upName << " IS ONLINE" << endl;
+
+		TimeUtil::setNow(enableTime);
 	}
 	else
 	{
@@ -190,8 +179,11 @@ int PredictiveJointController::getSensorAngleRegisterValue()
 	int result = -1;
 	try 
 	{
-		bus->selectAddress(servoModel->sensorAddress);
 		timespec start;
+		MathUtil::setNow(start);
+		bus->selectAddress(servoModel->sensorAddress);
+		cBusSelectTime = MathUtil::timeSince(start)*1000.0;
+		
 		MathUtil::setNow(start);
 		unsigned char buf[1] = {AS5048Registers::ANGLE};
 		bus->writeToBus(buf,1);
@@ -201,14 +193,12 @@ int PredictiveJointController::getSensorAngleRegisterValue()
 		MathUtil::setNow(start);
 		unsigned char result[2] = {0,0};
 		bus->readFromBus(result,2);
-		cSensorReadTime = MathUtil::timeSince(start)*1000.0;
 		
 		int angle = ((int)result[0]) << 6;
 		angle += (int)result[1];
+		cSensorReadTime = MathUtil::timeSince(start)*1000.0;
 		
 		return angle;
-		
-//		result = AS5048::getSensorAngleSteps(bus);
 	}
 	catch (std::runtime_error & e)
 	{
@@ -261,6 +251,9 @@ void PredictiveJointController::setCurrentState()
 	const int HistorySize = 10;
 	const int VoltageHistorySize = 10;
 
+	timespec start;
+	TimeUtil::setNow(start);
+
 	//Push current to last
 	lRawSensorAngle = cRawSensorAngle;
 	lTime = cTime;
@@ -312,7 +305,9 @@ void PredictiveJointController::setCurrentState()
 
 	//Torque experienced by the motor, over last N frames.
 	cAverageVoltage = std::accumulate(appliedVoltageHistory.begin(), appliedVoltageHistory.end(), 0.0) / appliedVoltageHistory.size();
-	cMotorTorque = servoModel->getTorqueForVoltageSpeed(cAverageVoltage, cVelocity);		
+	cMotorTorque = servoModel->getTorqueForVoltageSpeed(cAverageVoltage, cVelocity);
+
+	TimeUtil::assertTime(start,jointModel->name + ".setCurrentState()");
 }
 
 
@@ -380,9 +375,12 @@ double PredictiveJointController::computeSpeed(double rawSensorAngle)
 	//lowpass filter on speed
 	//delta = filter_lowpass_speed->next(delta);
 	
-	double velocity = delta/(cTime - lTime);
-
-	return velocity;
+	if (std::abs(cTime - lTime) > 0.000001)
+	{
+		return delta/(cTime - lTime);
+	}
+	else
+		return 0;
 }
 
 double PredictiveJointController::filterAngle(int rawSensorAngle)
@@ -405,7 +403,9 @@ void PredictiveJointController::performSafetyChecks()
 
 void PredictiveJointController::run()
 {
-		
+	timespec start;
+	TimeUtil::setNow(start);
+
 	if (jointStatus != JointStatus::Active) 
 	{
 		return;
@@ -445,6 +445,8 @@ void PredictiveJointController::run()
 
 	commitCommands();
 	logState();
+
+	TimeUtil::assertTime(start,jointModel->name + ".run()");
 }
 
 
@@ -757,12 +759,48 @@ void PredictiveJointController::commitCommands()
 	}
 }
 
+void PredictiveJointController::writeLogHeader()
+{
+	stringstream ss;
+	ss <<
+		"Time"				<< Configuration::CsvSeparator <<
+		"JointStatus"		<< Configuration::CsvSeparator <<
+		"RawSensorAngle"	<< Configuration::CsvSeparator <<
+		"SensorAngle"		<< Configuration::CsvSeparator <<
+		"TargetAngle"		<< Configuration::CsvSeparator <<
+		"Velocity"			<< Configuration::CsvSeparator <<
+		"VelocityR2"		<< Configuration::CsvSeparator << 
+		"TargetVelocity"	<< Configuration::CsvSeparator <<
+		"PredictedTorque"	<< Configuration::CsvSeparator <<
+		"MotorTorque"		<< Configuration::CsvSeparator <<
+		"EffectiveVoltage"	<< Configuration::CsvSeparator <<
+		"AverageVoltaged"	<< Configuration::CsvSeparator <<
+		"AppliedVoltage"	<< Configuration::CsvSeparator <<
+		"ControlMode"		<< Configuration::CsvSeparator <<
+		"SecondaryState"	<< Configuration::CsvSeparator <<
+		"SensorWriteTime"	<< Configuration::CsvSeparator <<
+		"SensorReadTime"	<< Configuration::CsvSeparator <<
+		"DriverWriteTime"	<< Configuration::CsvSeparator <<
+		"StableTorque"		<< Configuration::CsvSeparator << 
+		"BusSelectTime"		<< Configuration::CsvSeparator << 
+		"FileWriteTime"		<< endl;
+
+	AsyncLogger::getInstance().postLogTask(logfileName,ss.str());
+}
+
 
 void PredictiveJointController::logState()
 {
-	const double torqueScale = 100.0;
+	if (TimeUtil::timeSince(enableTime) < samplePeriod*3.0) return;
 
-	csvLog 		
+	timespec logStart;
+	TimeUtil::setNow(logStart);
+
+	const double torqueScale = 100.0;
+	double writeTime = MathUtil::timeSince(controllerStartTime);
+	stringstream ss;
+
+	ss
 		<< cTime			<< Configuration::CsvSeparator
 		<< jointStatus		<< Configuration::CsvSeparator
 		<< cRawSensorAngle	<< Configuration::CsvSeparator
@@ -778,28 +816,34 @@ void PredictiveJointController::logState()
 		<< cAppliedVoltage	<< Configuration::CsvSeparator
 		<< controlMode		<< Configuration::CsvSeparator;
 
-		switch (controlMode) {
-		case ControlMode::PositionControl:
-			csvLog << positionControlState;
-			break;
-		case ControlMode::StepControl:
-			csvLog << steppingState;
-			break;
-		case ControlMode::SpeedControl:
-			csvLog << speedControlState;
-			break;
-		default:
-			csvLog << 0;
-		}
+	switch (controlMode) {
+	case ControlMode::PositionControl:
+		ss << positionControlState;
+		break;
+	case ControlMode::StepControl:
+		ss << steppingState;
+		break;
+	case ControlMode::SpeedControl:
+		ss << speedControlState;
+		break;
+	default:
+		ss << 0;
+	}
 
-		csvLog 
-			<< Configuration::CsvSeparator 
-			<< cSensorWriteTime		<< Configuration::CsvSeparator 
-			<< cSensorReadTime		<< Configuration::CsvSeparator 
-			<< cDriverWriteTime		<< Configuration::CsvSeparator 
-			<< stableTorqueEstimate*100.0 << Configuration::CsvSeparator;
+	ss 
+		<< Configuration::CsvSeparator 
+		<< cSensorWriteTime		<< Configuration::CsvSeparator 
+		<< cSensorReadTime		<< Configuration::CsvSeparator 
+		<< cDriverWriteTime		<< Configuration::CsvSeparator 
+		<< stableTorqueEstimate*100.0 << Configuration::CsvSeparator
+		<< cBusSelectTime		<< Configuration::CsvSeparator
+		<< writeTime;
 
-		csvLog << endl;
+	ss << endl;
+
+	AsyncLogger::getInstance().postLogTask(logfileName,ss.str());
+
+	TimeUtil::assertTime(logStart,jointModel->name + ".logState()");
 
 }
 

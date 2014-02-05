@@ -52,7 +52,7 @@
 			"StallTorque" : 0.0,
 			"NoLoadSpeed" : 43.5,
 			"NoLoadTorque" : 0.0,
-			"NoLoadCurrent" : 0.020
+			"NoLoadCurrent" : 0.015
 		}		
 	],
 	"Gearboxes" : 
@@ -191,7 +191,7 @@
 				"DriverDelay" : 0.0004,
 				"SensorDelay" : 0.0,
 				"MaxDriverVoltage" : 1.0,
-				"FrictionTorque" : 0.02,
+				"FrictionTorque" : 0.01,
 				"Motor" : "Motors.GM12-298",
 				"Gearbox" : "Gearboxes.Ideal"
 			}
@@ -209,7 +209,7 @@
 				"DriverDelay" : 0.0004,
 				"SensorDelay" : 0.0,
 				"MaxDriverVoltage" : 1.0,
-				"FrictionTorque" : 0.02,
+				"FrictionTorque" : 0.01,
 				"Motor" : "Motors.GM12-298",
 				"Gearbox" : "Gearboxes.Ideal"
 			}

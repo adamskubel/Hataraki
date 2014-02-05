@@ -31,6 +31,12 @@
     <Filter Include="Header Files\Model">
       <UniqueIdentifier>{003c2bb2-ef57-4114-8ed1-74110e0074d8}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\Utils">
+      <UniqueIdentifier>{066c9dd1-1a3e-4875-af93-ceba1ea72259}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Util">
+      <UniqueIdentifier>{342e3d77-ca9d-4eb8-9dc1-911c548ec876}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="JointLoop.cpp">
@@ -80,6 +86,12 @@
     </ClCompile>
     <ClCompile Include="Test.cpp">
       <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="TimeUtil.cpp">
+      <Filter>Source Files\Utils</Filter>
+    </ClCompile>
+    <ClCompile Include="AsyncLogger.cpp">
+      <Filter>Source Files\Utils</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -139,6 +151,12 @@
     </ClInclude>
     <ClInclude Include="Exceptions.hpp">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="TimeUtil.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="AsyncLogger.hpp">
+      <Filter>Header Files\Util</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
