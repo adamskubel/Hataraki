@@ -2,6 +2,9 @@
 
 #include "TimeUtil.hpp"
 
+#include <iomanip>
+#include <cmath>
+
 using namespace std;
 using namespace ikfast2;
 using namespace ikfast;
@@ -100,18 +103,9 @@ void MotionController::shutdown()
 
 void MotionController::zeroAllJoints()
 {
-	const double zeroVelocity = MathUtil::degreesToRadians(40);
-	
-	for (auto it=joints.begin();it!=joints.end();it++)
+	for (int i=0;i<joints.size();i++)
 	{
-		auto plan = shared_ptr<JointMotionPlan>(new JointMotionPlan(new MotionInterval(zeroVelocity,std::numeric_limits<double>::infinity()),0));
-		(*it)->validateMotionPlan(plan);
-	}
-	
-	for (auto it=joints.begin();it!=joints.end();it++)
-	{
-		auto plan = shared_ptr<JointMotionPlan>(new JointMotionPlan(new MotionInterval(zeroVelocity,std::numeric_limits<double>::infinity()),0));
-		(*it)->executeMotionPlan(plan);
+		setJointPosition(i,0,AS5048::degreesToSteps(20));
 	}
 }
 
@@ -132,7 +126,7 @@ void MotionController::enableAllJoints()
 }
 
 
-void MotionController::moveToPosition(Vector3d targetPosition)
+void MotionController::moveToPosition(Vector3d targetPosition, bool interactive)
 {	
 	vector<MotionStep*> motionSteps;
 	bool solutionFound = buildMotionSteps(targetPosition,motionSteps);
@@ -142,36 +136,44 @@ void MotionController::moveToPosition(Vector3d targetPosition)
 		currentPlan.clear();
 		currentPlan = createMotionPlans(motionSteps);
 
-		cout << "Motion plan created: ";
-		for (auto it = currentPlan.begin(); it != currentPlan.end(); it++)
+		if (interactive)
 		{
-			cout << AS5048::stepsToDegrees((*it)->finalAngle) << "  ";
+			//cout << "Motion plan created: ";
+			cout << "Angles    = ";
+			for (auto it = currentPlan.begin(); it != currentPlan.end(); it++)
+			{
+				cout << setprecision(2) << std::round(AS5048::stepsToDegrees((*it)->finalAngle)/0.01)*0.01 << "  ";
+			}
+			cout << endl;
+			cout << "Velocities = ";
+			for (auto it = currentPlan.begin(); it != currentPlan.end(); it++)
+			{
+				cout << setprecision(2) << std::round(AS5048::stepsToDegrees((*it)->getSpeedAtTime(0))/0.01)*0.01 << "  ";
+			}
+			cout << endl;
+			cout << std::fixed;
+			cout << "Commence motion? [y]es/[a]bort :" << endl;
 		}
-		cout << endl;
-		for (auto it = currentPlan.begin(); it != currentPlan.end(); it++)
-		{
-			cout << AS5048::stepsToDegrees((*it)->getSpeedAtTime(0)) << "  ";
-		}
-		cout << endl;
-		cout << "Commence motion? [y]es/[a]bort :" << endl;
 
 		string strIn;
 		getline(cin,strIn);
 		
 		if (strIn.compare("y") == 0) {
-			
+
 			cout << "Executing plan" << endl;
 
-			for (int i=0;i<6;i++)
-			{
-				joints.at(i)->validateMotionPlan(currentPlan.at(i));
-			}
-			
-			for (int i=0;i<6;i++)
-			{
-				joints.at(i)->executeMotionPlan(currentPlan.at(i));
-			}
-			
+			this->postTask([this](){
+
+				for (int i=0;i<6;i++)
+				{
+					joints.at(i)->validateMotionPlan(currentPlan.at(i));
+				}
+
+				for (int i=0;i<6;i++)
+				{
+					joints.at(i)->executeMotionPlan(currentPlan.at(i));
+				}
+			});
 		}
 		else {
 			currentPlan.clear();

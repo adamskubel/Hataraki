@@ -34,7 +34,6 @@
 	[
 		{
 			"Name" : "GM12-1000",
-			"TorqueConstant2" : 0.565,
 			"TorqueConstant" : 1.328,
 			"BackEmfConstant" : 0.315655,
 			"ArmatureResistance" : 9.4,
@@ -45,7 +44,6 @@
 		},
 		{
 			"Name" : "GM12-298",
-			"TorqueConstant2" : 0.169,
 			"TorqueConstant" : 0.412,
 			"BackEmfConstant" : 0.105,
 			"ArmatureResistance" : 9.4,
@@ -109,8 +107,8 @@
 		{
 			"Name" : "Roll_0",
 			"ZeroPosition" : 285, 
-			"MinAngle" : -100,
-			"MaxAngle" : 100,
+			"MinAngle" : -175,
+			"MaxAngle" : 175,
 			"AxisOfRotation" : [1,0,0],
 			"Servo" : 
 			{

@@ -153,6 +153,10 @@ void PredictiveJointController::executeMotionPlan(std::shared_ptr<JointMotionPla
 	controlMode = ControlMode::SpeedControl;
 	speedControlState = SpeedControlState::Measuring;		
 	isTorqueEstimateValid = false;
+
+	while (rawSensorAngleHistory.size() > 1)
+		rawSensorAngleHistory.pop_front();
+
 	MathUtil::setNow(planStartTime);
 }
 
@@ -216,7 +220,7 @@ void PredictiveJointController::emergencyHalt(std::string reason)
 		//Attempt shutdown 
 		bus->selectAddress(servoModel->driverAddress);
 		DRV8830::writeVoltageMode(bus, 0, DriveMode::OFF);		
-		jointStatus = JointStatus::Error;
+		jointStatus = JointStatus::Error;		
 		cout << "Joint " << jointModel->name << " is now offline" << endl;
 		cout << "Reason for shutdown: " << reason << endl;
 	}
@@ -238,8 +242,15 @@ void PredictiveJointController::setTargetState()
 	}
 	else
 	{
-		cTargetAngle = motionPlan->finalAngle;
-		velocityMag = std::abs(motionPlan->getSpeedAtTime(MathUtil::timeSince(planStartTime)));
+		if (motionPlan != NULL)
+		{
+			cTargetAngle = motionPlan->finalAngle;
+			velocityMag = std::abs(motionPlan->getSpeedAtTime(MathUtil::timeSince(planStartTime)));
+		}
+		else
+		{
+			cTargetAngle = setpointHoldAngle;
+		}
 	}
 	cTargetAngleDistance = AS5048::getAngleError(cSensorAngle,cTargetAngle);
 	double targetDirection = MathUtils::sgn<double>(cTargetAngleDistance);
@@ -363,17 +374,11 @@ double PredictiveJointController::correctAngleForDiscreteErrors(double rawAngle)
  */
 double PredictiveJointController::computeSpeed(double rawSensorAngle)
 {
-	//	filter_lowpass_angle_for_speed
-	//	filter_sma_angle_for_speed
-	
 	filter_sma_angle_for_speed->add(rawSensorAngle);
 	double filteredAngle = filter_sma_angle_for_speed->avg();
 	
 	double delta = MathUtil::subtractAngles(filteredAngle,lFilteredAngleForSpeed,MathUtil::PI_STEPS);
 	lFilteredAngleForSpeed = filteredAngle;
-
-	//lowpass filter on speed
-	//delta = filter_lowpass_speed->next(delta);
 	
 	if (std::abs(cTime - lTime) > 0.000001)
 	{
@@ -394,10 +399,10 @@ void PredictiveJointController::performSafetyChecks()
 	if (cRawSensorAngle < jointModel->minAngle || cRawSensorAngle > jointModel->maxAngle || 
 		cSensorAngle < jointModel->minAngle || cSensorAngle > jointModel->maxAngle)
 	{
-		emergencyHalt("Safety check failed");
-
-		cout << "Error! Joint " << jointModel->name << " has exceeded angle limits. " << endl;
-		printState();
+		stringstream ss;
+		ss << "Exceeded angle limits. Angle = " << AS5048::stepsToDegrees(cRawSensorAngle) << " [" << AS5048::stepsToDegrees(jointModel->minAngle) << "," << AS5048::stepsToDegrees(jointModel->maxAngle) << "]" << endl;
+		emergencyHalt(ss.str());
+		//cout << "Error! Joint " << jointModel->name << " has exceeded angle limits. " << endl;
 	}
 }
 
@@ -419,6 +424,8 @@ void PredictiveJointController::run()
 
 	setCurrentState();		
 	performSafetyChecks();
+
+	if (jointStatus == JointStatus::Error) return;
 
 	if (!cDriverCommanded && controlMode == ControlMode::Hold) 
 	{
@@ -804,7 +811,7 @@ void PredictiveJointController::logState()
 		<< cTime			<< Configuration::CsvSeparator
 		<< jointStatus		<< Configuration::CsvSeparator
 		<< cRawSensorAngle	<< Configuration::CsvSeparator
-		<< cSensorAngle		<< Configuration::CsvSeparator
+		<< cNonZeroOffsetSensorAngle		<< Configuration::CsvSeparator
 		<< cTargetAngle		<< Configuration::CsvSeparator
 		<< cVelocity		<< Configuration::CsvSeparator
 		<< cVelocityApproximationError << Configuration::CsvSeparator

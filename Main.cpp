@@ -32,6 +32,7 @@
 #include <string>
 #include <stdexcept> 
 #include <queue>
+#include <iomanip>
 
 #include "cJSON.h"
 
@@ -69,30 +70,30 @@ void updateController()
 
 void printPositionForAngles(IkReal * jointAngles) {
 	
-	IkReal translationMatrix[3];
-	IkReal rotationMatrix[9];
+	IkReal t[3];
+	IkReal r[9];
 	
-	ikfast2::ComputeFk(jointAngles,translationMatrix,rotationMatrix);
-	
-	cout << "Endpoint position is " << translationMatrix[0]*100.0 << "," << translationMatrix[1]*100.0 << "," << translationMatrix[2]*100.0 <<endl;
-	cout << "Rotation matrix is: ";
-	for (int i=0;i<9;i++)
-	{
-		cout << rotationMatrix[i] << " ";
-	}
+	ikfast2::ComputeFk(jointAngles,t,r);
+		
+	Matrix3d rotationMatrix = Matrix3d::fromRowMajorArray(r);	
+	Vector3d tipPos = Vector3d(t[0],t[1],t[2])*100.0;
+	Vector3d tip = rotationMatrix * Vector3d(1,0,0);
+
+	cout << "Endpoint position is: " << tipPos.toString() << endl;
+	cout << "Endpoint direction vector: " << tip.toString() << endl;
 	cout << endl;
 }
 
 void handle(int sig) {
-	void *array[30];
+	void *symbolArray[50];
 	size_t size;
 
 	// get void*'s for all entries on the stack
-	size = backtrace(array, 30);
+	size = backtrace(symbolArray, 50);
 
 	// print out all the frames to stderr
-	fprintf(stderr, "Error: signal %d:\n", sig);
-	backtrace_symbols_fd(array, size, STDERR_FILENO);
+	cout << "Error: signal " << sig << endl;
+	backtrace_symbols_fd(symbolArray, size, STDERR_FILENO);
 	exit(1);
 }
 
@@ -231,11 +232,12 @@ int main(int argc, char *argv[])
 					cout << "Angles: ";
 					for (auto it = controllers.begin(); it != controllers.end(); it++)
 					{					
-						cout << AS5048::stepsToDegrees((*it)->getCurrentAngle()) << " ";
+						cout << setprecision(2) << AS5048::stepsToDegrees((*it)->getCurrentAngle()) << " ";
 					}
+					cout << std::fixed;
 					cout << endl;
 				}
-				else if (command.compare("setpos") == 0) {
+				else if (command.compare("setpos") == 0 || command.compare("goto") == 0) {
 
 					Vector3d targetPosition;
 					
@@ -245,13 +247,12 @@ int main(int argc, char *argv[])
 					
 					targetPosition = targetPosition / 100.0;
 					
+					bool interactive = (command.compare("setpos") == 0);
 
 					if (input.fail()) {
-						cout << "Usage: planto <x>cm <y>cm <z>cm" << endl;
+						cout << "Usage: <setpos|goto> <x>cm <y>cm <z>cm" << endl;
 					} else {
-						//motionController->postTask([targetPosition](){
-						motionController->moveToPosition(targetPosition);
-						//});
+						motionController->moveToPosition(targetPosition,interactive);
 					}
 				}
 				else if (command.compare("getpos") == 0) {
@@ -260,7 +261,7 @@ int main(int argc, char *argv[])
 					int i=0;
 					for (auto it = controllers.begin(); it != controllers.end(); it++,i++)
 					{					
-						angles[i] = MathUtil::degreesToRadians((*it)->getCurrentAngle());
+						angles[i] = AS5048::stepsToRadians((*it)->getCurrentAngle());
 					}
 					
 					printPositionForAngles(angles);

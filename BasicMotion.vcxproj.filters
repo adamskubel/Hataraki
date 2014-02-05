@@ -37,11 +37,14 @@
     <Filter Include="Header Files\Util">
       <UniqueIdentifier>{342e3d77-ca9d-4eb8-9dc1-911c548ec876}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Header Files\Math">
+      <UniqueIdentifier>{8a7be602-6a89-4483-be13-02141e3c5112}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Math">
+      <UniqueIdentifier>{569d1e8f-268c-40c7-a1da-191b4b4fa3ab}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="JointLoop.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="I2CBus.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -57,16 +60,7 @@
     <ClCompile Include="ikfastsolution.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Configuration.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="MotionController.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="SpeedController.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="vmath.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="PoseDynamics.cpp">
@@ -76,9 +70,6 @@
       <Filter>Source Files\Predictive</Filter>
     </ClCompile>
     <ClCompile Include="TimeMultiplexedVoltageConverter.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="MathUtils.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="ServoUtil.cpp">
@@ -93,11 +84,17 @@
     <ClCompile Include="AsyncLogger.cpp">
       <Filter>Source Files\Utils</Filter>
     </ClCompile>
+    <ClCompile Include="MathUtils.cpp">
+      <Filter>Source Files\Math</Filter>
+    </ClCompile>
+    <ClCompile Include="vmath.cpp">
+      <Filter>Source Files\Math</Filter>
+    </ClCompile>
+    <ClCompile Include="Configuration.cpp">
+      <Filter>Source Files\Utils</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="JointLoop.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="I2CBus.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -116,18 +113,6 @@
     <ClInclude Include="MotionController.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="MathUtils.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="SpeedController.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="SimpleMovingAverage.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="vmath.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="PredictiveJointController.hpp">
       <Filter>Header Files\Predictive</Filter>
     </ClInclude>
@@ -140,22 +125,31 @@
     <ClInclude Include="SegmentModel.hpp">
       <Filter>Header Files\Model</Filter>
     </ClInclude>
-    <ClInclude Include="AngleUtil.hpp">
+    <ClInclude Include="Exceptions.hpp">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="AsyncLogger.hpp">
+      <Filter>Header Files\Util</Filter>
     </ClInclude>
     <ClInclude Include="TimeMultiplexedVoltageConverter.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="LowpassFilter.hpp">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="SimpleMovingAverage.hpp">
+      <Filter>Header Files\Math</Filter>
     </ClInclude>
-    <ClInclude Include="Exceptions.hpp">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="vmath.h">
+      <Filter>Header Files\Math</Filter>
+    </ClInclude>
+    <ClInclude Include="MathUtils.hpp">
+      <Filter>Header Files\Math</Filter>
+    </ClInclude>
+    <ClInclude Include="LowpassFilter.hpp">
+      <Filter>Header Files\Math</Filter>
+    </ClInclude>
+    <ClInclude Include="AngleUtil.hpp">
+      <Filter>Header Files\Math</Filter>
     </ClInclude>
     <ClInclude Include="TimeUtil.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="AsyncLogger.hpp">
       <Filter>Header Files\Util</Filter>
     </ClInclude>
   </ItemGroup>

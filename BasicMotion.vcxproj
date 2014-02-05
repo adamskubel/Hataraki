@@ -68,14 +68,12 @@
     <ClCompile Include="DRV8830.cpp" />
     <ClCompile Include="I2CBus.cpp" />
     <ClCompile Include="ikfastsolution.cpp" />
-    <ClCompile Include="JointLoop.cpp" />
     <ClCompile Include="Main.cpp" />
     <ClCompile Include="MathUtils.cpp" />
     <ClCompile Include="MotionController.cpp" />
     <ClCompile Include="PoseDynamics.cpp" />
     <ClCompile Include="PredictiveJointController.cpp" />
     <ClCompile Include="ServoUtil.cpp" />
-    <ClCompile Include="SpeedController.cpp" />
     <ClCompile Include="Test.cpp" />
     <ClCompile Include="TimeMultiplexedVoltageConverter.cpp" />
     <ClCompile Include="TimeUtil.cpp" />
@@ -90,7 +88,6 @@
     <ClInclude Include="Exceptions.hpp" />
     <ClInclude Include="I2CBus.hpp" />
     <ClInclude Include="ikfast.h" />
-    <ClInclude Include="JointLoop.hpp" />
     <ClInclude Include="LowpassFilter.hpp" />
     <ClInclude Include="MathUtils.hpp" />
     <ClInclude Include="MotionController.hpp" />
@@ -99,7 +96,6 @@
     <ClInclude Include="SegmentModel.hpp" />
     <ClInclude Include="ServoModel.hpp" />
     <ClInclude Include="SimpleMovingAverage.hpp" />
-    <ClInclude Include="SpeedController.hpp" />
     <ClInclude Include="TimeMultiplexedVoltageConverter.hpp" />
     <ClInclude Include="TimeUtil.hpp" />
     <ClInclude Include="vmath.h" />
