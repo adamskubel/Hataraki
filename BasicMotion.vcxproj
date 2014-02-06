@@ -95,6 +95,7 @@
     <ClInclude Include="PredictiveJointController.hpp" />
     <ClInclude Include="SegmentModel.hpp" />
     <ClInclude Include="ServoModel.hpp" />
+    <ClInclude Include="ServoUtil.hpp" />
     <ClInclude Include="SimpleMovingAverage.hpp" />
     <ClInclude Include="TimeMultiplexedVoltageConverter.hpp" />
     <ClInclude Include="TimeUtil.hpp" />

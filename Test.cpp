@@ -93,6 +93,9 @@ void testServoModel(ServoModel * sm)
 	cout << "V=-1.2, S=-1000, T=" << torque << endl;
 	cout << "V=-1.2, T=" << torque << ", S=" << sm->getSpeedForTorqueVoltage(torque,-1.2) << endl;
 	cout << "T=" << torque << ", S=-1000, V=" << sm->getVoltageForTorqueSpeed(torque,-1000) << endl;
+
+	cout << endl;
+	cout << "V=-0.19, S=0, T=" << sm->getTorqueForVoltageSpeed(-0.19,0) << endl;
 }
 
 void testArmModel(ArmModel * armModel)

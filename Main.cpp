@@ -182,7 +182,7 @@ int main(int argc, char *argv[])
 				}
 				else if (command.compare("enable") == 0)
 				{
-					motionController->postTask([motionController](){
+					motionController->postTask([](){
 						motionController->enableAllJoints();
 					});
 				}
@@ -217,12 +217,16 @@ int main(int argc, char *argv[])
 					input >> velocity;
 					
 					if (input.fail()) {
-						cout << "Invalid input. Usage: set <index> <angle> <|velocity|>" << endl;
+						cout << "Invalid input. Usage: set <index> <angle> <|velocity|> [|accel|]" << endl;
 					}
 					else
 					{
-						motionController->postTask([jointIndex,angle,velocity](){
-							motionController->setJointPosition(jointIndex, AS5048::degreesToSteps(angle), AS5048::degreesToSteps(velocity));
+						double accel;
+						input >> accel;
+						if (input.fail()) accel = 0;
+
+						motionController->postTask([jointIndex,angle,velocity,accel](){
+							motionController->setJointPosition(jointIndex, AS5048::degreesToSteps(angle), AS5048::degreesToSteps(velocity),AS5048::degreesToSteps(accel));
 						});
 					}
 					

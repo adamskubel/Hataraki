@@ -37,7 +37,7 @@ class MotionController {
 	struct MotionStep {
 
 		double targetJointAngles[6];
-		double maxJointVelocities[6];
+		double jointAngleDelta[6];
 		double targetPosition[3];
 
 	};
@@ -48,7 +48,7 @@ private:
 	std::vector<std::shared_ptr<JointMotionPlan> > currentPlan;
 	std::queue<std::function<void()> > taskQueue;
 	std::mutex taskQueueMutex;
-
+	double samplePeriod;
 	long updatePeriod;
 
 	void getJointAngles(double * angles);
@@ -61,7 +61,7 @@ private:
 
 	void executeMotionPlan(std::vector<JointMotionPlan*> & newPlan);
 
-	std::vector<std::shared_ptr<JointMotionPlan> > createMotionPlans(std::vector<MotionStep*> & steps);
+	std::vector<std::shared_ptr<JointMotionPlan> > createMotionPlans(std::vector<MotionStep*> & steps, double maxAccel, double maxDeccel);
 
 public:
 	
@@ -70,7 +70,7 @@ public:
 		
 	void moveToPosition(vmath::Vector3d position, bool interactive);
 	
-	void setJointPosition(int jointIndex, double angle, double velocity);
+	void setJointPosition(int jointIndex, double angle, double velocity, double accel);
 
 	void updateController();
 

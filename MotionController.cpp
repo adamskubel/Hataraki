@@ -10,11 +10,12 @@ using namespace ikfast2;
 using namespace ikfast;
 using namespace vmath;
 
-MotionController::MotionController(vector<PredictiveJointController*> & _joints, double samplePeriod, int _planStepCount) {
+MotionController::MotionController(vector<PredictiveJointController*> & _joints, double _samplePeriod, int _planStepCount) {
 	this->joints = _joints;
-	this->updatePeriod = (long)(samplePeriod*1000000.0); //seconds to microseconds
+	this->updatePeriod = (long)(_samplePeriod*1000000.0); //seconds to microseconds
 	this->planStepCount = _planStepCount;
 	state = MotionControllerState::Waiting;
+	this->samplePeriod = _samplePeriod;
 }
 
 void MotionController::updateController(){
@@ -70,13 +71,30 @@ void MotionController::updateController(){
 }
 
 
-void MotionController::setJointPosition(int jointIndex, double angle, double velocity)
+void MotionController::setJointPosition(int jointIndex, double angle, double velocity, double accel)
 {
 	if (jointIndex >= 0 && jointIndex < joints.size()){
 		
 		PredictiveJointController * pjc = joints.at(jointIndex);
 		
-		auto plan = shared_ptr<JointMotionPlan>(new JointMotionPlan(new MotionInterval(velocity,std::numeric_limits<double>::infinity()),angle));
+		auto plan = shared_ptr<JointMotionPlan>(new JointMotionPlan());
+		
+		if (accel != 0)
+		{
+			double accelTime = velocity / accel;
+			if (accelTime > samplePeriod*4.0)
+			{
+				plan->motionIntervals.push_back(new MotionInterval(0,velocity,accelTime));
+				plan->motionIntervals.push_back(new MotionInterval(velocity,std::numeric_limits<double>::infinity()));
+			}
+		}
+		
+		if (plan->motionIntervals.empty())
+		{
+			plan->motionIntervals.push_back(new MotionInterval(velocity,std::numeric_limits<double>::infinity()));
+		}
+
+		plan->finalAngle = angle;
 		
 		pjc->validateMotionPlan(plan);
 		pjc->executeMotionPlan(plan);
@@ -105,7 +123,7 @@ void MotionController::zeroAllJoints()
 {
 	for (int i=0;i<joints.size();i++)
 	{
-		setJointPosition(i,0,AS5048::degreesToSteps(20));
+		setJointPosition(i,0,AS5048::degreesToSteps(20),0);
 	}
 }
 
@@ -134,7 +152,7 @@ void MotionController::moveToPosition(Vector3d targetPosition, bool interactive)
 	if (solutionFound) {
 	
 		currentPlan.clear();
-		currentPlan = createMotionPlans(motionSteps);
+		currentPlan = createMotionPlans(motionSteps,100,100);
 
 		if (interactive)
 		{
@@ -194,7 +212,7 @@ void MotionController::postTask(std::function<void()> task)
 	taskQueue.push(task);
 }
 
-vector<shared_ptr<JointMotionPlan> > MotionController::createMotionPlans(vector<MotionStep*> & steps)
+vector<shared_ptr<JointMotionPlan> > MotionController::createMotionPlans(vector<MotionStep*> & steps, double maxAccel, double maxDeccel)
 {
 	vector<shared_ptr<JointMotionPlan> > motionPlan;
 
@@ -208,15 +226,46 @@ vector<shared_ptr<JointMotionPlan> > MotionController::createMotionPlans(vector<
 		double stepTime = 0;
 		for (int i=0;i<6;i++) 
 		{			
-			double jointTime = AS5048::radiansToSteps(std::abs((*it)->maxJointVelocities[i])) / joints.at(i)->getMaxJointVelocity();
+			double jointTime = AS5048::radiansToSteps(std::abs((*it)->jointAngleDelta[i])) / joints.at(i)->getMaxJointVelocity();
 			stepTime  = std::max(stepTime ,jointTime);
 		}
 
 		for (int i=0;i<6;i++) 
 		{			
-			double velocity =  AS5048::radiansToSteps((*it)->maxJointVelocities[i]/stepTime);
-			motionPlan.at(i)->motionIntervals.push_back(new MotionInterval(velocity,stepTime));
+			double velocity =  AS5048::radiansToSteps((*it)->jointAngleDelta[i]/stepTime);
+			double lastVelocity = 0;
+			if (motionPlan.at(i)->motionIntervals.size() > 0)
+			{
+				lastVelocity = motionPlan.at(i)->motionIntervals.back()->endSpeed;
+			}
+			double accelTime = (velocity - lastVelocity)/maxAccel;
+			
+			if (accelTime > samplePeriod*4.0 && accelTime < stepTime) 
+			{
+				motionPlan.at(i)->motionIntervals.push_back(new MotionInterval(lastVelocity,velocity,accelTime));
+				motionPlan.at(i)->motionIntervals.push_back(new MotionInterval(velocity,stepTime-accelTime));
+			}
+			else
+			{
+				motionPlan.at(i)->motionIntervals.push_back(new MotionInterval(velocity,stepTime));
+			}
+
 			motionPlan.at(i)->finalAngle = AS5048::radiansToSteps((*it)->targetJointAngles[i]);
+		}
+	}
+
+	for (int i=0;i<6;i++)
+	{
+		if (motionPlan.at(i)->motionIntervals.size() > 0)
+		{
+			double lastVelocity = motionPlan.at(i)->motionIntervals.back()->endSpeed;
+			double accelTime = (lastVelocity)/maxDeccel;
+			
+			if (accelTime > samplePeriod*4.0 && accelTime < motionPlan.at(i)->motionIntervals.back()->duration) 
+			{				
+				motionPlan.at(i)->motionIntervals.back()->duration -= accelTime;
+				motionPlan.at(i)->motionIntervals.push_back(new MotionInterval(0,accelTime));
+			}
 		}
 	}
 
@@ -336,17 +385,10 @@ bool MotionController::buildMotionSteps(double * targetPosition,vector<MotionSte
 
 		if (solutionExists) {	
 			
-			//double maxTime = 0;
-			//for (int j=0;j<6;j++) {				
-			//	double jointDelta = MathUtil::abs(MathUtil::subtractAngles(lastAngles[j],stepAngles[j]));
-			//	double jointTime = jointDelta / joints.at(j)->getMaxJointVelocity();
-			//	maxTime = std::max(maxTime,jointTime);
-			//}
-			
 			MotionStep * step = new MotionStep();
 			//Determine the max joint velocities and store in the step object
 			for (int j=0;j<6;j++) {
-				step->maxJointVelocities[j] = MathUtil::abs(MathUtil::subtractAngles(lastAngles[j],stepAngles[j]));
+				step->jointAngleDelta[j] = MathUtil::abs(MathUtil::subtractAngles(lastAngles[j],stepAngles[j]));
 			}
 			//Next, copy the target joint angles to the step object
 			std::copy(std::begin(stepAngles), std::end(stepAngles), std::begin(step->targetJointAngles));

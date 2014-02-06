@@ -64,11 +64,25 @@ public:
 
 };
 
+class ControllerConfig {
+
+public:
+	double speedControlProportionalGain;
+	double speedControlIntegralGain;
+
+	ControllerConfig(cJSON * rawConfig) 
+	{
+		speedControlProportionalGain = cJSON_GetObjectItem(rawConfig,"SpeedControlProportionalGain")->valuedouble;
+		speedControlIntegralGain = cJSON_GetObjectItem(rawConfig,"SpeedControlIntegralGain")->valuedouble;
+	}
+};
+
 class ServoModel {
 		
 public:
 	GearboxModel gearbox;
 	MotorModel motor;
+	ControllerConfig controllerConfig;
 
 	double driverDelay, sensorDelay;
 	double maxDriverVoltage;
@@ -80,7 +94,8 @@ public:
 		
 	ServoModel(cJSON * rawConfig) :
 		gearbox(Configuration::getInstance().getObject(cJSON_GetObjectItem(rawConfig,"Gearbox")->valuestring)),
-		motor(Configuration::getInstance().getObject(cJSON_GetObjectItem(rawConfig,"Motor")->valuestring))
+		motor(Configuration::getInstance().getObject(cJSON_GetObjectItem(rawConfig,"Motor")->valuestring)),
+		controllerConfig(Configuration::getInstance().getObject(cJSON_GetObjectItem(rawConfig,"ControllerConfig")->valuestring))
 	{		
 		Configuration::AssertConfigExists(rawConfig,"ServoModel");
 

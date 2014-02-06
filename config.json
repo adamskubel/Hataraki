@@ -5,7 +5,7 @@
 		"FilePrefix" : "JointData_"
 	},
 	"GlobalSettings" : {
-		"MaxVoltage" : 1.8,
+		"MaxVoltage" : 2.2,
 		"MotionPlanSteps" : 1,
 		"UpdateFrequency" : 100
 	},
@@ -103,6 +103,13 @@
 			"CenterOfMass" : [0.013,0.008,0]
 		}
 	],	
+	"Controllers" : [		
+		{
+			"Name" : "Default",
+			"SpeedControlProportionalGain" : 0.1,
+			"SpeedControlIntegralGain" : 0.0
+		}
+	],
 	"JointDefinitions" : [
 		{
 			"Name" : "Roll_0",
@@ -119,7 +126,8 @@
 				"MaxDriverVoltage" : 3.6,
 				"FrictionTorque" : 0.02,
 				"Motor" : "Motors.GM12-1000",
-				"Gearbox" : "Gearboxes.Ideal"
+				"Gearbox" : "Gearboxes.Ideal",
+				"ControllerConfig" : "Controllers.Default"
 			}
 		},
 		{
@@ -134,15 +142,16 @@
 				"SensorAddress" : 75,
 				"DriverDelay" : 0.0004,
 				"SensorDelay" : 0.0,
-				"MaxDriverVoltage" : 3.6,
+				"MaxDriverVoltage" : 2.2,
 				"FrictionTorque" : 0.02,
 				"Motor" : "Motors.GM12-1000",
-				"Gearbox" : "Gearboxes.Ideal"
+				"Gearbox" : "Gearboxes.Ideal",
+				"ControllerConfig" : "Controllers.Default"
 			}
 		},
 		{
 			"Name" : "Roll_1",
-			"ZeroPosition" : 92, 
+			"ZeroPosition" : 99, 
 			"MinAngle" : -90,
 			"MaxAngle" : 90,
 			"AxisOfRotation" : [1,0,0],
@@ -155,7 +164,8 @@
 				"MaxDriverVoltage" : 3.6,
 				"FrictionTorque" : 0.02,
 				"Motor" : "Motors.GM12-1000",
-				"Gearbox" : "Gearboxes.Ideal"
+				"Gearbox" : "Gearboxes.Ideal",
+				"ControllerConfig" : "Controllers.Default"
 			}
 		},
 		{
@@ -170,10 +180,11 @@
 				"SensorAddress" : 66,
 				"DriverDelay" : 0.0004,
 				"SensorDelay" : 0.0,
-				"MaxDriverVoltage" : 3.6,
+				"MaxDriverVoltage" : 2.2,
 				"FrictionTorque" : 0.02,
 				"Motor" : "Motors.GM12-1000",
-				"Gearbox" : "Gearboxes.Ideal"
+				"Gearbox" : "Gearboxes.Ideal",
+				"ControllerConfig" : "Controllers.Default"
 			}
 		},
 		{
@@ -188,15 +199,16 @@
 				"SensorAddress" : 67,
 				"DriverDelay" : 0.0004,
 				"SensorDelay" : 0.0,
-				"MaxDriverVoltage" : 1.0,
+				"MaxDriverVoltage" : 1.2,
 				"FrictionTorque" : 0.01,
 				"Motor" : "Motors.GM12-298",
-				"Gearbox" : "Gearboxes.Ideal"
+				"Gearbox" : "Gearboxes.Ideal",
+				"ControllerConfig" : "Controllers.Default"
 			}
 		},
 		{
 			"Name" : "Roll_2",
-			"ZeroPosition" : 145,
+			"ZeroPosition" : 144,
 			"MinAngle" : -170,
 			"MaxAngle" : 170,
 			"AxisOfRotation" : [1,0,0],
@@ -206,10 +218,11 @@
 				"SensorAddress" : 64,
 				"DriverDelay" : 0.0004,
 				"SensorDelay" : 0.0,
-				"MaxDriverVoltage" : 1.0,
+				"MaxDriverVoltage" : 3.6,
 				"FrictionTorque" : 0.01,
 				"Motor" : "Motors.GM12-298",
-				"Gearbox" : "Gearboxes.Ideal"
+				"Gearbox" : "Gearboxes.Ideal",
+				"ControllerConfig" : "Controllers.Default"
 			}
 		}
 	]

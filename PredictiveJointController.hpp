@@ -78,7 +78,18 @@ public:
 			double intervalEnd = intervalStart+(*it)->duration;
 			if (planTime >= intervalStart && planTime <= intervalEnd)
 			{
-				return (*it)->startSpeed;
+				double start = (*it)->startSpeed;
+				double end = (*it)->endSpeed;
+				if (start != end)
+				{
+					double delta = end - start;
+					double time = planTime - intervalStart;
+					return start + (delta*time)/(*it)->duration;
+				}
+				else
+				{
+					return end;
+				}
 			}
 			intervalStart = intervalEnd;
 		}
@@ -89,14 +100,6 @@ public:
 		return 0;
 	}
 
-};
-
-struct ControllerConfig {
-
-	ControllerConfig(cJSON * rawConfig) {
-		
-	}
-	
 };
 
 enum JointStatus {
@@ -199,6 +202,7 @@ private:
 	double cStaticModelTorque;	
 	double cPredictedTorque;
 	double cMotorTorque;
+	double cControlTorque;
 	
 	double cVoltage;
 	DriverMode cDriverMode;
@@ -229,11 +233,16 @@ private:
 	//Torque estimation
 	double stableTorqueEstimate;
 	bool isTorqueEstimateValid;
+	bool isControlTorqueValid;
 
 	//Speed control states
 	double speedControlMeasureVoltage;
 	timespec speedControlMeasureStart;
-	
+
+	//SpeedControl2
+	double velocityErrorIntegral;
+	double speedControlIntegralGain;
+	double speedControlProportionalGain;
 
 	//Postion control states
 	double setpointHoldAngle;
@@ -260,6 +269,7 @@ private:
 	double correctAngleForDiscreteErrors(double rawAngle);
 
 	void doSpeedControl();
+	void doSpeedControl2();
 	void doPositionControl();
 	void doStepControl();
 	

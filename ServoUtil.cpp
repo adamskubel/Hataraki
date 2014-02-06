@@ -19,6 +19,9 @@ bool ServoUtils::validateAndPrintJointFunction(I2CBus * bus, JointModel * joint)
 	
 	try
 	{
+		
+		int magnitude = AS5048::getSensorMagnitude(bus);
+
 		int rawAngle = AS5048::getSensorAngleSteps(bus);
 		int angle = MathUtil::subtractAngles(rawAngle,joint->sensorZeroPosition,AS5048::PI_STEPS);
 		unsigned char diagnosticFlags = AS5048::getDiagnosticFlags(bus);
@@ -27,6 +30,7 @@ bool ServoUtils::validateAndPrintJointFunction(I2CBus * bus, JointModel * joint)
 		cout
 			<< "Angle = " << AS5048::stepsToDegrees(angle)
 			<< " RawAngle = " << AS5048::stepsToDegrees(rawAngle)
+			<< " Magnitude = " << dec << (int)magnitude
 			<< " GainValue = " << dec << (int)agc
 			<< " DiagRegister = " << hex << (int)diagnosticFlags
 			<< endl;
