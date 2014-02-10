@@ -115,7 +115,8 @@ enum ControlMode {
 	SpeedControl,
 	PositionControl,
 	StepControl,
-	Hold
+	Hold,
+	External
 };
 
 enum PositionControlState {
@@ -163,14 +164,12 @@ private:
 
 	TimeMultiplexedVoltageConverter * voltageConverter;
 	
-	//std::ofstream csvLog;
 	std::string logfileName;
 	
 	//Historical states	
 	LowpassFilter * filter_lowpass_for_motorTorque;	
 	SimpleMovingAverage * filter_sma_for_speedController_motorTorque;
 	SimpleMovingAverage * filter_sma_angle_for_position;
-	//LowpassFilter * filter_lowpass_angle_for_speed;
 	SimpleMovingAverage * filter_sma_angle_for_speed;	
 	LowpassFilter * filter_lowpass_speed;
 
@@ -178,6 +177,8 @@ private:
 	double lTime;
 	double lRawSensorAngle;
 	
+	double lStaticModelTorque;
+
 	std::list<std::pair<double,double> > rawSensorAngleHistory;
 	std::list<double> appliedVoltageHistory;
 
@@ -199,7 +200,8 @@ private:
 	double cVelocity;		
 	double cVelocityApproximationError;
 
-	double cStaticModelTorque;	
+	double cStaticModelTorque;
+	double cStaticModelRotatum;
 	double cPredictedTorque;
 	double cMotorTorque;
 	double cControlTorque;
@@ -224,7 +226,7 @@ private:
 	double nAppliedVoltage;
 	DriverMode nDriverMode;
 	
-	//Long term states
+	//------------- Long term states --------------------
 	timespec controllerStartTime;
 	PositionControlState positionControlState;
 	SpeedControlState speedControlState;
@@ -234,19 +236,18 @@ private:
 	double stableTorqueEstimate;
 	bool isTorqueEstimateValid;
 	bool isControlTorqueValid;
+		
+	int expectedRotationalStopDirection;
 
 	//Speed control states
 	double speedControlMeasureVoltage;
 	timespec speedControlMeasureStart;
-
-	//SpeedControl2
 	double velocityErrorIntegral;
 	double speedControlIntegralGain;
 	double speedControlProportionalGain;
 
 	//Postion control states
 	double setpointHoldAngle;
-	//timespec stopTime;
 
 	//Stepping states
 	std::vector<double> stepVoltages;
@@ -258,6 +259,15 @@ private:
 	int stepExpectedDirection;
 	double stepVoltageIntegral;
 
+	//User test variables
+	bool flipRequestedByUser;
+	int requestedFlipDirection;
+	double requestedFlipVoltage;
+	std::vector<double> requestedVoltagePattern;
+	bool patternRequestedByUser;
+	std::function<void()> externalController;
+
+	volatile bool readyForCommand;
 
 	//--Member functions--//
 	//-------------------//
@@ -265,20 +275,26 @@ private:
 	double computeSpeed(double rawSensorAngle);
 	double filterAngle(int currentAngle);
 	void setApproximateSpeed(std::list<std::pair<double, double> > history);
-	
+	int getSensorAngleRegisterValue();
 	double correctAngleForDiscreteErrors(double rawAngle);
 
+	void performSafetyChecks();
+
+	void doPositionHoldControl();
 	void doSpeedControl();
-	void doSpeedControl2();
 	void doPositionControl();
 	void doStepControl();
-	
+	void runExternalController();
+
+	bool handleUserRequests();
+
 	void setCurrentState();
 	void setTargetState();
-	void executeStep(double voltage, int energizeLength);
+
+	void executeStep(double voltage, int energizeLength, int coastStepCount);
+	void executeStep(std::vector<double> & voltagePattern);
 	void commandDriver(double targetVoltage, DriverMode mode);
-	void performSafetyChecks();
-	int getSensorAngleRegisterValue();
+	void executeFlip(int direction, double voltage);
 
 	void commitCommands();
 
@@ -290,6 +306,7 @@ private:
 
 	double getMaxVoltageSteps();
 	double getStableTorqueEstimate();
+	double getAverageSpeedForWindow(int windowSize);
 
 public:
 	PredictiveJointController (JointModel * _jointModel, I2CBus * _bus, double _samplePeriod) 
@@ -312,6 +329,10 @@ public:
 	
 	void emergencyHalt(std::string reason);
 
+	void requestFlip(int direction, double voltage);
+	void requestPattern(std::vector<double> voltagePattern);
+	bool jointReadyForCommand();
+
 	void validateMotionPlan(std::shared_ptr<JointMotionPlan> requestedMotionPlan);
 	void executeMotionPlan(std::shared_ptr<JointMotionPlan> requestedMotionPlan);
 	void run();
@@ -320,6 +341,8 @@ public:
 	double getCurrentAngle();
 	
 	JointModel * getJointModel();
+
+	ControlMode getControlMode();
 };
 
 

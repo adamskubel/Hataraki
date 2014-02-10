@@ -96,6 +96,9 @@ void testServoModel(ServoModel * sm)
 
 	cout << endl;
 	cout << "V=-0.19, S=0, T=" << sm->getTorqueForVoltageSpeed(-0.19,0) << endl;
+		
+	cout << endl;
+	cout << "V=0.56, T=0, S=" << sm->getSpeedForTorqueVoltage(0,0.56) << endl;
 }
 
 void testArmModel(ArmModel * armModel)
@@ -110,6 +113,7 @@ void testArmModel(ArmModel * armModel)
 		cout << endl;
 	}
 }
+
 
 void testPoseDynamics(ArmModel * armModel, double * angles)
 {
@@ -243,6 +247,5 @@ int main(int argc, char *argv[])
 
 	testCsvWriteTime();
 	
-	testFK();
-	
+	testFK();	
 }

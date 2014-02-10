@@ -18,6 +18,14 @@ MotionController::MotionController(vector<PredictiveJointController*> & _joints,
 	this->samplePeriod = _samplePeriod;
 }
 
+PredictiveJointController * MotionController::getJointByIndex(int jointIndex)
+{
+	if (jointIndex < 0 || jointIndex > joints.size())
+		throw new std::runtime_error("Invalid joint index");
+
+	return joints[jointIndex];
+}
+
 void MotionController::updateController(){
 
 	try 

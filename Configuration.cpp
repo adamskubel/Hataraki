@@ -33,6 +33,26 @@ Vector3d Configuration::getVectorFromJSON(cJSON * vectorObj)
 		cJSON_GetArrayItem(vectorObj,2)->valuedouble);
 }
 
+vector<double> Configuration::getVoltagePatternFromJSON(cJSON * rawPattern)
+{
+	const double samplePeriod = 0.01;
+
+	std::vector<double> pattern;
+
+	for (int i=0; i < cJSON_GetArraySize(rawPattern); i++)
+	{
+		cJSON * interval = cJSON_GetArrayItem(rawPattern,i);
+		double voltage = cJSON_GetArrayItem(interval,0)->valuedouble;
+		double duration = cJSON_GetArrayItem(interval,1)->valuedouble/1000.0;
+
+		int repeats = (int)std::round(duration / samplePeriod);
+
+		for (int j=0;j<repeats;j++) pattern.push_back(voltage);
+	}
+
+	return pattern;
+}
+
 cJSON * Configuration::getObject(std::string childPath)
 {
 	return getObject(root,childPath);
@@ -116,7 +136,7 @@ cJSON * Configuration::getObject(cJSON * parent, std::string childPath)
 
 
 
-std::string get_file_contents(const char *filename)
+std::string Configuration::get_file_contents(const char *filename)
 {
   std::ifstream in(filename, std::ios::in | std::ios::binary);
   if (in)

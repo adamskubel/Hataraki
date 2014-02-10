@@ -93,6 +93,15 @@
     <ClCompile Include="Configuration.cpp">
       <Filter>Source Files\Utils</Filter>
     </ClCompile>
+    <ClCompile Include="FlipIdentifier.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="PredictiveJointControl_ControllerImpl.cpp">
+      <Filter>Source Files\Predictive</Filter>
+    </ClCompile>
+    <ClCompile Include="PredictiveJointControl_SignalImpl.cpp">
+      <Filter>Source Files\Predictive</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="I2CBus.hpp">
@@ -155,12 +164,12 @@
     <ClInclude Include="ServoUtil.hpp">
       <Filter>Header Files\Util</Filter>
     </ClInclude>
+    <ClInclude Include="FlipIdentifier.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="config.json">
-      <Filter>Resource Files</Filter>
-    </None>
-    <None Include="ArmModel.json">
       <Filter>Resource Files</Filter>
     </None>
   </ItemGroup>

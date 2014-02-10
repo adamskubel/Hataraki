@@ -67,6 +67,8 @@ public:
 	
 
 	MotionController(std::vector<PredictiveJointController*> & joints, double samplePeriod, int planStepCount);
+
+	PredictiveJointController * getJointByIndex(int jointIndex);
 		
 	void moveToPosition(vmath::Vector3d position, bool interactive);
 	

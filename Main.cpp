@@ -43,6 +43,8 @@
 #include "MathUtils.hpp"
 #include "AsyncLogger.hpp"
 
+#include "FlipIdentifier.hpp"
+
 #define VMATH_NAMESPACE vmath
 #include "vmath.h"
 
@@ -282,9 +284,48 @@ int main(int argc, char *argv[])
 						});
 					}
 				}
+				else if (command.compare("flip") == 0)
+				{
+					int jointIndex,direction;
+					input >> jointIndex;
+					input >> direction;
+					double voltage;
+					input >> voltage;
+
+					if (input.fail()) {
+						cout << "Usage: flip <jointIndex> <direction> <voltage>" << endl;
+					} else {
+						motionController->postTask([controllers,direction,jointIndex,voltage](){
+							controllers.at(jointIndex)->requestFlip(direction,voltage);
+						});
+					}
+				}
+				else if (command.compare("runpatterns") == 0)
+				{
+					int jointIndex;
+					string filename;
+
+					input >> jointIndex;
+					input >> filename;
+
+					if (input.fail()) {
+						cout << "Usage: flip <jointIndex> <patternFile>" << endl;
+					} else {
+						string fileString = Configuration::get_file_contents(filename.c_str());
+						cJSON * patterns = cJSON_Parse(fileString.c_str());
+
+						if (!patterns) cout << "Invalid JSON file." << endl;
+						else
+						{
+							FlipIdentifier flipId(samplePeriod,jointIndex,motionController);
+							flipId.loadPatterns(patterns);
+							flipId.execute();
+						}
+					}
+				}
 				else
 				{
-					cout << "Invalid entry. Valid commands are: enable, exit, home, set, list, getpos, setpos, pause " << endl;
+					cout << "Invalid entry. Valid commands are: enable, enable_, exit, k, home, set, list, getpos, setpos, pause, flip" << endl;
 				}
 			}
 			catch (std::runtime_error & commandException)

@@ -66,6 +66,7 @@
     <ClCompile Include="AsyncLogger.cpp" />
     <ClCompile Include="Configuration.cpp" />
     <ClCompile Include="DRV8830.cpp" />
+    <ClCompile Include="FlipIdentifier.cpp" />
     <ClCompile Include="I2CBus.cpp" />
     <ClCompile Include="ikfastsolution.cpp" />
     <ClCompile Include="Main.cpp" />
@@ -73,6 +74,8 @@
     <ClCompile Include="MotionController.cpp" />
     <ClCompile Include="PoseDynamics.cpp" />
     <ClCompile Include="PredictiveJointController.cpp" />
+    <ClCompile Include="PredictiveJointControl_ControllerImpl.cpp" />
+    <ClCompile Include="PredictiveJointControl_SignalImpl.cpp" />
     <ClCompile Include="ServoUtil.cpp" />
     <ClCompile Include="Test.cpp" />
     <ClCompile Include="TimeMultiplexedVoltageConverter.cpp" />
@@ -86,6 +89,7 @@
     <ClInclude Include="Configuration.hpp" />
     <ClInclude Include="DRV8830.hpp" />
     <ClInclude Include="Exceptions.hpp" />
+    <ClInclude Include="FlipIdentifier.hpp" />
     <ClInclude Include="I2CBus.hpp" />
     <ClInclude Include="ikfast.h" />
     <ClInclude Include="LowpassFilter.hpp" />
@@ -102,7 +106,6 @@
     <ClInclude Include="vmath.h" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="ArmModel.json" />
     <None Include="config.json" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

@@ -63,16 +63,31 @@
 			"ViscousFriction" : 0
 		},
 		{
-			"Name" : "GM12-1000-Gearbox",
+			"Name" : "GM12-1000",
 			"Ratio" : 1000,
-			"LostMotion" : 2.8,
+			"LostMotion" : 3.45,
 			"Efficiency" : 1.0,
 			"ViscousFriction" : 0
 		},
 		{
-			"Name" : "GM12-298-Gearbox",
+			"Name" : "GM12-298",
 			"Ratio" : 298,
-			"LostMotion" : 2.1 ,
+			"LostMotion" : 0.8,
+			"LostMotionMeasured" : 3.23,
+			"Efficiency" : 1.0,
+			"ViscousFriction" : 0
+		},
+		{
+			"Name" : "GM12-1000-Bevel",
+			"Ratio" : 1000,
+			"LostMotion" : 29.27,
+			"Efficiency" : 1.0,
+			"ViscousFriction" : 0
+		},
+		{
+			"Name" : "GM12-298-Bevel",
+			"Ratio" : 298,
+			"LostMotion" : 15.71,
 			"Efficiency" : 1.0,
 			"ViscousFriction" : 0
 		}
@@ -107,13 +122,31 @@
 		{
 			"Name" : "Default",
 			"SpeedControlProportionalGain" : 0.1,
-			"SpeedControlIntegralGain" : 0.0
+			"SpeedControlIntegralGain" : 0.0,
+			"GravityFlipTriggerEnabled" : 0,
+			"ExternalDisturbanceFlipTriggerEnabled" : 1,
+			"GravityFlipPattern" : [				
+				[0.48,30],
+				[0.56,20],
+				[0.72,30],
+				[0.88,40],
+				[0.72,20],
+				[0.56,30],
+				[0.48,20]	
+			],
+			"ExternalDisturbanceFlipPattern" : [				
+				[0.48,20],
+				[0.56,20],
+				[0.72,10],
+				[0.88,10],
+				[1.40,30]
+			]
 		}
 	],
 	"JointDefinitions" : [
 		{
 			"Name" : "Roll_0",
-			"ZeroPosition" : 285, 
+			"ZeroPosition" : 224, 
 			"MinAngle" : -175,
 			"MaxAngle" : 175,
 			"AxisOfRotation" : [1,0,0],
@@ -126,13 +159,13 @@
 				"MaxDriverVoltage" : 3.6,
 				"FrictionTorque" : 0.02,
 				"Motor" : "Motors.GM12-1000",
-				"Gearbox" : "Gearboxes.Ideal",
+				"Gearbox" : "Gearboxes.GM12-1000-Bevel",
 				"ControllerConfig" : "Controllers.Default"
 			}
 		},
 		{
 			"Name" : "Pitch_0",
-			"ZeroPosition" : 30,
+			"ZeroPosition" : 210,
 			"MinAngle" : -35,
 			"MaxAngle" : 90,
 			"AxisOfRotation" : [0,-1,0],
@@ -145,15 +178,15 @@
 				"MaxDriverVoltage" : 2.2,
 				"FrictionTorque" : 0.02,
 				"Motor" : "Motors.GM12-1000",
-				"Gearbox" : "Gearboxes.Ideal",
+				"Gearbox" : "Gearboxes.GM12-1000",
 				"ControllerConfig" : "Controllers.Default"
 			}
 		},
 		{
 			"Name" : "Roll_1",
 			"ZeroPosition" : 99, 
-			"MinAngle" : -90,
-			"MaxAngle" : 90,
+			"MinAngle" : -120,
+			"MaxAngle" : 120,
 			"AxisOfRotation" : [1,0,0],
 			"Servo" : 
 			{
@@ -164,7 +197,7 @@
 				"MaxDriverVoltage" : 3.6,
 				"FrictionTorque" : 0.02,
 				"Motor" : "Motors.GM12-1000",
-				"Gearbox" : "Gearboxes.Ideal",
+				"Gearbox" : "Gearboxes.GM12-1000-Bevel",
 				"ControllerConfig" : "Controllers.Default"
 			}
 		},
@@ -183,7 +216,7 @@
 				"MaxDriverVoltage" : 2.2,
 				"FrictionTorque" : 0.02,
 				"Motor" : "Motors.GM12-1000",
-				"Gearbox" : "Gearboxes.Ideal",
+				"Gearbox" : "Gearboxes.GM12-1000",
 				"ControllerConfig" : "Controllers.Default"
 			}
 		},
@@ -202,7 +235,7 @@
 				"MaxDriverVoltage" : 1.2,
 				"FrictionTorque" : 0.01,
 				"Motor" : "Motors.GM12-298",
-				"Gearbox" : "Gearboxes.Ideal",
+				"Gearbox" : "Gearboxes.GM12-298",
 				"ControllerConfig" : "Controllers.Default"
 			}
 		},
@@ -221,7 +254,7 @@
 				"MaxDriverVoltage" : 3.6,
 				"FrictionTorque" : 0.01,
 				"Motor" : "Motors.GM12-298",
-				"Gearbox" : "Gearboxes.Ideal",
+				"Gearbox" : "Gearboxes.GM12-298-Bevel",
 				"ControllerConfig" : "Controllers.Default"
 			}
 		}

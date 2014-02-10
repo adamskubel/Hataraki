@@ -23,7 +23,7 @@ struct GearboxModel {
 		Configuration::AssertConfigExists(rawConfig,"GearboxModel");
 
 		ratio = cJSON_GetObjectItem(rawConfig,"Ratio")->valuedouble;
-		lostMotion = MathUtil::degreesToRadians(cJSON_GetObjectItem(rawConfig,"LostMotion")->valuedouble);
+		lostMotion = AS5048::degreesToSteps(cJSON_GetObjectItem(rawConfig,"LostMotion")->valuedouble);
 		efficiency = cJSON_GetObjectItem(rawConfig,"Efficiency")->valuedouble;
 		viscousFriction = cJSON_GetObjectItem(rawConfig,"ViscousFriction")->valuedouble;
 	}
@@ -70,10 +70,22 @@ public:
 	double speedControlProportionalGain;
 	double speedControlIntegralGain;
 
+	std::vector<double> gravityFlipVoltagePattern, externalDisturbanceFlipVoltagePattern;
+
+	bool externalDisturbanceFlipTriggerEnabled;
+	bool gravityFlipTriggerEnabled;
+
 	ControllerConfig(cJSON * rawConfig) 
 	{
 		speedControlProportionalGain = cJSON_GetObjectItem(rawConfig,"SpeedControlProportionalGain")->valuedouble;
 		speedControlIntegralGain = cJSON_GetObjectItem(rawConfig,"SpeedControlIntegralGain")->valuedouble;
+
+		gravityFlipVoltagePattern = Configuration::getVoltagePatternFromJSON(cJSON_GetObjectItem(rawConfig,"GravityFlipPattern"));
+
+		externalDisturbanceFlipVoltagePattern = Configuration::getVoltagePatternFromJSON(cJSON_GetObjectItem(rawConfig,"ExternalDisturbanceFlipPattern"));
+
+		externalDisturbanceFlipTriggerEnabled = cJSON_GetObjectItem(rawConfig,"ExternalDisturbanceFlipTriggerEnabled")->valueint != 0;
+		gravityFlipTriggerEnabled = cJSON_GetObjectItem(rawConfig,"GravityFlipTriggerEnabled")->valueint != 0;
 	}
 };
 

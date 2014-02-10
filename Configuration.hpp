@@ -7,6 +7,7 @@
 #include <sstream>
 #include <iostream>
 #include <fstream>
+#include <cmath>
 
 #define VMATH_NAMESPACE vmath
 #include "vmath.h"
@@ -29,6 +30,8 @@ private:
 
 	
 public:
+	static std::string get_file_contents(const char *filename);
+
 	static bool CsvLoggingEnabled;
 	static std::string CsvSeparator;
 	
@@ -36,6 +39,8 @@ public:
 	
 	static void AssertConfigExists(cJSON * configItem,std::string configItemName);
 	static vmath::Vector3d getVectorFromJSON(cJSON * vectorObj);
+	static std::vector<double> getVoltagePatternFromJSON(cJSON * vectorObj);
+
 
 	cJSON * getRoot();
 
@@ -43,7 +48,6 @@ public:
 
 	cJSON * getObject(std::string childPath);
 	cJSON * getObject(cJSON * parent, std::string childPath);
-
 	
 
 
