@@ -1,6 +1,5 @@
 #include "PredictiveJointController.hpp"
 
-
 namespace ControllerConfiguration 
 {	
 	//Speed Control
@@ -54,6 +53,49 @@ int PredictiveJointController::getSensorAngleRegisterValue()
 	return result;
 }
 
+void PredictiveJointController::setCurrentTorqueStates()
+{
+	double direction = MathUtils::sgn<double>(cTargetAngleDistance);
+	//Need to invert this for some reason
+	cStaticModelTorque = -PoseDynamics::getInstance().computeJointTorque(jointModel->index);
+	cStaticModelRotatum = (cStaticModelTorque - lStaticModelTorque)/(cTime-lTime);
+		
+	cPredictedTorque = cStaticModelTorque + (servoModel->frictionTorque * -direction);
+	
+	//Then flip back around to get motor torque. 
+	cPredictedTorque = -cPredictedTorque;
+	
+	//Make sure torque is the same sign as motion
+	if (direction > 0)
+		cPredictedTorque = std::max<double>(MinimumPredictedTorque,cPredictedTorque);
+	else
+		cPredictedTorque = std::min<double>(-MinimumPredictedTorque,cPredictedTorque);
+
+	if (!isTorqueEstimateValid) 
+	{
+		stableTorqueEstimate = cPredictedTorque;		
+	}
+
+	if (!isControlTorqueValid) 
+	{
+		velocityErrorIntegral = 0;
+		cControlTorque = cPredictedTorque;
+		isControlTorqueValid = true;
+	}
+
+	//Torque experienced by the motor, over last N frames.
+	cAverageVoltage = std::accumulate(appliedVoltageHistory.begin(), appliedVoltageHistory.end(), 0.0) / appliedVoltageHistory.size();
+	cMotorTorque = servoModel->getTorqueForVoltageSpeed(cAverageVoltage, cVelocity);
+
+	
+	expectedRotationalStopDirection = (int)MathUtils::sgn<double>(-cStaticModelTorque);
+
+	//if (std::abs(cAverageVoltage) > MinAverageVoltageForCertainMovement)
+	//{
+	//	expectedRotationalStopDirection = MathUtils::sgn<double>(cAverageVoltage);
+	//}
+}
+
 
 void PredictiveJointController::setCurrentState()
 {
@@ -92,45 +134,10 @@ void PredictiveJointController::setCurrentState()
 	setApproximateSpeed(rawSensorAngleHistory);
 
 	setTargetState();
-		
-	double direction = MathUtils::sgn<double>(cTargetAngleDistance);
-	//Need to invert this for some reason
-	cStaticModelTorque = -PoseDynamics::getInstance().computeJointTorque(jointModel->index);
-	cStaticModelRotatum = (cStaticModelTorque - lStaticModelTorque)/(cTime-lTime);
-		
-	cPredictedTorque = cStaticModelTorque + (servoModel->frictionTorque * -direction);
-	
-	//Then flip back around to get motor torque. 
-	cPredictedTorque = -cPredictedTorque;
-	
-	//Make sure torque is the same sign as motion
-	if (direction > 0)
-		cPredictedTorque = std::max<double>(MinimumPredictedTorque,cPredictedTorque);
-	else
-		cPredictedTorque = std::min<double>(-MinimumPredictedTorque,cPredictedTorque);
 
-	if (!isTorqueEstimateValid) 
-	{
-		stableTorqueEstimate = cPredictedTorque;		
-	}
+	setCurrentTorqueStates();
 
-	if (!isControlTorqueValid) 
-	{
-		velocityErrorIntegral = 0;
-		cControlTorque = cPredictedTorque;
-		isControlTorqueValid = true;
-	}
-
-	//Torque experienced by the motor, over last N frames.
-	cAverageVoltage = std::accumulate(appliedVoltageHistory.begin(), appliedVoltageHistory.end(), 0.0) / appliedVoltageHistory.size();
-	cMotorTorque = servoModel->getTorqueForVoltageSpeed(cAverageVoltage, cVelocity);
-
-	expectedRotationalStopDirection = (int)MathUtils::sgn<double>(-cStaticModelTorque);
-
-	//if (std::abs(cAverageVoltage) > MinAverageVoltageForCertainMovement)
-	//{
-	//	expectedRotationalStopDirection = MathUtils::sgn<double>(cAverageVoltage);
-	//}
+	doSavitzkyGolayFiltering();
 
 	TimeUtil::assertTime(start,jointModel->name + ".setCurrentState()");
 }
@@ -151,6 +158,31 @@ double PredictiveJointController::getAverageSpeedForWindow(int windowSize)
 		avgSpeed /= count;
 	}
 	return avgSpeed;
+}
+
+void PredictiveJointController::doSavitzkyGolayFiltering()
+{
+	if (!config->savitzyGolayFilteringEnabled) return;
+
+	timespec start;
+	TimeUtil::setNow(start);
+	
+	if (rawSensorAngleHistory.size() > (config->savitzyGolayWindowSize * 2) + 2)
+	{
+		vector<double> constantTimeData; 
+
+		//Assuming constant period, but data should really be resampled
+		for (auto it=rawSensorAngleHistory.begin(); it != rawSensorAngleHistory.end(); it++)
+			constantTimeData.push_back(it->second);
+
+		vector<double> filtered = SGSmoothUtil::SGSmooth(constantTimeData,config->savitzyGolayWindowSize,config->savitzyGolayPolyDegree);
+		cSGFilterAngle = filtered.back();
+		
+		filtered = SGSmoothUtil::SGDerivative(constantTimeData,config->savitzyGolayWindowSize,config->savitzyGolayPolyDegree);
+		cSGFilterVelocity = filtered.back();
+	}
+
+	TimeUtil::assertTime(start,jointModel->name + ".doSavitzkyGolayFiltering()");
 }
 
 void PredictiveJointController::setApproximateSpeed(std::list<std::pair<double, double> > history)

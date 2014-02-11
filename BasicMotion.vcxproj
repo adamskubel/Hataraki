@@ -77,6 +77,7 @@
     <ClCompile Include="PredictiveJointControl_ControllerImpl.cpp" />
     <ClCompile Include="PredictiveJointControl_SignalImpl.cpp" />
     <ClCompile Include="ServoUtil.cpp" />
+    <ClCompile Include="SavitzkyGolaySmooth.cpp" />
     <ClCompile Include="Test.cpp" />
     <ClCompile Include="TimeMultiplexedVoltageConverter.cpp" />
     <ClCompile Include="TimeUtil.cpp" />
@@ -100,6 +101,7 @@
     <ClInclude Include="SegmentModel.hpp" />
     <ClInclude Include="ServoModel.hpp" />
     <ClInclude Include="ServoUtil.hpp" />
+    <ClInclude Include="SavitzkyGolaySmooth.hpp" />
     <ClInclude Include="SimpleMovingAverage.hpp" />
     <ClInclude Include="TimeMultiplexedVoltageConverter.hpp" />
     <ClInclude Include="TimeUtil.hpp" />

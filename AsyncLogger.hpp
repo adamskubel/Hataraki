@@ -59,9 +59,9 @@ private:
 	void run();
 	
 
-public:
-	//void postLogTask(std::string filename, std::function<void(std::ofstream&)> function);
+public:	
 	void postLogTask(std::string filename, std::string message);
+	void postConsoleOutTask(std::string message);
 
 	void startThread();
 	void joinThread();

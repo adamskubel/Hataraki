@@ -26,6 +26,7 @@
 #include "PoseDynamics.hpp"
 #include "TimeUtil.hpp"
 #include "AsyncLogger.hpp"
+#include "SavitzkyGolaySmooth.hpp"
 
 
 class MotionInterval {
@@ -95,7 +96,7 @@ public:
 		}
 		if (motionIntervals.size() > 0)
 		{
-			return motionIntervals.at(0)->endSpeed;
+			return motionIntervals.back()->endSpeed;
 		}
 		return 0;
 	}
@@ -156,6 +157,7 @@ private:
 	//ControllerConfig config;
 	ServoModel * servoModel;
 	JointModel * jointModel;
+	ControllerConfig * config;
 	I2CBus * bus;
 
 	JointStatus jointStatus;
@@ -205,6 +207,9 @@ private:
 	double cPredictedTorque;
 	double cMotorTorque;
 	double cControlTorque;
+
+	double cSGFilterAngle;
+	double cSGFilterVelocity;
 	
 	double cVoltage;
 	DriverMode cDriverMode;
@@ -277,6 +282,7 @@ private:
 	void setApproximateSpeed(std::list<std::pair<double, double> > history);
 	int getSensorAngleRegisterValue();
 	double correctAngleForDiscreteErrors(double rawAngle);
+	void doSavitzkyGolayFiltering();
 
 	void performSafetyChecks();
 
@@ -288,6 +294,7 @@ private:
 
 	bool handleUserRequests();
 
+	void setCurrentTorqueStates();
 	void setCurrentState();
 	void setTargetState();
 
@@ -314,8 +321,9 @@ public:
 		this->bus = _bus;
 		this->samplePeriod = _samplePeriod;
 		
-		jointModel = _jointModel;
-		servoModel = &(jointModel->servoModel);
+		jointModel	= _jointModel;
+		servoModel	= &(jointModel->servoModel);
+		config		= &(servoModel->controllerConfig);
 		
 		jointStatus = JointStatus::New;		
 		init();

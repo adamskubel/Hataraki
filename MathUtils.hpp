@@ -139,6 +139,8 @@ public:
 
 	static vmath::Vector4d constructPlane(vmath::Vector3d normal, vmath::Vector3d point);
 
+	static void getRowMajorData(vmath::Matrix3d matrix, double * result);
+
 };
 
 #endif

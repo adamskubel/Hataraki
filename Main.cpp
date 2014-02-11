@@ -49,7 +49,6 @@
 #include "vmath.h"
 
 
-
 using namespace std;
 using namespace ikfast2;
 using namespace vmath;
@@ -57,7 +56,6 @@ using namespace vmath;
 volatile bool running;
 
 MotionController * motionController;
-
 
 
 void updateController()
@@ -246,7 +244,8 @@ int main(int argc, char *argv[])
 				else if (command.compare("setpos") == 0 || command.compare("goto") == 0) {
 
 					Vector3d targetPosition;
-					
+					double accel = 5000.0, deccel = 5000.0;
+
 					input >> targetPosition.x;
 					input >> targetPosition.y;
 					input >> targetPosition.z;
@@ -256,9 +255,17 @@ int main(int argc, char *argv[])
 					bool interactive = (command.compare("setpos") == 0);
 
 					if (input.fail()) {
-						cout << "Usage: <setpos|goto> <x>cm <y>cm <z>cm" << endl;
+						cout << "Usage: <setpos|goto> <x>cm <y>cm <z>cm [accel] [deccel]" << endl;
 					} else {
-						motionController->moveToPosition(targetPosition,interactive);
+
+						double rX,rY,rZ;
+						input >> rX; input >> rY; input >> rZ;
+						if (input.fail())
+						{
+							rY = -90; rX = 0; rZ = 0;
+						}
+						
+						motionController->moveToPosition(targetPosition,Matrix3d::createRotationAroundAxis(rX,rY,rZ),accel,deccel,interactive);
 					}
 				}
 				else if (command.compare("getpos") == 0) {
@@ -347,3 +354,4 @@ int main(int argc, char *argv[])
 		
 	AsyncLogger::getInstance().joinThread();
 }
+

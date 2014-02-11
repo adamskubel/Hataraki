@@ -102,6 +102,9 @@
     <ClCompile Include="PredictiveJointControl_SignalImpl.cpp">
       <Filter>Source Files\Predictive</Filter>
     </ClCompile>
+    <ClCompile Include="SavitzkyGolaySmooth.cpp">
+      <Filter>Source Files\Math</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="I2CBus.hpp">
@@ -166,6 +169,9 @@
     </ClInclude>
     <ClInclude Include="FlipIdentifier.hpp">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="SavitzkyGolaySmooth.hpp">
+      <Filter>Header Files\Math</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

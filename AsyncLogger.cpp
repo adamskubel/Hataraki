@@ -9,6 +9,13 @@ void AsyncLogger::postLogTask(string filename, string message)
 }
 
 
+void AsyncLogger::postConsoleOutTask(string message)
+{
+	std::lock_guard<std::mutex> locks(taskQueueMutex);	
+	taskQueue.push(new LogTask("cout",message));
+}
+
+
 void AsyncLogger::run()
 {
 	while (running)
@@ -29,17 +36,26 @@ void AsyncLogger::run()
 			taskQueue.pop();
 			taskQueueMutex.unlock();
 
-			std::ofstream * logFile;
-			auto it = filemap.find(task->filename);
-			if (it == filemap.end())
+			if (task->filename.compare("cout") == 0)
 			{
-				logFile = new ofstream(task->filename.c_str(),std::ofstream::out);
-				filemap.insert(std::make_pair(task->filename,logFile));
+				cout << task->message;
 			}
 			else
-				logFile = it->second;
+			{
+				std::ofstream * logFile;
+				auto it = filemap.find(task->filename);
+				if (it == filemap.end())
+				{
+					logFile = new ofstream(task->filename.c_str(),std::ofstream::out);
+					filemap.insert(std::make_pair(task->filename,logFile));
+				}
+				else
+					logFile = it->second;
 
-			*logFile << task->message;
+				*logFile << task->message;
+
+				logFile->flush();
+			}
 			delete task;
 		}
 		catch (std::exception & e)

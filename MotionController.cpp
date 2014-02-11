@@ -152,19 +152,20 @@ void MotionController::enableAllJoints()
 }
 
 
-void MotionController::moveToPosition(Vector3d targetPosition, bool interactive)
+void MotionController::moveToPosition(Vector3d targetPosition, Matrix3d targetRotation, double accel, double deccel, bool interactive)
 {	
 	vector<MotionStep*> motionSteps;
-	bool solutionFound = buildMotionSteps(targetPosition,motionSteps);
+	bool solutionFound = buildMotionSteps(targetPosition, targetRotation, motionSteps);
 
 	if (solutionFound) {
-	
+
 		currentPlan.clear();
-		currentPlan = createMotionPlans(motionSteps,100,100);
+		currentPlan = createMotionPlans(motionSteps,accel,deccel);
+
+		bool executePlan = false;
 
 		if (interactive)
 		{
-			//cout << "Motion plan created: ";
 			cout << "Angles    = ";
 			for (auto it = currentPlan.begin(); it != currentPlan.end(); it++)
 			{
@@ -179,15 +180,21 @@ void MotionController::moveToPosition(Vector3d targetPosition, bool interactive)
 			cout << endl;
 			cout << std::fixed;
 			cout << "Commence motion? [y]es/[a]bort :" << endl;
+			string strIn;
+			getline(cin,strIn);
+
+			if (strIn.compare("y") != 0)
+			{				
+				currentPlan.clear();
+			}
+			else
+				executePlan = true;
 		}
+		else
+			executePlan = true;
 
-		string strIn;
-		getline(cin,strIn);
-		
-		if (strIn.compare("y") == 0) {
-
-			cout << "Executing plan" << endl;
-
+		if (executePlan)
+		{
 			this->postTask([this](){
 
 				for (int i=0;i<6;i++)
@@ -201,10 +208,7 @@ void MotionController::moveToPosition(Vector3d targetPosition, bool interactive)
 				}
 			});
 		}
-		else {
-			currentPlan.clear();
-			cout << "Aborted motion plan" << endl;
-		}
+
 	}
 	else {
 		cout << "Failed to construct motion plan for target. " << endl;
@@ -222,6 +226,8 @@ void MotionController::postTask(std::function<void()> task)
 
 vector<shared_ptr<JointMotionPlan> > MotionController::createMotionPlans(vector<MotionStep*> & steps, double maxAccel, double maxDeccel)
 {
+	const double MinSpeed = 400;
+
 	vector<shared_ptr<JointMotionPlan> > motionPlan;
 
 	for (int i=0;i<6;i++) 
@@ -251,7 +257,11 @@ vector<shared_ptr<JointMotionPlan> > MotionController::createMotionPlans(vector<
 			if (accelTime > samplePeriod*4.0 && accelTime < stepTime) 
 			{
 				motionPlan.at(i)->motionIntervals.push_back(new MotionInterval(lastVelocity,velocity,accelTime));
-				motionPlan.at(i)->motionIntervals.push_back(new MotionInterval(velocity,stepTime-accelTime));
+
+				double accelDist = accelTime*lastVelocity + (std::pow(accelTime,2) * maxAccel)/2.0;
+				double equivTime = accelDist/velocity;
+
+				motionPlan.at(i)->motionIntervals.push_back(new MotionInterval(velocity,stepTime-equivTime));
 			}
 			else
 			{
@@ -267,12 +277,22 @@ vector<shared_ptr<JointMotionPlan> > MotionController::createMotionPlans(vector<
 		if (motionPlan.at(i)->motionIntervals.size() > 0)
 		{
 			double lastVelocity = motionPlan.at(i)->motionIntervals.back()->endSpeed;
-			double accelTime = (lastVelocity)/maxDeccel;
+			double accelTime = (lastVelocity - MinSpeed)/maxDeccel;
 			
-			if (accelTime > samplePeriod*4.0 && accelTime < motionPlan.at(i)->motionIntervals.back()->duration) 
+			if (accelTime > samplePeriod*4.0) 
 			{				
-				motionPlan.at(i)->motionIntervals.back()->duration -= accelTime;
-				motionPlan.at(i)->motionIntervals.push_back(new MotionInterval(0,accelTime));
+				if (accelTime < motionPlan.at(i)->motionIntervals.back()->duration)
+				{
+					double accelDist = accelTime*lastVelocity + (std::pow(accelTime,2) * -maxDeccel)/2.0;
+					double equivTime = accelDist/lastVelocity;
+
+					motionPlan.at(i)->motionIntervals.back()->duration -= equivTime;
+					motionPlan.at(i)->motionIntervals.push_back(new MotionInterval(MinSpeed,accelTime));
+				}
+				//else
+				//{
+				//	motionPlan.at(i)->motionIntervals.back()->endSpeed = 0;
+				//}
 			}
 		}
 	}
@@ -323,9 +343,11 @@ double MotionController::calculateMotionEffort(const double * currentSolution, c
 	return 0;
 }
 
-bool MotionController::getEasiestSolution(const double * currentAngles, const double * targetPosition, double * result) {
+bool MotionController::getEasiestSolution(const double * currentAngles, Vector3d targetPosition, Matrix3d rotationMatrix, double * result) {
 
-	double targetRotation[9] = {0,0,1, 0,1,0, -1,0,0}; //+90 about Y
+	double targetRotation[9];
+	MathUtil::getRowMajorData(rotationMatrix,targetRotation);
+
 
 	IkSolutionList<IkReal> solutions;
 	ComputeIk(targetPosition,targetRotation,NULL, solutions);
@@ -348,7 +370,7 @@ bool MotionController::getEasiestSolution(const double * currentAngles, const do
 	}
 	
 	if (bestSolutionScore > 0) {
-		//std::copy(std::begin(bestSolution), std::end(bestSolution), std::begin(result));
+
 		for (int i=0;i<6;i++)
 			result[i] = bestSolution[i];
 
@@ -358,7 +380,7 @@ bool MotionController::getEasiestSolution(const double * currentAngles, const do
 }
 
 
-bool MotionController::buildMotionSteps(double * targetPosition,vector<MotionStep*> & steps)
+bool MotionController::buildMotionSteps(double * targetPosition,Matrix3d targetRotation, vector<MotionStep*> & steps)
 {
 	int numSteps = planStepCount;
 
@@ -389,7 +411,8 @@ bool MotionController::buildMotionSteps(double * targetPosition,vector<MotionSte
 
 		double stepAngles[6];
 
-		bool solutionExists = getEasiestSolution(lastAngles,stepPosition,stepAngles);
+		Vector3d v = Vector3d(stepPosition[0],stepPosition[1],stepPosition[2]);
+		bool solutionExists = getEasiestSolution(lastAngles,v,targetRotation,stepAngles);
 
 		if (solutionExists) {	
 			

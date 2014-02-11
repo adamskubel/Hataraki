@@ -75,6 +75,10 @@ public:
 	bool externalDisturbanceFlipTriggerEnabled;
 	bool gravityFlipTriggerEnabled;
 
+	bool savitzyGolayFilteringEnabled;
+	int savitzyGolayWindowSize;
+	int savitzyGolayPolyDegree;
+
 	ControllerConfig(cJSON * rawConfig) 
 	{
 		speedControlProportionalGain = cJSON_GetObjectItem(rawConfig,"SpeedControlProportionalGain")->valuedouble;
@@ -86,6 +90,10 @@ public:
 
 		externalDisturbanceFlipTriggerEnabled = cJSON_GetObjectItem(rawConfig,"ExternalDisturbanceFlipTriggerEnabled")->valueint != 0;
 		gravityFlipTriggerEnabled = cJSON_GetObjectItem(rawConfig,"GravityFlipTriggerEnabled")->valueint != 0;
+
+		savitzyGolayWindowSize = Configuration::getInstance().getObject(rawConfig,"SavitzkyGolayFilter.WindowSize")->valueint;
+		savitzyGolayPolyDegree = Configuration::getInstance().getObject(rawConfig,"SavitzkyGolayFilter.PolynomialDegree")->valueint;
+		savitzyGolayFilteringEnabled = Configuration::getInstance().getObject(rawConfig,"SavitzkyGolayFilter.Enabled")->valueint != 0;
 	}
 };
 

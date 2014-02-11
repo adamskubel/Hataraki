@@ -65,3 +65,15 @@ Vector4d MathUtil::constructPlane(vmath::Vector3d normal, vmath::Vector3d point)
 {
 	return vmath::Vector4d(normal.x,normal.y,normal.z,-(normal.x * point.x + normal.y * point.y + point.z * normal.z));
 }
+
+void MathUtil::getRowMajorData(vmath::Matrix3d matrix, double * result)
+{	
+	double * colMajor = matrix.data;
+
+	double rowMajorForm[9] = {colMajor[0],colMajor[3],colMajor[6],colMajor[1],colMajor[4],colMajor[7],colMajor[2],colMajor[5],colMajor[8]};
+
+	for (int i=0;i<9;i++)
+		result[i] = rowMajorForm[i];
+
+	//std::copy(std::begin(rowMajorForm), std::end(rowMajorForm), std::begin(result));
+}

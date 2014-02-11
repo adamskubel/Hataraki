@@ -53,11 +53,11 @@ private:
 
 	void getJointAngles(double * angles);
 
-	bool getEasiestSolution(const double * currentAngles, const double * targetPosition, double * result);
+	bool getEasiestSolution(const double * currentAngles, vmath::Vector3d targetPosition, vmath::Matrix3d targetRotation, double * result);
 	bool checkSolutionValid(const double * solution);
 	double calculateMotionEffort(const double * solution0, const double * solution1);
 
-	bool buildMotionSteps(double * position, std::vector<MotionStep*> & steps);
+	bool buildMotionSteps(double * position, vmath::Matrix3d targetRotation, std::vector<MotionStep*> & steps);
 
 	void executeMotionPlan(std::vector<JointMotionPlan*> & newPlan);
 
@@ -70,7 +70,7 @@ public:
 
 	PredictiveJointController * getJointByIndex(int jointIndex);
 		
-	void moveToPosition(vmath::Vector3d position, bool interactive);
+	void moveToPosition(vmath::Vector3d position, vmath::Matrix3d rotation, double accel, double deccel, bool interactive);
 	
 	void setJointPosition(int jointIndex, double angle, double velocity, double accel);
 

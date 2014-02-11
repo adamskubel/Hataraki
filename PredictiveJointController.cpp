@@ -245,7 +245,9 @@ void PredictiveJointController::writeLogHeader()
 		"StableTorque"		<< Configuration::CsvSeparator << 
 		"BusSelectTime"		<< Configuration::CsvSeparator << 
 		"FileWriteTime"		<< Configuration::CsvSeparator << 
-		"RotationalStopDirection" << endl;
+		"RotationalStopDirection" << Configuration::CsvSeparator << 
+		"SGSensorAngle"		<< Configuration::CsvSeparator << 
+		"SGVelocity"		<< Configuration::CsvSeparator << endl;
 
 	AsyncLogger::getInstance().postLogTask(logfileName,ss.str());
 }
@@ -300,8 +302,10 @@ void PredictiveJointController::logState()
 		<< cDriverWriteTime		<< Configuration::CsvSeparator 
 		<< stableTorqueEstimate*100.0 << Configuration::CsvSeparator
 		<< cBusSelectTime		<< Configuration::CsvSeparator
-		<< writeTime << Configuration::CsvSeparator
-		<< expectedRotationalStopDirection;
+		<< writeTime			<< Configuration::CsvSeparator
+		<< expectedRotationalStopDirection << Configuration::CsvSeparator
+		<< cSGFilterAngle		<< Configuration::CsvSeparator
+		<< cSGFilterVelocity	<< Configuration::CsvSeparator;
 
 	ss << endl;
 

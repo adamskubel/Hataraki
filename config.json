@@ -124,7 +124,7 @@
 			"SpeedControlProportionalGain" : 0.1,
 			"SpeedControlIntegralGain" : 0.0,
 			"GravityFlipTriggerEnabled" : 0,
-			"ExternalDisturbanceFlipTriggerEnabled" : 1,
+			"ExternalDisturbanceFlipTriggerEnabled" : 0,
 			"GravityFlipPattern" : [				
 				[0.48,30],
 				[0.56,20],
@@ -140,13 +140,19 @@
 				[0.72,10],
 				[0.88,10],
 				[1.40,30]
-			]
+			],
+			"SavitzkyGolayFilter" : 
+			{
+				"Enabled" : 0,
+				"WindowSize" : 3,
+				"PolynomialDegree" : 2
+			}
 		}
 	],
 	"JointDefinitions" : [
 		{
 			"Name" : "Roll_0",
-			"ZeroPosition" : 224, 
+			"ZeroPosition" : 230, 
 			"MinAngle" : -175,
 			"MaxAngle" : 175,
 			"AxisOfRotation" : [1,0,0],
@@ -165,7 +171,7 @@
 		},
 		{
 			"Name" : "Pitch_0",
-			"ZeroPosition" : 210,
+			"ZeroPosition" : 31,
 			"MinAngle" : -35,
 			"MaxAngle" : 90,
 			"AxisOfRotation" : [0,-1,0],
@@ -184,7 +190,7 @@
 		},
 		{
 			"Name" : "Roll_1",
-			"ZeroPosition" : 99, 
+			"ZeroPosition" : 93, 
 			"MinAngle" : -120,
 			"MaxAngle" : 120,
 			"AxisOfRotation" : [1,0,0],
