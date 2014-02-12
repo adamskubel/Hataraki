@@ -118,7 +118,7 @@ void PredictiveJointController::disable()
 	controlMode = ControlMode::Disabled;
 }
 
-void PredictiveJointController::executeMotionPlan(std::shared_ptr<JointMotionPlan> requestedMotionPlan)
+void PredictiveJointController::executeMotionPlan(std::shared_ptr<MotionPlan> requestedMotionPlan)
 {
 	cout << "Starting new motion plan. " << endl;
 	validateMotionPlan(requestedMotionPlan);
@@ -138,7 +138,7 @@ void PredictiveJointController::executeMotionPlan(std::shared_ptr<JointMotionPla
 	MathUtil::setNow(planStartTime);
 }
 
-void PredictiveJointController::validateMotionPlan(std::shared_ptr<JointMotionPlan> requestedMotionPlan)
+void PredictiveJointController::validateMotionPlan(std::shared_ptr<MotionPlan> requestedMotionPlan)
 {
 	if (!(jointStatus == JointStatus::Active || jointStatus == JointStatus::Paused))
 		throw std::runtime_error("Joint must be in Active state to execute a motion plan");

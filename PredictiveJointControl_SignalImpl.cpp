@@ -133,8 +133,6 @@ void PredictiveJointController::setCurrentState()
 		
 	setApproximateSpeed(rawSensorAngleHistory);
 
-	setTargetState();
-
 	setCurrentTorqueStates();
 
 	doSavitzkyGolayFiltering();

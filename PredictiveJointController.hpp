@@ -27,81 +27,8 @@
 #include "TimeUtil.hpp"
 #include "AsyncLogger.hpp"
 #include "SavitzkyGolaySmooth.hpp"
+#include "MotionPlan.hpp"
 
-
-class MotionInterval {
-
-public:
-	double startSpeed, endSpeed, duration;
-
-	MotionInterval(double constantSpeed, double _duration)
-	{
-		this->startSpeed = constantSpeed;
-		this->endSpeed = constantSpeed;
-		this->duration = _duration;
-	}
-
-	MotionInterval(double _startSpeed, double _endSpeed, double _duration) {
-		this->startSpeed = _startSpeed;
-		this->endSpeed = _endSpeed;
-		this->duration = _duration;
-	}
-
-};
-
-class JointMotionPlan {
-	
-public:
-	double finalAngle;
-	std::vector<MotionInterval*> motionIntervals;
-
-	JointMotionPlan() 
-	{
-		finalAngle = 0;
-	}
-	
-	JointMotionPlan(MotionInterval * interval, double _finalAngle)
-	{
-		motionIntervals.push_back(interval);
-		this->finalAngle = _finalAngle;
-	}
-
-	JointMotionPlan(std::vector<MotionInterval*> _intervals, double _finalAngle) {
-		this->motionIntervals = _intervals;
-		this->finalAngle = _finalAngle;
-	}
-
-	double getSpeedAtTime(double planTime) {
-		
-		double intervalStart = 0;
-		for (auto it=motionIntervals.begin();it != motionIntervals.end(); it++)
-		{
-			double intervalEnd = intervalStart+(*it)->duration;
-			if (planTime >= intervalStart && planTime <= intervalEnd)
-			{
-				double start = (*it)->startSpeed;
-				double end = (*it)->endSpeed;
-				if (start != end)
-				{
-					double delta = end - start;
-					double time = planTime - intervalStart;
-					return start + (delta*time)/(*it)->duration;
-				}
-				else
-				{
-					return end;
-				}
-			}
-			intervalStart = intervalEnd;
-		}
-		if (motionIntervals.size() > 0)
-		{
-			return motionIntervals.back()->endSpeed;
-		}
-		return 0;
-	}
-
-};
 
 enum JointStatus {
 	New,
@@ -185,31 +112,38 @@ private:
 	std::list<double> appliedVoltageHistory;
 
 	//Motion plan
-	std::shared_ptr<JointMotionPlan> motionPlan;
+	std::shared_ptr<MotionPlan> motionPlan;
 	timespec planStartTime, enableTime;
 	
 	//Current state
 	double cTime;
 
-	int cRawSensorAngle;
-	int cNonZeroOffsetSensorAngle;
-	double cSensorAngle;
-
+//	struct SensorData {
+		
+		int cRawSensorAngle;
+		int cNonZeroOffsetSensorAngle;
+		double cSensorAngle;
+		
+		double cVelocity;
+		double cVelocityApproximationError;
+		
+		double cSGFilterAngle;
+		double cSGFilterVelocity;
+//	};
+		
 	double cTargetAngleDistance;
 	double cTargetAngle;
 	double cTargetVelocity;
 	
-	double cVelocity;		
-	double cVelocityApproximationError;
 
+	// struct PredictionResults {
 	double cStaticModelTorque;
 	double cStaticModelRotatum;
 	double cPredictedTorque;
 	double cMotorTorque;
 	double cControlTorque;
+	//};
 
-	double cSGFilterAngle;
-	double cSGFilterVelocity;
 	
 	double cVoltage;
 	DriverMode cDriverMode;
@@ -220,6 +154,7 @@ private:
 	bool cDriverCommanded;
 	int cDriverCommand;
 
+	//This is just logging stuff, completely useless 
 	double cSensorWriteTime;
 	double cSensorReadTime;
 	double cDriverWriteTime;
@@ -251,18 +186,25 @@ private:
 	double speedControlIntegralGain;
 	double speedControlProportionalGain;
 
-	//Postion control states
-	double setpointHoldAngle;
+	//PostionHoldControl states
+	struct PositionHoldData {
+		double setpointHoldAngle;
+
+
+	};
+	PositionHoldData positionHoldData;
 
 	//Stepping states
-	std::vector<double> stepVoltages;
-	SteppingState steppingState;
-	int stepVoltageIndex;
-	struct timespec readDelayStart;
-	double stepStartPosition;
-	double stepInitialTargetDistance;
-	int stepExpectedDirection;
-	double stepVoltageIntegral;
+	//struct StepControlData {
+		std::vector<double> stepVoltages;
+		SteppingState steppingState;
+		int stepVoltageIndex;
+		struct timespec readDelayStart;
+		double stepStartPosition;
+		double stepInitialTargetDistance;
+		int stepExpectedDirection;
+		double stepVoltageIntegral;
+	//};
 
 	//User test variables
 	bool flipRequestedByUser;
@@ -298,11 +240,12 @@ private:
 	void setCurrentState();
 	void setTargetState();
 
+	
+
 	void executeStep(double voltage, int energizeLength, int coastStepCount);
 	void executeStep(std::vector<double> & voltagePattern);
+	
 	void commandDriver(double targetVoltage, DriverMode mode);
-	void executeFlip(int direction, double voltage);
-
 	void commitCommands();
 
 	void printState();
@@ -341,8 +284,8 @@ public:
 	void requestPattern(std::vector<double> voltagePattern);
 	bool jointReadyForCommand();
 
-	void validateMotionPlan(std::shared_ptr<JointMotionPlan> requestedMotionPlan);
-	void executeMotionPlan(std::shared_ptr<JointMotionPlan> requestedMotionPlan);
+	void validateMotionPlan(std::shared_ptr<MotionPlan> requestedMotionPlan);
+	void executeMotionPlan(std::shared_ptr<MotionPlan> requestedMotionPlan);
 	void run();
 
 	double getMaxJointVelocity();

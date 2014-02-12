@@ -85,7 +85,7 @@ void MotionController::setJointPosition(int jointIndex, double angle, double vel
 		
 		PredictiveJointController * pjc = joints.at(jointIndex);
 		
-		auto plan = shared_ptr<JointMotionPlan>(new JointMotionPlan());
+		auto plan = shared_ptr<MotionPlan>(new MotionPlan());
 		
 		if (accel != 0)
 		{
@@ -224,15 +224,15 @@ void MotionController::postTask(std::function<void()> task)
 	taskQueue.push(task);
 }
 
-vector<shared_ptr<JointMotionPlan> > MotionController::createMotionPlans(vector<MotionStep*> & steps, double maxAccel, double maxDeccel)
+vector<shared_ptr<MotionPlan> > MotionController::createMotionPlans(vector<MotionStep*> & steps, double maxAccel, double maxDeccel)
 {
 	const double MinSpeed = 400;
 
-	vector<shared_ptr<JointMotionPlan> > motionPlan;
+	vector<shared_ptr<MotionPlan> > motionPlan;
 
 	for (int i=0;i<6;i++) 
 	{
-		motionPlan.push_back(shared_ptr<JointMotionPlan>(new JointMotionPlan()));
+		motionPlan.push_back(shared_ptr<MotionPlan>(new MotionPlan()));
 	}
 
 	for (auto it=steps.begin();it != steps.end(); it++)

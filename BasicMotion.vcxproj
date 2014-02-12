@@ -68,16 +68,19 @@
     <ClCompile Include="DRV8830.cpp" />
     <ClCompile Include="FlipIdentifier.cpp" />
     <ClCompile Include="I2CBus.cpp" />
+    <ClCompile Include="IJointControl.hpp" />
     <ClCompile Include="ikfastsolution.cpp" />
     <ClCompile Include="Main.cpp" />
     <ClCompile Include="MathUtils.cpp" />
     <ClCompile Include="MotionController.cpp" />
+    <ClCompile Include="MotionPlan.cpp" />
     <ClCompile Include="PoseDynamics.cpp" />
     <ClCompile Include="PredictiveJointController.cpp" />
     <ClCompile Include="PredictiveJointControl_ControllerImpl.cpp" />
     <ClCompile Include="PredictiveJointControl_SignalImpl.cpp" />
     <ClCompile Include="ServoUtil.cpp" />
     <ClCompile Include="SavitzkyGolaySmooth.cpp" />
+    <ClCompile Include="StepController.cpp" />
     <ClCompile Include="Test.cpp" />
     <ClCompile Include="TimeMultiplexedVoltageConverter.cpp" />
     <ClCompile Include="TimeUtil.cpp" />
@@ -96,6 +99,7 @@
     <ClInclude Include="LowpassFilter.hpp" />
     <ClInclude Include="MathUtils.hpp" />
     <ClInclude Include="MotionController.hpp" />
+    <ClInclude Include="MotionPlan.hpp" />
     <ClInclude Include="PoseDynamics.hpp" />
     <ClInclude Include="PredictiveJointController.hpp" />
     <ClInclude Include="SegmentModel.hpp" />
@@ -103,6 +107,7 @@
     <ClInclude Include="ServoUtil.hpp" />
     <ClInclude Include="SavitzkyGolaySmooth.hpp" />
     <ClInclude Include="SimpleMovingAverage.hpp" />
+    <ClInclude Include="StepController.hpp" />
     <ClInclude Include="TimeMultiplexedVoltageConverter.hpp" />
     <ClInclude Include="TimeUtil.hpp" />
     <ClInclude Include="vmath.h" />

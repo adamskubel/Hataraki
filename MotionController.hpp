@@ -45,7 +45,7 @@ class MotionController {
 private:
 	std::vector<PredictiveJointController*> joints;
 	int numSteps, state, planStepCount;
-	std::vector<std::shared_ptr<JointMotionPlan> > currentPlan;
+	std::vector<std::shared_ptr<MotionPlan> > currentPlan;
 	std::queue<std::function<void()> > taskQueue;
 	std::mutex taskQueueMutex;
 	double samplePeriod;
@@ -59,9 +59,9 @@ private:
 
 	bool buildMotionSteps(double * position, vmath::Matrix3d targetRotation, std::vector<MotionStep*> & steps);
 
-	void executeMotionPlan(std::vector<JointMotionPlan*> & newPlan);
+	void executeMotionPlan(std::vector<MotionPlan*> & newPlan);
 
-	std::vector<std::shared_ptr<JointMotionPlan> > createMotionPlans(std::vector<MotionStep*> & steps, double maxAccel, double maxDeccel);
+	std::vector<std::shared_ptr<MotionPlan> > createMotionPlans(std::vector<MotionStep*> & steps, double maxAccel, double maxDeccel);
 
 public:
 	

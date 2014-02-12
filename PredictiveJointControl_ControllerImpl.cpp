@@ -61,6 +61,8 @@ void PredictiveJointController::run()
 	setCurrentState();		
 	performSafetyChecks();
 	
+	setTargetState();
+	
 	if (jointStatus == JointStatus::Error) return;
 		
 	handleUserRequests();
@@ -180,8 +182,7 @@ void PredictiveJointController::doPositionHoldControl()
 //Feedback based controller
 void PredictiveJointController::doSpeedControl()
 {
-	if (std::abs(cTargetAngleDistance) < MinSpeedControlDistance)
-	
+	if (std::abs(cTargetAngleDistance) < MinSpeedControlDistance)	
 	{
 		controlMode = ControlMode::PositionControl;
 		positionControlState = PositionControlState::Stabilizing;
@@ -222,45 +223,6 @@ void PredictiveJointController::doSpeedControl()
 
 }
 
-
-/*
- Position controller needs to be "backlash aware"
- 
- A servomechanism will have a non-trivial quantity of lost motion. This quantity should remain effectively fixed.
- Within the backlash range, the arm will be able to move freely. The backlash range is determined by the stop position (+/-) lost motion magnitude
- 
- The controller needs to manage the position of the stop w.r.t. the position of the arm, without affecting the position of the arm. 
- In other words, based on the torque or predicted torque, the stop is placed in the appropriate position to maintain the position.
- 
- This requires a means to flip the stop around quickly and with minimal effect on position. This "stopFlip" could be implemented as a "step", but the exact parameters
- of the step will be unique for each gearbox. These parameters will initially be hardcoded, but they could (should?) be learnable. Once they're correct they *shouldn't*
- need to be adjusted. 
- 
- The conditions for flipping:
- 
- Once a joint is in position, it will be impervious to disturbances against the direction in which it was previously moving. 
- I will call this the "near" direction and the other direction the "far" direction. 
- 
- The controller, while holding position, will attempt to detect far direction disturbances. Near direction disturbances can be ignored.
- The controller will also attempt to predict the arrival of a far direction disturbance that could result from the pose changing.
- 
- Predicted disturbances are easy to deal with, because the joint won't have moved. 
- 
- External far direction disturbances are more problematic. Depending on the arm pose, the removal of an external disturbance will cause the
- joint to move in the far direction due to gravity. This must be predicted as well. 
- 
- In the case where there is no gravity loading, the stop position is influenced solely by external disturbances. 
- In this case, the response to a far disturbance is a flip. Some adjustment may be required, as the flip assumes no loading.
- 
- ------------
- 
- While holding, a flip should be triggered at the point directly before the predicted disturbance torque changes sign. 
- Ideally, it would be done when the torque is exactly zero so the joint would not move during the flip. This isn't possible, 
- instead the flip should be done so that it is as close to the zero-crossing as possible, but better to be over (later) rather than under.
- That way if the setpoint tracking is lost, only a minor step (no reversal) is needed to correct it. 
- 
- 
- */
 void PredictiveJointController::doPositionControl()
 {
 	//Approaching at constant speed, or just beginning approach
@@ -432,35 +394,6 @@ void PredictiveJointController::doStepControl()
 	
 }
 
-void PredictiveJointController::executeFlip(int flipDef, double voltage)
-{
-	emergencyHalt("executeFlip() not allowed");
-	throw std::runtime_error("Not allowed");
-	//int flipDirection = MathUtils::sgn<int>(flipDef);
-
-	//controlMode = ControlMode::StepControl;
-	//double stepVoltage = flipDirection*voltage;
-
-	//double flipDistance = flipDirection * servoModel->gearbox.lostMotion;
-	//double flipSpeed = servoModel->getSpeedForTorqueVoltage(0,stepVoltage);
-	//
-	//double flipTime = flipDistance / flipSpeed;
-
-	//int flipStepCount = 0;
-	//
-	//if (flipDef == 0)
-	//{
-	//	flipStepCount = (int)std::round(flipTime/samplePeriod);
-	//	flipStepCount = std::max<int>(flipStepCount,1);
-	//}
-	//else
-	//{
-	//	flipStepCount = std::abs(flipDef);
-	//}
-
-	//executeStep(stepVoltage,flipStepCount, 0);
-	//isTorqueEstimateValid = false;
-}
 
 void PredictiveJointController::executeStep(double voltage, int energizeLength, int coastStepCount) 
 {

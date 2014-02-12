@@ -105,6 +105,15 @@
     <ClCompile Include="SavitzkyGolaySmooth.cpp">
       <Filter>Source Files\Math</Filter>
     </ClCompile>
+    <ClCompile Include="StepController.cpp">
+      <Filter>Source Files\Predictive</Filter>
+    </ClCompile>
+    <ClCompile Include="IJointControl.hpp">
+      <Filter>Header Files\Predictive</Filter>
+    </ClCompile>
+    <ClCompile Include="MotionPlan.cpp">
+      <Filter>Source Files\Predictive</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="I2CBus.hpp">
@@ -172,6 +181,12 @@
     </ClInclude>
     <ClInclude Include="SavitzkyGolaySmooth.hpp">
       <Filter>Header Files\Math</Filter>
+    </ClInclude>
+    <ClInclude Include="StepController.hpp">
+      <Filter>Header Files\Predictive</Filter>
+    </ClInclude>
+    <ClInclude Include="MotionPlan.hpp">
+      <Filter>Header Files\Predictive</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
