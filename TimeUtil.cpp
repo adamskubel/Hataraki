@@ -16,6 +16,13 @@ double TimeUtil::timeSince(struct timespec & sinceTime)
 	return getTimeDelta(sinceTime,now);
 }
 
+double TimeUtil::timeUntil(struct timespec & untilTime)
+{
+	struct timespec now;
+	clock_gettime(CLOCK_REALTIME, &now);
+	return getTimeDelta(now,untilTime);
+}
+
 void TimeUtil::assertTime(timespec & start, std::string message)
 {
 	double elapsed = timeSince(start);

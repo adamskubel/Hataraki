@@ -21,16 +21,13 @@ void PredictiveJointController::init()
 	voltageConverter = new TimeMultiplexedVoltageConverter(2,servoModel->maxDriverVoltage);
 
 	steppingState = SteppingState::Braking;
-	speedControlState = SpeedControlState::Measuring;
-	positionControlState = PositionControlState::Missed;
-	controlMode = ControlMode::Disabled;
+	speedControlState = SpeedControlState::Measuring;		
 	jointStatus = JointStatus::New;
 	motionPlan = NULL;
+	haltRequested = false;
 
 	logfileName = "Data_" + jointModel->name + ".csv";
-
-	setpointHoldAngle = 0;
-			
+				
 	MathUtil::setNow(controllerStartTime);
 
 	cSensorAngle = 0;
@@ -77,8 +74,7 @@ void PredictiveJointController::prepare()
 	}
 	else
 	{
-		cout << "Joint initialization failed." << endl;
-		jointStatus = JointStatus::Error;
+		jointStatus = JointStatus::Paused;
 	}
 }
 
@@ -86,13 +82,13 @@ void PredictiveJointController::enable()
 {
 	if (jointStatus == JointStatus::Ready)
 	{
+		setCurrentState();
+		motionPlan = shared_ptr<MotionPlan>(new MotionPlan(cSensorAngle));
+		
+		jointStatus = JointStatus::Active;		
+				
 		std::string upName = std::string(jointModel->name);
-		std::transform(upName.begin(), upName.end(),upName.begin(), ::toupper);
-
-		setpointHoldAngle = MathUtil::subtractAngles(getSensorAngleRegisterValue(),jointModel->sensorZeroPosition,AS5048::PI_STEPS);
-		jointStatus = JointStatus::Active;
-		controlMode = ControlMode::Hold;
-
+		std::transform(upName.begin(), upName.end(),upName.begin(), ::toupper);		
 		cout << "JOINT " << upName << " IS ONLINE" << endl;
 
 		TimeUtil::setNow(enableTime);
@@ -108,14 +104,14 @@ void PredictiveJointController::pause()
 	if (jointStatus == JointStatus::Active)
 	{
 		emergencyHalt("Paused");
-		if (jointStatus == JointStatus::Error)
+		if (!haltRequested && jointStatus == JointStatus::Error)
 			jointStatus = JointStatus::Paused;
 	}
 }
 
 void PredictiveJointController::disable()
 {
-	controlMode = ControlMode::Disabled;
+	emergencyHalt("Disabled by user");
 }
 
 void PredictiveJointController::executeMotionPlan(std::shared_ptr<MotionPlan> requestedMotionPlan)
@@ -127,10 +123,13 @@ void PredictiveJointController::executeMotionPlan(std::shared_ptr<MotionPlan> re
 		motionPlan.reset();		
 	
 	this->motionPlan = requestedMotionPlan;
-	controlMode = ControlMode::SpeedControl;
-	speedControlState = SpeedControlState::Adjusting;		
+
+	motionPlanComplete = false;	
 	isTorqueEstimateValid = false;
 	isControlTorqueValid = false;
+
+	//Make sure speed controller starts off in adjusting state
+	speedControlState = SpeedControlState::Adjusting;
 
 	while (rawSensorAngleHistory.size() > 1)
 		rawSensorAngleHistory.pop_front();
@@ -150,75 +149,47 @@ void PredictiveJointController::validateMotionPlan(std::shared_ptr<MotionPlan> r
 }
 
 
-void PredictiveJointController::setTargetState()
-{
-	double velocityMag = 0;
-	if (controlMode == ControlMode::Hold)
-	{
-		if (motionPlan == NULL)
-			cTargetAngle = setpointHoldAngle;
-		else
-			cTargetAngle = motionPlan->finalAngle;
-	}
-	else
-	{
-		if (motionPlan != NULL)
-		{
-			cTargetAngle = motionPlan->finalAngle;
-			velocityMag = std::abs(motionPlan->getSpeedAtTime(MathUtil::timeSince(planStartTime)));
-		}
-		else
-		{
-			cTargetAngle = setpointHoldAngle;
-		}
-	}
-	cTargetAngleDistance = cTargetAngle - cSensorAngle;//AS5048::getAngleError(cSensorAngle,cTargetAngle);
-	double targetDirection = MathUtils::sgn<double>(cTargetAngleDistance);
-	cTargetVelocity = velocityMag*targetDirection;
-}
 
-
-bool PredictiveJointController::handleUserRequests()
-{
-	bool handled = false;
-	if (readyForCommand)
-	{
-		if (flipRequestedByUser)
-		{
-			flipRequestedByUser = false;		
-			executeFlip(requestedFlipDirection, requestedFlipVoltage);
-			requestedFlipDirection = 0;
-			handled = true;
-		}
-		else if (patternRequestedByUser)
-		{
-			patternRequestedByUser = false;
-			list<double> * executePattern = new list<double>(requestedVoltagePattern.begin(),requestedVoltagePattern.end());
-
-			externalController = [this,executePattern]()
-			{
-				if (!executePattern->empty())
-				{
-					commandDriver(executePattern->front(),DriverMode::ConstantVoltage);			
-					executePattern->pop_front();
-				}
-				else 
-				{
-					//delete executePattern;
-					//executePattern = NULL;
-					readyForCommand = true;
-					commandDriver(0,DriverMode::Brake);			
-				}
-			};
-		
-			commandDriver(0,DriverMode::Brake);		
-			controlMode = ControlMode::External;
-			handled = true;
-		} 
-		if (handled) readyForCommand = false;
-	}
-	return handled;
-}
+//bool PredictiveJointController::handleUserRequests()
+//{
+//	bool handled = false;
+//	if (readyForCommand)
+//	{
+//		if (flipRequestedByUser)
+//		{
+//			flipRequestedByUser = false;
+//			requestedFlipDirection = 0;
+//			handled = true;
+//		}
+//		else if (patternRequestedByUser)
+//		{
+//			patternRequestedByUser = false;
+//			list<double> * executePattern = new list<double>(requestedVoltagePattern.begin(),requestedVoltagePattern.end());
+//
+//			externalController = [this,executePattern]()
+//			{
+//				if (!executePattern->empty())
+//				{
+//					commandDriver(executePattern->front(),DriverMode::ConstantVoltage);			
+//					executePattern->pop_front();
+//				}
+//				else 
+//				{
+//					//delete executePattern;
+//					//executePattern = NULL;
+//					readyForCommand = true;
+//					commandDriver(0,DriverMode::Brake);			
+//				}
+//			};
+//		
+//			commandDriver(0,DriverMode::Brake);		
+//			controlMode = ControlMode::External;
+//			handled = true;
+//		} 
+//		if (handled) readyForCommand = false;
+//	}
+//	return handled;
+//}
 
 void PredictiveJointController::writeLogHeader()
 {
@@ -282,8 +253,8 @@ void PredictiveJointController::logState()
 		<< controlMode		<< Configuration::CsvSeparator;
 
 	switch (controlMode) {
-	case ControlMode::PositionControl:
-		ss << positionControlState;
+	case ControlMode::SetpointApproach:
+		ss << setpointApproachState;
 		break;
 	case ControlMode::StepControl:
 		ss << steppingState;

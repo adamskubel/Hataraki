@@ -38,26 +38,15 @@ enum JointStatus {
 	Paused
 };
 
-enum ControlMode {
-	Disabled,
-	SpeedControl,
-	PositionControl,
-	StepControl,
-	Hold,
-	External
+enum StaticControlMode {
+	New,
+	Holding,
+	Stepping
 };
 
-enum PositionControlState {
-
-	Stabilizing,
-	Approaching,
-	Stopping,
-	Missed,
-	Validating
-};
 
 enum SteppingState {
-
+	New,
 	Energizing,
 	Braking,
 	Reading
@@ -77,6 +66,13 @@ enum SpeedControlState {
 };
 
 
+enum SetpointApproachState {
+	Stabilizing,
+	Approaching,
+	Stopping,
+	Missed,
+	Validating
+};
 
 class PredictiveJointController {
 	
@@ -88,6 +84,7 @@ private:
 	I2CBus * bus;
 
 	JointStatus jointStatus;
+	bool haltRequested;
 
 	double samplePeriod;
 
@@ -114,6 +111,7 @@ private:
 	//Motion plan
 	std::shared_ptr<MotionPlan> motionPlan;
 	timespec planStartTime, enableTime;
+	bool motionPlanComplete;
 	
 	//Current state
 	double cTime;
@@ -135,6 +133,10 @@ private:
 	double cTargetAngle;
 	double cTargetVelocity;
 	
+	bool dynamicControl;
+	bool approachMode;
+	StaticControlMode staticControlMode;
+	
 
 	// struct PredictionResults {
 	double cStaticModelTorque;
@@ -154,7 +156,7 @@ private:
 	bool cDriverCommanded;
 	int cDriverCommand;
 
-	//This is just logging stuff, completely useless 
+	//This is just logging stuff, completely useless otherwise
 	double cSensorWriteTime;
 	double cSensorReadTime;
 	double cDriverWriteTime;
@@ -167,10 +169,8 @@ private:
 	DriverMode nDriverMode;
 	
 	//------------- Long term states --------------------
-	timespec controllerStartTime;
-	PositionControlState positionControlState;
+	timespec controllerStartTime;	
 	SpeedControlState speedControlState;
-	ControlMode controlMode;
 
 	//Torque estimation
 	double stableTorqueEstimate;
@@ -185,14 +185,14 @@ private:
 	double velocityErrorIntegral;
 	double speedControlIntegralGain;
 	double speedControlProportionalGain;
+	
+	struct SetpointApproachData {
 
-	//PostionHoldControl states
-	struct PositionHoldData {
-		double setpointHoldAngle;
-
+		SetpointApproachState state;
+		double approachVoltage;
 
 	};
-	PositionHoldData positionHoldData;
+	SetpointApproachData setpointApproachData;
 
 	//Stepping states
 	//struct StepControlData {
@@ -218,7 +218,7 @@ private:
 
 	//--Member functions--//
 	//-------------------//
-	
+	double estimateTimeToPosition(double position);
 	double computeSpeed(double rawSensorAngle);
 	double filterAngle(int currentAngle);
 	void setApproximateSpeed(std::list<std::pair<double, double> > history);
@@ -231,7 +231,7 @@ private:
 	void doPositionHoldControl();
 	void doSpeedControl();
 	void doPositionControl();
-	void doStepControl();
+	bool doStepControl(double targetAngle);
 	void runExternalController();
 
 	bool handleUserRequests();
@@ -239,7 +239,9 @@ private:
 	void setCurrentTorqueStates();
 	void setCurrentState();
 	void setTargetState();
-
+	
+	void doDynamicControl();
+	void doStaticControl();
 	
 
 	void executeStep(double voltage, int energizeLength, int coastStepCount);

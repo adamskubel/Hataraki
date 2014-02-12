@@ -19,6 +19,7 @@ public:
 	static double getTimeDelta(timespec & t0, timespec & t1);
 	static void setNow(struct timespec & now);	
 	static double timeSince(struct timespec & sinceTime);
+	static double timeUntil(struct timespec & untilTime);
 	static void assertTime(timespec & start, std::string message);
 };
 

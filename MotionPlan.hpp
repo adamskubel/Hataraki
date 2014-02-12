@@ -33,21 +33,31 @@ public:
 	double finalAngle, startAngle;
 	timespec startTime, endTime;
 	std::vector<MotionInterval> motionIntervals;
+		
+	double getSpeedAtTime(double planTime);
+	double getPositionAtTime(double planTime);
 	
 	MotionPlan()
 	{
-		finalAngle = 0;
+
+	}
+
+	MotionPlan(double targetAngle)
+	{		
+		startAngle = targetAngle;
+		finalAngle = targetAngle;
+		motionIntervals.push_back(0,0);
 	}
 	
 	MotionPlan(std::vector<MotionInterval> motionIntervals, double startAngle, timespec startTime) {
 		this->motionIntervals = motionIntervals;
 		this->startAngle = startAngle;
 		this->startTime = startTime;
+		this->finalAngle = getPositionAtTime(1000.0); //infinity 
+
+		this->endTime = startTime + 1000; //Need to calculate end time
 	}
 	
-	double getSpeedAtTime(double planTime);
-	double getPositionAtTime(double planTime);
-
 	
 };
 
