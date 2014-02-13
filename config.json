@@ -146,6 +146,11 @@
 				"Enabled" : 0,
 				"WindowSize" : 3,
 				"PolynomialDegree" : 2
+			},
+			"DynamicController" :
+			{
+				"VelocityGainForPositionCorrection" : 0.05,
+				"SetpointApproachVelocity" : 10
 			}
 		}
 	],

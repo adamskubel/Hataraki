@@ -79,32 +79,57 @@ void MotionController::updateController(){
 }
 
 
-void MotionController::setJointPosition(int jointIndex, double angle, double velocity, double accel)
+void MotionController::setJointPosition(int jointIndex, double targetAngle, double travelTime, double accel)
 {
 	if (jointIndex >= 0 && jointIndex < joints.size()){
 		
 		PredictiveJointController * pjc = joints.at(jointIndex);
 		
 		auto plan = shared_ptr<MotionPlan>(new MotionPlan());
+
+		double startVelocity = 0, endVelocity = 0;
+		double startAngle = pjc->getCurrentAngle();
+
+		double delta = targetAngle - startAngle;
 		
+		double targetVelocity = delta/travelTime;
+
+
+		if (std::abs(targetVelocity) > pjc->getMaxJointVelocity())
+		{
+			cout << "Warning: Target velocity " << AS5048::stepsToDegrees(targetVelocity)
+			<< " exceeds max joint velocity " << AS5048::stepsToDegrees(pjc->getMaxJointVelocity()) << endl;
+			
+			targetVelocity = MathUtils::sgn<double>(targetVelocity) * pjc->getMaxJointVelocity();
+			travelTime = delta/targetVelocity;
+		}
+				
 		if (accel != 0)
 		{
-			double accelTime = velocity / accel;
-			if (accelTime > samplePeriod*4.0)
-			{
-				plan->motionIntervals.push_back(new MotionInterval(0,velocity,accelTime));
-				plan->motionIntervals.push_back(new MotionInterval(velocity,std::numeric_limits<double>::infinity()));
-			}
+			double accelTime = std::abs(targetVelocity / accel);
+			double accelDist = accelTime*startVelocity + (std::pow(accelTime,2) * accel)/2.0;
+			double equivTime = accelDist/targetVelocity;
+			
+			travelTime -= equivTime; //subtract accel/decel times
+
+			plan->motionIntervals.push_back(MotionInterval(startVelocity,targetVelocity,accelTime));
+			plan->motionIntervals.push_back(MotionInterval(targetVelocity,travelTime));
+			plan->motionIntervals.push_back(MotionInterval(targetVelocity,endVelocity,accelTime));
+			cout << "Acceltime=" << accelTime << endl;
 		}
-		
-		if (plan->motionIntervals.empty())
+		else
 		{
-			plan->motionIntervals.push_back(new MotionInterval(velocity,std::numeric_limits<double>::infinity()));
+			plan->motionIntervals.push_back(MotionInterval(targetVelocity,travelTime));
 		}
 
-		plan->finalAngle = angle;
+		plan->startAngle = startAngle;
+		plan->finalAngle = targetAngle;		
 		
 		pjc->validateMotionPlan(plan);
+		
+		plan->startNow();		
+		cout << "Time until complete=" << TimeUtil::timeUntil(plan->endTime) << endl;
+		plan->startNow();
 		pjc->executeMotionPlan(plan);
 	}
 	else {
@@ -201,6 +226,12 @@ void MotionController::moveToPosition(Vector3d targetPosition, Matrix3d targetRo
 				{
 					joints.at(i)->validateMotionPlan(currentPlan.at(i));
 				}
+				
+				//Simultaneous start
+				for (int i=0;i<6;i++)
+				{					
+					currentPlan.at(i)->startNow();
+				}
 
 				for (int i=0;i<6;i++)
 				{
@@ -250,22 +281,22 @@ vector<shared_ptr<MotionPlan> > MotionController::createMotionPlans(vector<Motio
 			double lastVelocity = 0;
 			if (motionPlan.at(i)->motionIntervals.size() > 0)
 			{
-				lastVelocity = motionPlan.at(i)->motionIntervals.back()->endSpeed;
+				lastVelocity = motionPlan.at(i)->motionIntervals.back().endSpeed;
 			}
 			double accelTime = (velocity - lastVelocity)/maxAccel;
 			
 			if (accelTime > samplePeriod*4.0 && accelTime < stepTime) 
 			{
-				motionPlan.at(i)->motionIntervals.push_back(new MotionInterval(lastVelocity,velocity,accelTime));
+				motionPlan.at(i)->motionIntervals.push_back(MotionInterval(lastVelocity,velocity,accelTime));
 
 				double accelDist = accelTime*lastVelocity + (std::pow(accelTime,2) * maxAccel)/2.0;
 				double equivTime = accelDist/velocity;
 
-				motionPlan.at(i)->motionIntervals.push_back(new MotionInterval(velocity,stepTime-equivTime));
+				motionPlan.at(i)->motionIntervals.push_back(MotionInterval(velocity,stepTime-equivTime));
 			}
 			else
 			{
-				motionPlan.at(i)->motionIntervals.push_back(new MotionInterval(velocity,stepTime));
+				motionPlan.at(i)->motionIntervals.push_back(MotionInterval(velocity,stepTime));
 			}
 
 			motionPlan.at(i)->finalAngle = AS5048::radiansToSteps((*it)->targetJointAngles[i]);
@@ -276,18 +307,18 @@ vector<shared_ptr<MotionPlan> > MotionController::createMotionPlans(vector<Motio
 	{
 		if (motionPlan.at(i)->motionIntervals.size() > 0)
 		{
-			double lastVelocity = motionPlan.at(i)->motionIntervals.back()->endSpeed;
+			double lastVelocity = motionPlan.at(i)->motionIntervals.back().endSpeed;
 			double accelTime = (lastVelocity - MinSpeed)/maxDeccel;
 			
 			if (accelTime > samplePeriod*4.0) 
 			{				
-				if (accelTime < motionPlan.at(i)->motionIntervals.back()->duration)
+				if (accelTime < motionPlan.at(i)->motionIntervals.back().duration)
 				{
 					double accelDist = accelTime*lastVelocity + (std::pow(accelTime,2) * -maxDeccel)/2.0;
 					double equivTime = accelDist/lastVelocity;
 
-					motionPlan.at(i)->motionIntervals.back()->duration -= equivTime;
-					motionPlan.at(i)->motionIntervals.push_back(new MotionInterval(MinSpeed,accelTime));
+					motionPlan.at(i)->motionIntervals.back().duration -= equivTime;
+					motionPlan.at(i)->motionIntervals.push_back(MotionInterval(MinSpeed,accelTime));
 				}
 				//else
 				//{

@@ -22,6 +22,8 @@ void PredictiveJointController::init()
 
 	steppingState = SteppingState::Braking;
 	speedControlState = SpeedControlState::Measuring;		
+	dynamicControl = false;
+	approachMode = false;
 	jointStatus = JointStatus::New;
 	motionPlan = NULL;
 	haltRequested = false;
@@ -84,7 +86,10 @@ void PredictiveJointController::enable()
 	{
 		setCurrentState();
 		motionPlan = shared_ptr<MotionPlan>(new MotionPlan(cSensorAngle));
-		
+		motionPlan->startNow();
+
+		motionPlanComplete = true;
+		staticControlMode = StaticControlMode::Holding;
 		jointStatus = JointStatus::Active;		
 				
 		std::string upName = std::string(jointModel->name);
@@ -133,8 +138,6 @@ void PredictiveJointController::executeMotionPlan(std::shared_ptr<MotionPlan> re
 
 	while (rawSensorAngleHistory.size() > 1)
 		rawSensorAngleHistory.pop_front();
-
-	MathUtil::setNow(planStartTime);
 }
 
 void PredictiveJointController::validateMotionPlan(std::shared_ptr<MotionPlan> requestedMotionPlan)
@@ -249,22 +252,36 @@ void PredictiveJointController::logState()
 		//<< cMotorTorque*((cVelocityApproximationError > 0.9) ? torqueScale : 1.0) << Configuration::CsvSeparator
 		<< cVoltage			<< Configuration::CsvSeparator
 		<< nTargetVoltage	<< Configuration::CsvSeparator
-		<< cAppliedVoltage	<< Configuration::CsvSeparator
-		<< controlMode		<< Configuration::CsvSeparator;
+		<< cAppliedVoltage	<< Configuration::CsvSeparator;
 
-	switch (controlMode) {
-	case ControlMode::SetpointApproach:
-		ss << setpointApproachState;
-		break;
-	case ControlMode::StepControl:
-		ss << steppingState;
-		break;
-	case ControlMode::SpeedControl:
-		ss << speedControlState;
-		break;
-	default:
-		ss << 0;
+	
+	if (dynamicControl)
+	{	
+		if (approachMode)
+		{			
+			ss << 2	<< Configuration::CsvSeparator;
+			ss << setpointApproachData.state;
+		}
+		else
+		{
+			ss << 1	<< Configuration::CsvSeparator;
+			ss << speedControlState;
+		}
 	}
+	else 
+	{
+		if (staticControlMode == StaticControlMode::Stepping)
+		{			
+			ss << -2	<< Configuration::CsvSeparator;
+			ss << steppingState;
+		}
+		else if (staticControlMode == StaticControlMode::Holding)
+		{			
+			ss << -1	<< Configuration::CsvSeparator;
+			ss << 0;
+		}
+	}
+
 
 	ss 
 		<< Configuration::CsvSeparator 
@@ -327,7 +344,7 @@ void PredictiveJointController::printState()
 
 double PredictiveJointController::getMaxJointVelocity()
 {
-	const double AverageTorque = 0.08;
+	const double AverageTorque = 0;
 
 	return servoModel->getSpeedForTorqueVoltage(AverageTorque,DRV8830::stepsToVoltage(getMaxVoltageSteps()));
 }
@@ -349,14 +366,10 @@ double PredictiveJointController::getMaxVoltageSteps()
 	return std::min<double>(DRV8830::MaxVoltageStep,DRV8830::voltageToSteps(servoModel->maxDriverVoltage));
 }
 
-ControlMode PredictiveJointController::getControlMode()
-{
-	return controlMode;
-}
 
 bool PredictiveJointController::jointReadyForCommand()
 {
-	return (readyForCommand && (controlMode == ControlMode::Hold || controlMode == ControlMode::External));
+	return false; //return (readyForCommand && (controlMode == ControlMode::Hold || controlMode == ControlMode::External));
 }
 
 void PredictiveJointController::requestFlip(int direction, double voltage)

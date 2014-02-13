@@ -39,14 +39,12 @@ enum JointStatus {
 };
 
 enum StaticControlMode {
-	New,
 	Holding,
 	Stepping
 };
 
 
 enum SteppingState {
-	New,
 	Energizing,
 	Braking,
 	Reading
@@ -110,7 +108,7 @@ private:
 
 	//Motion plan
 	std::shared_ptr<MotionPlan> motionPlan;
-	timespec planStartTime, enableTime;
+	timespec enableTime;
 	bool motionPlanComplete;
 	
 	//Current state
@@ -293,9 +291,7 @@ public:
 	double getMaxJointVelocity();
 	double getCurrentAngle();
 	
-	JointModel * getJointModel();
-
-	ControlMode getControlMode();
+	JointModel * getJointModel();	
 };
 
 

@@ -4,6 +4,8 @@
 #include <vector>
 #include <cmath>
 
+#include "TimeUtil.hpp"
+
 class MotionInterval {
 	
 public:
@@ -36,6 +38,7 @@ public:
 		
 	double getSpeedAtTime(double planTime);
 	double getPositionAtTime(double planTime);
+	double getPlanDuration();
 	
 	MotionPlan()
 	{
@@ -46,7 +49,7 @@ public:
 	{		
 		startAngle = targetAngle;
 		finalAngle = targetAngle;
-		motionIntervals.push_back(0,0);
+		motionIntervals.push_back(MotionInterval(0,0));
 	}
 	
 	MotionPlan(std::vector<MotionInterval> motionIntervals, double startAngle, timespec startTime) {
@@ -55,8 +58,10 @@ public:
 		this->startTime = startTime;
 		this->finalAngle = getPositionAtTime(1000.0); //infinity 
 
-		this->endTime = startTime + 1000; //Need to calculate end time
+		TimeUtil::addTime(startTime,getPlanDuration(),endTime);
 	}
+
+	void startNow();
 	
 	
 };

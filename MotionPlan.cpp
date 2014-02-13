@@ -25,9 +25,9 @@ double MotionPlan::getPositionAtTime(double planTime)
 		double intervalEnd = intervalStart+it->duration;
 		
 		if (planTime >= intervalStart && planTime < intervalEnd)
-			position += getPositionAtTime(it->getPositionAtTime(planTime - intervalStart));
+			position += it->getPositionAtTime(planTime - intervalStart);
 		else if (planTime >= intervalStart)
-			position += getPositionAtTime(it->duration);
+			position += it->getPositionAtTime(it->duration);
 		else
 			break;
 		
@@ -36,14 +36,30 @@ double MotionPlan::getPositionAtTime(double planTime)
 	return position;
 }
 
+double MotionPlan::getPlanDuration()
+{
+	double duration = 0;
+	for (auto it=motionIntervals.begin();it != motionIntervals.end(); it++)
+	{
+		duration += it->duration;
+	}
+	return duration;
+}
+
+void MotionPlan::startNow()
+{
+	TimeUtil::setNow(startTime);
+	TimeUtil::addTime(startTime,getPlanDuration(),endTime);
+}
+
 double MotionInterval::getSpeedAtTime(double time)
 {
-	double accel = endSpeed - startSpeed;
-	return startSpeed + (accel*time)/duration;
+	double accel = (endSpeed - startSpeed)/duration;
+	return startSpeed + (accel*time);
 }
 
 double MotionInterval::getPositionAtTime(double time)
 {
-	double accel = endSpeed - startSpeed;
+	double accel = (endSpeed - startSpeed)/duration;
 	return startSpeed * time + (accel * std::pow(time,2))/2.0;
 }

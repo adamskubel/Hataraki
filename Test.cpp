@@ -45,6 +45,7 @@
 #include "vmath.h"
 
 #include "PoseDynamics.hpp"
+#include "MotionPlan.hpp"
 
 
 using namespace std;
@@ -190,6 +191,43 @@ void testFK()
 	printPositionForAngles(jointAngles2);
 }
 
+void testMotionPlan()
+{
+	MotionPlan * plan = new MotionPlan();
+	plan->motionIntervals.push_back(MotionInterval(10,2));
+
+	cout << "Constant speed plan, V=10, Duration=2:" << endl;
+	cout << "Speed at time(0) = " << plan->getSpeedAtTime(0) << endl;
+	cout << "Speed at time(1) = " << plan->getSpeedAtTime(1) << endl;
+	cout << "Speed at time(2.1) = " << plan->getSpeedAtTime(2.1) << endl;
+	cout << "Position at time(0) = " << plan->getPositionAtTime(0) << endl;
+	cout << "Position at time(1.5) = " << plan->getPositionAtTime(1.5) << endl;
+	cout << "Position at time(2.0) = " << plan->getPositionAtTime(2) << endl;
+	cout << "Position at time(2.1) = " << plan->getPositionAtTime(2.1) << endl;
+	delete plan;
+
+	plan = new MotionPlan();
+	plan->motionIntervals.push_back(MotionInterval(0,10,2));
+	plan->motionIntervals.push_back(MotionInterval(10,10,2));
+	plan->startAngle = 1;
+
+	cout << endl;
+	cout << "Constant accel plan:" << endl;
+	cout << "Speed at time(0) = " << plan->getSpeedAtTime(0) << endl;
+	cout << "Speed at time(1) = " << plan->getSpeedAtTime(1) << endl;
+	cout << "Speed at time(2) = " << plan->getSpeedAtTime(2) << endl;
+	cout << "Speed at time(2.1) = " << plan->getSpeedAtTime(2.1) << endl;
+
+	cout << "Position at time(0) = " << plan->getPositionAtTime(0) << endl;
+	cout << "Position at time(1) = " << plan->getPositionAtTime(1) << endl;
+	cout << "Position at time(2) = " << plan->getPositionAtTime(2) << endl;
+	cout << "Position at time(2.1) = " << plan->getPositionAtTime(2.1) << endl;
+	cout << "Position at time(4) = " << plan->getPositionAtTime(4) << endl;
+	cout << "Position at time(4.1) = " << plan->getPositionAtTime(4.1) << endl;
+	cout << "Position at time(50) = " << plan->getPositionAtTime(50) << endl;
+
+}
+
 void handle(int sig) {
 	void *array[30];
 	size_t size;
@@ -235,17 +273,19 @@ int main(int argc, char *argv[])
 		controllers.push_back(pjc);
 	}
 
-	testServoModel(&(controllers.at(0)->getJointModel()->servoModel));
-	testArmModel(armModel);
+	//testServoModel(&(controllers.at(0)->getJointModel()->servoModel));
+	//testArmModel(armModel);
 
-	double angles[] = {0,0.1,0,0.1,0.1,0};
-	testPoseDynamics(armModel,angles);
+	//double angles[] = {0,0.1,0,0.1,0.1,0};
+	//testPoseDynamics(armModel,angles);
 
 
-	double angles2[] = {0,15,0,15,15,0};
-	testPoseDynamics(armModel,angles2);
+	//double angles2[] = {0,15,0,15,15,0};
+	//testPoseDynamics(armModel,angles2);
 
-	testCsvWriteTime();
-	
-	testFK();	
+	//testCsvWriteTime();
+	//
+	//testFK();	
+
+	testMotionPlan();
 }

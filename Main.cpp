@@ -210,14 +210,14 @@ int main(int argc, char *argv[])
 				else if (command.compare("set") == 0) {
 
 					int jointIndex;
-					double angle, velocity;
+					double angle, travelTime;
 
 					input >> jointIndex;
 					input >> angle;
-					input >> velocity;
+					input >> travelTime;
 					
 					if (input.fail()) {
-						cout << "Invalid input. Usage: set <index> <angle> <|velocity|> [|accel|]" << endl;
+						cout << "Invalid input. Usage: set <index> <angle> <time(sec)> [|accel|]" << endl;
 					}
 					else
 					{
@@ -225,8 +225,8 @@ int main(int argc, char *argv[])
 						input >> accel;
 						if (input.fail()) accel = 0;
 
-						motionController->postTask([jointIndex,angle,velocity,accel](){
-							motionController->setJointPosition(jointIndex, AS5048::degreesToSteps(angle), AS5048::degreesToSteps(velocity),AS5048::degreesToSteps(accel));
+						motionController->postTask([jointIndex,angle,travelTime,accel](){
+							motionController->setJointPosition(jointIndex, AS5048::degreesToSteps(angle),travelTime,AS5048::degreesToSteps(accel));
 						});
 					}
 					

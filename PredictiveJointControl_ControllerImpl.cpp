@@ -23,7 +23,7 @@ namespace ControllerConfiguration
 	//Speed Control
 	const double MinSpeedControlMeasureDelay = 0.03; //seconds
 	const double MaxSpeedControlMeasureDelay = 0.09; //seconds
-	const double MinSpeedControlDistance = 200;
+	const double MinSpeedControlDistance = 10;
 	const double MinVelocityRValue = 0.95;
 	const double BaseSpeedControlMeasureTorque = 0.01;
 	const double MaxVelocitySetpointError = 20; //steps/second
@@ -103,15 +103,16 @@ void PredictiveJointController::setTargetState()
 		double remainingTime = TimeUtil::timeUntil(motionPlan->endTime);	
 		bool isMoving = std::abs(cVelocity) > 100.0;
 
-		dynamicControl = isMoving || remainingTime > 0;
+		dynamicControl = isMoving || remainingTime > -0.1;
 				
 		if (dynamicControl)
 		{
-			cTargetAngle = motionPlan->getPositionAtTime(MathUtil::timeSince(planStartTime));
-			cTargetVelocity = motionPlan->getSpeedAtTime(MathUtil::timeSince(planStartTime));
+			cTargetAngle = motionPlan->getPositionAtTime(MathUtil::timeSince(motionPlan->startTime));
+			cTargetVelocity = motionPlan->getSpeedAtTime(MathUtil::timeSince(motionPlan->startTime));
 		}
 		else
 		{
+			motionPlanComplete = true;
 			cTargetAngle = motionPlan->finalAngle;
 		}
 	}
@@ -201,20 +202,20 @@ double PredictiveJointController::estimateTimeToPosition(double position)
 void PredictiveJointController::doDynamicControl()
 {
 	const double MinApproachTime = 0.10;
-	const double VelocityCorrectionGain = 0.1;
-	const double ApproachVelocity = AS5048::degreesToSteps(400);
 		
 	//Should this also be conditional on speed?
 	if (!approachMode)
 	{
 		double dynamicAngleError = cTargetAngle - cSensorAngle;
-		double velocityCorrection = dynamicAngleError/samplePeriod * (VelocityCorrectionGain);
+		double velocityCorrection = dynamicAngleError/samplePeriod * (config->velocityCorrectionGain);
+		cTargetVelocity += velocityCorrection;
 		doSpeedControl();
 
-		if (estimateTimeToPosition(motionPlan->finalAngle) > MinApproachTime) //Estimate should take planned accel into account
-		{
-			double finalAngleError = motionPlan->finalAngle - cSensorAngle;
-			setpointApproachData.approachVoltage =  servoModel->getVoltageForTorqueSpeed(stableTorqueEstimate,MathUtils::sgn<double>(finalAngleError)*ApproachVelocity); 
+		double finalAngleError = motionPlan->finalAngle - cSensorAngle;
+		//if (estimateTimeToPosition(motionPlan->finalAngle) > MinApproachTime) //Estimate should take planned accel into account
+		if (std::abs(finalAngleError) < MinSpeedControlDistance)
+		{			
+			setpointApproachData.approachVoltage =  servoModel->getVoltageForTorqueSpeed(stableTorqueEstimate,MathUtils::sgn<double>(finalAngleError)*config->approachVelocity); 
 			setpointApproachData.state = SetpointApproachState::Approaching;	
 			approachMode = true;
 		}
@@ -280,12 +281,6 @@ void PredictiveJointController::doPositionControl()
 	{
 		double stopIn = estimateTimeToPosition(motionPlan->finalAngle) - servoModel->driverDelay;
 
-		//if (stopIn < MinimumStopTime)
-		//{
-		//	setpointApproachData.state = SetpointApproachState::Missed;
-		//	commandDriver(0,DriverMode::Coast);
-		//}		
-		//else
 		if (stopIn < MaximumStopTime)
 		{
 			setpointApproachData.state = SetpointApproachState::Stopping;
@@ -300,9 +295,15 @@ void PredictiveJointController::doPositionControl()
 	{
 		commandDriver(0,DriverMode::Brake);	
 
+		//Termination of dynamic control
 		if (std::abs(cVelocity) < MinNonZeroVelocity)
 		{
-			motionPlanComplete = true; //Exit dynamic control
+			if (std::abs(cTargetAngleDistance) < MaxSetpointError)
+				staticControlMode = StaticControlMode::Holding;
+			else
+				staticControlMode = StaticControlMode::Stepping;
+
+			motionPlanComplete = true; 
 		}
 	}
 }
@@ -313,11 +314,11 @@ bool PredictiveJointController::doStepControl(double targetAngle)
 
 	switch (steppingState)
 	{
-	case SteppingState::New:
-		double stepVoltage = servoModel->getVoltageForTorqueSpeed(stableTorqueEstimate,MathUtils::sgn<double>(distanceToTarget)*BaseStepSpeed);
-		executeStep(stepVoltage,1,1);
-		isTorqueEstimateValid = false;
-		break;
+	//case SteppingState::New:
+	//	double stepVoltage = servoModel->getVoltageForTorqueSpeed(stableTorqueEstimate,MathUtils::sgn<double>(distanceToTarget)*BaseStepSpeed);
+	//	executeStep(stepVoltage,1,1);
+	//	isTorqueEstimateValid = false;
+	//	break;
 	case SteppingState::Energizing:
 		if (stepVoltageIndex < stepVoltages.size())			
 		{
