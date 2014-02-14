@@ -22,8 +22,9 @@ void PredictiveJointController::init()
 
 	steppingState = SteppingState::Braking;
 	speedControlState = SpeedControlState::Measuring;		
+	dynamicControlMode = DynamicControlMode::Travelling;
+	staticControlMode = StaticControlMode::Holding;
 	dynamicControl = false;
-	approachMode = false;
 	jointStatus = JointStatus::New;
 	motionPlan = NULL;
 	haltRequested = false;
@@ -46,6 +47,7 @@ void PredictiveJointController::init()
 	nVoltage = 0;
 	nTargetVoltage = 0;
 	nAppliedVoltage = 0;
+	lDynamicPositionError = 0;
 
 	cTime = 0;
 	lTime = 0;
@@ -132,9 +134,11 @@ void PredictiveJointController::executeMotionPlan(std::shared_ptr<MotionPlan> re
 	motionPlanComplete = false;	
 	isTorqueEstimateValid = false;
 	isControlTorqueValid = false;
+	dynamicControlMode = DynamicControlMode::Travelling;
 
 	//Make sure speed controller starts off in adjusting state
 	speedControlState = SpeedControlState::Adjusting;
+	lDynamicPositionError = 0;
 
 	while (rawSensorAngleHistory.size() > 1)
 		rawSensorAngleHistory.pop_front();
@@ -221,7 +225,8 @@ void PredictiveJointController::writeLogHeader()
 		"FileWriteTime"		<< Configuration::CsvSeparator << 
 		"RotationalStopDirection" << Configuration::CsvSeparator << 
 		"SGSensorAngle"		<< Configuration::CsvSeparator << 
-		"SGVelocity"		<< Configuration::CsvSeparator << endl;
+		"SGVelocity"		<< Configuration::CsvSeparator <<
+		"PlanVelocity"		<< Configuration::CsvSeparator << endl;
 
 	AsyncLogger::getInstance().postLogTask(logfileName,ss.str());
 }
@@ -257,15 +262,15 @@ void PredictiveJointController::logState()
 	
 	if (dynamicControl)
 	{	
-		if (approachMode)
+		if (dynamicControlMode == DynamicControlMode::Travelling)
 		{			
-			ss << 2	<< Configuration::CsvSeparator;
-			ss << setpointApproachData.state;
+			ss << 1	<< Configuration::CsvSeparator;
+			ss << speedControlState;
 		}
 		else
 		{
-			ss << 1	<< Configuration::CsvSeparator;
-			ss << speedControlState;
+			ss << 2	<< Configuration::CsvSeparator;
+			ss << dynamicControlMode;
 		}
 	}
 	else 
@@ -293,7 +298,8 @@ void PredictiveJointController::logState()
 		<< writeTime			<< Configuration::CsvSeparator
 		<< expectedRotationalStopDirection << Configuration::CsvSeparator
 		<< cSGFilterAngle		<< Configuration::CsvSeparator
-		<< cSGFilterVelocity	<< Configuration::CsvSeparator;
+		<< cSGFilterVelocity	<< Configuration::CsvSeparator
+		<< cPlanTargetVelocity;
 
 	ss << endl;
 

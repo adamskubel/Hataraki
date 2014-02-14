@@ -55,7 +55,7 @@ int PredictiveJointController::getSensorAngleRegisterValue()
 
 void PredictiveJointController::setCurrentTorqueStates()
 {
-	double direction = MathUtils::sgn<double>(cTargetAngleDistance);
+	double direction = MathUtils::sgn<double>(cPlanTargetVelocity);
 	//Need to invert this for some reason
 	cStaticModelTorque = -PoseDynamics::getInstance().computeJointTorque(jointModel->index);
 	cStaticModelRotatum = (cStaticModelTorque - lStaticModelTorque)/(cTime-lTime);
@@ -132,8 +132,6 @@ void PredictiveJointController::setCurrentState()
 	if (rawSensorAngleHistory.size() > HistorySize) rawSensorAngleHistory.pop_front();
 		
 	setApproximateSpeed(rawSensorAngleHistory);
-
-	setCurrentTorqueStates();
 
 	doSavitzkyGolayFiltering();
 

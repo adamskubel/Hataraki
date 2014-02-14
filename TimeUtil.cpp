@@ -45,9 +45,11 @@ double TimeUtil::getTimeDelta(timespec & t0,timespec & t1)
 
 void TimeUtil::addTime(timespec & t0, double seconds, timespec & tResult)
 {
-	double secondComponent = std::floor(seconds) + t0.tv_sec;
+	double secondComponent = std::floor(seconds);
 	double nanoseconds= (seconds - secondComponent)*NanoSecondsPerSecond;
+	
 	nanoseconds += t0.tv_nsec;
+	secondComponent += t0.tv_sec;
 
 	if (nanoseconds > NanoSecondsPerSecond)	
 	{

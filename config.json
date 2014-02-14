@@ -149,7 +149,8 @@
 			},
 			"DynamicController" :
 			{
-				"VelocityGainForPositionCorrection" : 0.05,
+				"VelocityKPForPositionCorrection" : 0.05,
+				"VelocityKDForPositionCorrection" : 0.001,
 				"SetpointApproachVelocity" : 10
 			}
 		}

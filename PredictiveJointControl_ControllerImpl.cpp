@@ -8,7 +8,7 @@ namespace ControllerConfiguration
 	const double MinContinuousApproachDistance = 30;
 	
 	const double BaseApproachVoltage = 0.68;
-	const double MaximumStopTime = 0.5;
+	const double MaximumStopTime = 0.03;
 	const double MinApproachSpeed = 400; //steps/second
 
 	const double SteppingModeReadDelay = 0.03; //seconds
@@ -23,7 +23,7 @@ namespace ControllerConfiguration
 	//Speed Control
 	const double MinSpeedControlMeasureDelay = 0.03; //seconds
 	const double MaxSpeedControlMeasureDelay = 0.09; //seconds
-	const double MinSpeedControlDistance = 10;
+	const double MinSpeedControlDistance = 150;
 	const double MinVelocityRValue = 0.95;
 	const double BaseSpeedControlMeasureTorque = 0.01;
 	const double MaxVelocitySetpointError = 20; //steps/second
@@ -63,6 +63,7 @@ void PredictiveJointController::run()
 	if (jointStatus == JointStatus::Error) return;
 		
 	setTargetState();
+	setCurrentTorqueStates();
 
 	if (dynamicControl)
 	{
@@ -117,6 +118,7 @@ void PredictiveJointController::setTargetState()
 		}
 	}
 
+	cPlanTargetVelocity = cTargetVelocity;
 	cTargetAngleDistance = cTargetAngle - cSensorAngle;
 }
 
@@ -200,30 +202,51 @@ double PredictiveJointController::estimateTimeToPosition(double position)
 }
 
 void PredictiveJointController::doDynamicControl()
-{
-	const double MinApproachTime = 0.10;
-		
-	//Should this also be conditional on speed?
-	if (!approachMode)
+{		
+	if (dynamicControlMode == DynamicControlMode::Travelling)
 	{
 		double dynamicAngleError = cTargetAngle - cSensorAngle;
-		double velocityCorrection = dynamicAngleError/samplePeriod * (config->velocityCorrectionGain);
-		cTargetVelocity += velocityCorrection;
-		doSpeedControl();
+		double errorDerivative = dynamicAngleError - lDynamicPositionError;
+		lDynamicPositionError = dynamicAngleError;
 
+		double velocityCorrection = dynamicAngleError * config->velocityCorrectionProportionalGain + errorDerivative * config->velocityCorrectionDerivativeGain;
+		velocityCorrection /= samplePeriod; 
+
+		cTargetVelocity = cPlanTargetVelocity+velocityCorrection;
 		double finalAngleError = motionPlan->finalAngle - cSensorAngle;
-		//if (estimateTimeToPosition(motionPlan->finalAngle) > MinApproachTime) //Estimate should take planned accel into account
+
+		//Approaching, stick to plan velocity
 		if (std::abs(finalAngleError) < MinSpeedControlDistance)
 		{			
-			setpointApproachData.approachVoltage =  servoModel->getVoltageForTorqueSpeed(stableTorqueEstimate,MathUtils::sgn<double>(finalAngleError)*config->approachVelocity); 
-			setpointApproachData.state = SetpointApproachState::Approaching;	
-			approachMode = true;
+			dynamicControlMode = DynamicControlMode::Approaching;
 		}
 	}
-	else 
+	
+	
+	if (dynamicControlMode == DynamicControlMode::Approaching)
 	{
-		doPositionControl();	
+		cTargetVelocity = cPlanTargetVelocity;
+
+		double stopIn = estimateTimeToPosition(motionPlan->finalAngle) - servoModel->driverDelay;
+		if (stopIn < MaximumStopTime)
+		{
+			dynamicControlMode = DynamicControlMode::Stopping;
+			commandDriver(0,DriverMode::Coast);
+		}	
+		else
+		{
+			doSpeedControl();
+		}
+	}	
+	else if (dynamicControlMode == DynamicControlMode::Stopping)
+	{
+		commandDriver(0,DriverMode::Brake);
+		motionPlanComplete = true;
 	}
+	else
+	{
+		doSpeedControl();
+	}	
 }
 
 
@@ -277,35 +300,36 @@ void PredictiveJointController::doSpeedControl()
 
 void PredictiveJointController::doPositionControl()
 {	
-	if (setpointApproachData.state == SetpointApproachState::Approaching) 
-	{
-		double stopIn = estimateTimeToPosition(motionPlan->finalAngle) - servoModel->driverDelay;
+	emergencyHalt("doPositionControl() is not allowed");
+	//if (setpointApproachData.state == SetpointApproachState::Approaching) 
+	//{
+	//	double stopIn = estimateTimeToPosition(motionPlan->finalAngle) - servoModel->driverDelay;
 
-		if (stopIn < MaximumStopTime)
-		{
-			setpointApproachData.state = SetpointApproachState::Stopping;
-			commandDriver(0,DriverMode::Coast);
-		}
-		else 
-		{				
-			commandDriver(setpointApproachData.approachVoltage,DriverMode::TMVoltage);			
-		}
-	}
-	else if (setpointApproachData.state == SetpointApproachState::Stopping)
-	{
-		commandDriver(0,DriverMode::Brake);	
+	//	if (stopIn < MaximumStopTime)
+	//	{
+	//		setpointApproachData.state = SetpointApproachState::Stopping;
+	//		commandDriver(0,DriverMode::Coast);
+	//	}
+	//	else 
+	//	{				
+	//		commandDriver(setpointApproachData.approachVoltage,DriverMode::TMVoltage);			
+	//	}
+	//}
+	//else if (setpointApproachData.state == SetpointApproachState::Stopping)
+	//{
+	//	commandDriver(0,DriverMode::Brake);	
 
-		//Termination of dynamic control
-		if (std::abs(cVelocity) < MinNonZeroVelocity)
-		{
-			if (std::abs(cTargetAngleDistance) < MaxSetpointError)
-				staticControlMode = StaticControlMode::Holding;
-			else
-				staticControlMode = StaticControlMode::Stepping;
+	//	//Termination of dynamic control
+	//	if (std::abs(cVelocity) < MinNonZeroVelocity)
+	//	{
+	//		if (std::abs(cTargetAngleDistance) < MaxSetpointError)
+	//			staticControlMode = StaticControlMode::Holding;
+	//		else
+	//			staticControlMode = StaticControlMode::Stepping;
 
-			motionPlanComplete = true; 
-		}
-	}
+	//		motionPlanComplete = true; 
+	//	}
+	//}
 }
 
 bool PredictiveJointController::doStepControl(double targetAngle)

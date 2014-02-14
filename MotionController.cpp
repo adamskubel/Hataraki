@@ -78,52 +78,132 @@ void MotionController::updateController(){
 	}
 }
 
+double getAccelDistFromTime(double initialSpeed, double accel, double time)
+{
+	return time*initialSpeed + (std::pow(time,2) * accel)/2.0;
+}
+
+double getAccelDistFromSpeed(double initialSpeed, double endSpeed, double accel)
+{
+	double time = (endSpeed - initialSpeed)/accel;
+
+	return time*initialSpeed + (std::pow(time,2) * accel)/2.0;
+}
+
+shared_ptr<MotionPlan> MotionController::buildMotionPlan(const double startAngle,const  double targetAngle, const double targetTravelTime, const  double approachVelocity, const double maxVelocity, const double maxAccel)
+{
+	const double MinSpeedControlDistance = 150;
+	auto plan = shared_ptr<MotionPlan>(new MotionPlan());
+	
+	if (std::abs(maxAccel) < 50) throw std::runtime_error("Acceleration must be at least 50 steps per second");
+
+	double startVelocity = 0, travelVelocity = (targetAngle - startAngle)/targetTravelTime;
+	double endVelocity = std::abs(approachVelocity) * MathUtils::sgn<double>(travelVelocity);
+	double coastDistance = MinSpeedControlDistance * MathUtils::sgn<double>(travelVelocity);
+	
+	double accel = std::abs(maxAccel)*MathUtils::sgn<double>(travelVelocity);
+	double decel = -accel;
+
+	double travelTime = targetTravelTime;
+
+	if (std::abs(travelVelocity) > maxVelocity)
+	{
+		cout << "Warning: Target velocity " << AS5048::stepsToDegrees(travelVelocity)
+			<< " exceeds max joint velocity " << AS5048::stepsToDegrees(maxVelocity) << endl;
+
+		travelVelocity = MathUtils::sgn<double>(travelVelocity) * maxVelocity;
+		travelTime = (targetAngle-startAngle)/travelVelocity;
+	}
+			
+	double accelTime = (travelVelocity - startVelocity)/accel;
+	double decelTime = (endVelocity - travelVelocity)/decel;
+	double coastTime = coastDistance/endVelocity;
+
+	double equivAccelTime = getAccelDistFromSpeed(startVelocity,travelVelocity,accel)/travelVelocity;
+	double equivDecelTime = getAccelDistFromSpeed(travelVelocity,endVelocity,decel)/travelVelocity;
+	double coastEquivTime = coastDistance/travelVelocity;
+
+	travelTime -= (equivAccelTime + equivDecelTime + coastEquivTime);
+
+	plan->motionIntervals.push_back(MotionInterval(startVelocity,travelVelocity,accelTime));			
+	if (travelTime > 0) plan->motionIntervals.push_back(MotionInterval(travelVelocity,travelTime));
+	plan->motionIntervals.push_back(MotionInterval(travelVelocity,endVelocity,decelTime));
+	plan->motionIntervals.push_back(MotionInterval(endVelocity,coastTime));
+
+	plan->startAngle = startAngle;
+	plan->finalAngle = targetAngle;		
+
+	cout << "T0=" << accelTime << " T1=" << travelTime << " T2=" << decelTime << " T3=" << coastTime<<endl;
+	cout << "FinalAngle=" << AS5048::stepsToDegrees(plan->getPositionAtTime(1000)) << endl;
+
+	return plan;
+}
+
 
 void MotionController::setJointPosition(int jointIndex, double targetAngle, double travelTime, double accel)
 {
+	const double MinSpeedControlDistance = 150.0;
+
 	if (jointIndex >= 0 && jointIndex < joints.size()){
 		
-		PredictiveJointController * pjc = joints.at(jointIndex);
+		//PredictiveJointController * pjc = joints.at(jointIndex);
+		//
+		//auto plan = shared_ptr<MotionPlan>(new MotionPlan());
+
+		//double startVelocity = 0;
+		//double endVelocity = pjc->getJointModel()->servoModel.controllerConfig.approachVelocity;
+		//		
+		//double startAngle = pjc->getCurrentAngle();
+
+		//double delta = targetAngle - startAngle;
+		//
+		//double targetVelocity = delta/travelTime;
+		//
+		//endVelocity = std::abs(endVelocity) * MathUtils::sgn<double>(targetVelocity);
+
+		//double coastDistance = MinSpeedControlDistance * MathUtils::sgn<double>(targetVelocity);
+		//
+		//if (std::abs(accel) < 50) accel = 1000;
+		//
+		//accel = std::abs(accel)*MathUtils::sgn<double>(targetVelocity);
+		//double decel = -accel;
+
+		//if (std::abs(targetVelocity) > pjc->getMaxJointVelocity())
+		//{
+		//	cout << "Warning: Target velocity " << AS5048::stepsToDegrees(targetVelocity)
+		//	<< " exceeds max joint velocity " << AS5048::stepsToDegrees(pjc->getMaxJointVelocity()) << endl;
+		//	
+		//	targetVelocity = MathUtils::sgn<double>(targetVelocity) * pjc->getMaxJointVelocity();
+		//	travelTime = delta/targetVelocity;
+		//}
+		//		
+		//	
+		//double accelTime = (targetVelocity - startVelocity)/accel;
+		//double accelDist = accelTime*startVelocity + (std::pow(accelTime,2) * accel)/2.0;
+		//double equivTime = accelDist/targetVelocity;
+		//
+		//double decelTime = (endVelocity - targetVelocity)/decel;
+		//double decelDist = decelTime*targetVelocity + (std::pow(decelTime,2) * decel)/2.0;
+		//double decelEquivTime = decelDist/targetVelocity;
+		//	
+		//double coastTime = coastDistance/endVelocity;
+		//double coastEquivTime = coastDistance/targetVelocity;
+		//
+		//travelTime -= (equivTime + decelEquivTime + coastEquivTime);
+
+		//plan->motionIntervals.push_back(MotionInterval(startVelocity,targetVelocity,accelTime));			
+		//if (travelTime > 0) plan->motionIntervals.push_back(MotionInterval(targetVelocity,travelTime));
+		//plan->motionIntervals.push_back(MotionInterval(targetVelocity,endVelocity,decelTime));
+		//plan->motionIntervals.push_back(MotionInterval(endVelocity,coastTime));
+		//
+		//plan->startAngle = startAngle;
+		//plan->finalAngle = targetAngle;		
+		//
+		//cout << "T0=" << accelTime << " T1=" << travelTime << " T2=" << decelTime << " T3=" << coastTime<<endl;
+		//cout << "FinalAngle=" << AS5048::stepsToDegrees(plan->getPositionAtTime(1000)) << endl;
 		
-		auto plan = shared_ptr<MotionPlan>(new MotionPlan());
-
-		double startVelocity = 0, endVelocity = 0;
-		double startAngle = pjc->getCurrentAngle();
-
-		double delta = targetAngle - startAngle;
-		
-		double targetVelocity = delta/travelTime;
-
-
-		if (std::abs(targetVelocity) > pjc->getMaxJointVelocity())
-		{
-			cout << "Warning: Target velocity " << AS5048::stepsToDegrees(targetVelocity)
-			<< " exceeds max joint velocity " << AS5048::stepsToDegrees(pjc->getMaxJointVelocity()) << endl;
-			
-			targetVelocity = MathUtils::sgn<double>(targetVelocity) * pjc->getMaxJointVelocity();
-			travelTime = delta/targetVelocity;
-		}
-				
-		if (accel != 0)
-		{
-			double accelTime = std::abs(targetVelocity / accel);
-			double accelDist = accelTime*startVelocity + (std::pow(accelTime,2) * accel)/2.0;
-			double equivTime = accelDist/targetVelocity;
-			
-			travelTime -= equivTime; //subtract accel/decel times
-
-			plan->motionIntervals.push_back(MotionInterval(startVelocity,targetVelocity,accelTime));
-			plan->motionIntervals.push_back(MotionInterval(targetVelocity,travelTime));
-			plan->motionIntervals.push_back(MotionInterval(targetVelocity,endVelocity,accelTime));
-			cout << "Acceltime=" << accelTime << endl;
-		}
-		else
-		{
-			plan->motionIntervals.push_back(MotionInterval(targetVelocity,travelTime));
-		}
-
-		plan->startAngle = startAngle;
-		plan->finalAngle = targetAngle;		
+		auto pjc = joints.at(jointIndex);
+		auto plan = buildMotionPlan(pjc->getCurrentAngle(),targetAngle,travelTime,pjc->getJointModel()->servoModel.controllerConfig.approachVelocity, pjc->getMaxJointVelocity(),accel);
 		
 		pjc->validateMotionPlan(plan);
 		

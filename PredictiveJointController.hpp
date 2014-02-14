@@ -43,6 +43,11 @@ enum StaticControlMode {
 	Stepping
 };
 
+enum DynamicControlMode {
+	Travelling,
+	Approaching,
+	Stopping
+};
 
 enum SteppingState {
 	Energizing,
@@ -64,13 +69,13 @@ enum SpeedControlState {
 };
 
 
-enum SetpointApproachState {
-	Stabilizing,
-	Approaching,
-	Stopping,
-	Missed,
-	Validating
-};
+//enum SetpointApproachState {
+//	Stabilizing,
+//	Approaching,
+//	Stopping,
+//	Missed,
+//	Validating
+//};
 
 class PredictiveJointController {
 	
@@ -130,10 +135,12 @@ private:
 	double cTargetAngleDistance;
 	double cTargetAngle;
 	double cTargetVelocity;
+	double cPlanTargetVelocity;
 	
+	DynamicControlMode dynamicControlMode;
 	bool dynamicControl;
-	bool approachMode;
 	StaticControlMode staticControlMode;
+	double lDynamicPositionError;
 	
 
 	// struct PredictionResults {
@@ -184,13 +191,13 @@ private:
 	double speedControlIntegralGain;
 	double speedControlProportionalGain;
 	
-	struct SetpointApproachData {
+	//struct SetpointApproachData {
 
-		SetpointApproachState state;
-		double approachVoltage;
+	//	SetpointApproachState state;
+	//	double approachVoltage;
 
-	};
-	SetpointApproachData setpointApproachData;
+	//};
+	//SetpointApproachData setpointApproachData;
 
 	//Stepping states
 	//struct StepControlData {

@@ -213,18 +213,23 @@ void testMotionPlan()
 
 	cout << endl;
 	cout << "Constant accel plan:" << endl;
-	cout << "Speed at time(0) = " << plan->getSpeedAtTime(0) << endl;
-	cout << "Speed at time(1) = " << plan->getSpeedAtTime(1) << endl;
-	cout << "Speed at time(2) = " << plan->getSpeedAtTime(2) << endl;
-	cout << "Speed at time(2.1) = " << plan->getSpeedAtTime(2.1) << endl;
+	cout << "Plan duration: " << plan->getPlanDuration() << endl;
+	plan->startNow();
+	cout << "Plan ends in : " << TimeUtil::timeUntil(plan->endTime) << endl;
+	cout << "Plan ended at : " << TimeUtil::timeSince(plan->endTime) << endl;
 
-	cout << "Position at time(0) = " << plan->getPositionAtTime(0) << endl;
-	cout << "Position at time(1) = " << plan->getPositionAtTime(1) << endl;
-	cout << "Position at time(2) = " << plan->getPositionAtTime(2) << endl;
-	cout << "Position at time(2.1) = " << plan->getPositionAtTime(2.1) << endl;
-	cout << "Position at time(4) = " << plan->getPositionAtTime(4) << endl;
-	cout << "Position at time(4.1) = " << plan->getPositionAtTime(4.1) << endl;
-	cout << "Position at time(50) = " << plan->getPositionAtTime(50) << endl;
+	//cout << "Speed at time(0) = " << plan->getSpeedAtTime(0) << endl;
+	//cout << "Speed at time(1) = " << plan->getSpeedAtTime(1) << endl;
+	//cout << "Speed at time(2) = " << plan->getSpeedAtTime(2) << endl;
+	//cout << "Speed at time(2.1) = " << plan->getSpeedAtTime(2.1) << endl;
+
+	//cout << "Position at time(0) = " << plan->getPositionAtTime(0) << endl;
+	//cout << "Position at time(1) = " << plan->getPositionAtTime(1) << endl;
+	//cout << "Position at time(2) = " << plan->getPositionAtTime(2) << endl;
+	//cout << "Position at time(2.1) = " << plan->getPositionAtTime(2.1) << endl;
+	//cout << "Position at time(4) = " << plan->getPositionAtTime(4) << endl;
+	//cout << "Position at time(4.1) = " << plan->getPositionAtTime(4.1) << endl;
+	//cout << "Position at time(50) = " << plan->getPositionAtTime(50) << endl;
 
 }
 

@@ -79,7 +79,8 @@ public:
 	int savitzyGolayWindowSize;
 	int savitzyGolayPolyDegree;
 	
-	double velocityCorrectionGain,approachVelocity;
+	double velocityCorrectionProportionalGain,velocityCorrectionDerivativeGain;
+	double approachVelocity;
 
 	ControllerConfig(cJSON * rawConfig) 
 	{
@@ -97,7 +98,8 @@ public:
 		savitzyGolayPolyDegree = Configuration::getInstance().getObject(rawConfig,"SavitzkyGolayFilter.PolynomialDegree")->valueint;
 		savitzyGolayFilteringEnabled = Configuration::getInstance().getObject(rawConfig,"SavitzkyGolayFilter.Enabled")->valueint != 0;
 
-		velocityCorrectionGain = Configuration::getInstance().getObject(rawConfig,"DynamicController.VelocityGainForPositionCorrection")->valuedouble;
+		velocityCorrectionProportionalGain = Configuration::getInstance().getObject(rawConfig,"DynamicController.VelocityKPForPositionCorrection")->valuedouble;
+		velocityCorrectionDerivativeGain = Configuration::getInstance().getObject(rawConfig,"DynamicController.VelocityKDForPositionCorrection")->valuedouble;
 		approachVelocity = AS5048::degreesToSteps(Configuration::getInstance().getObject(rawConfig,"DynamicController.SetpointApproachVelocity")->valuedouble);
 	}
 };

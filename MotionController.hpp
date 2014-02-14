@@ -70,9 +70,9 @@ public:
 
 	PredictiveJointController * getJointByIndex(int jointIndex);
 		
-	void moveToPosition(vmath::Vector3d position, vmath::Matrix3d rotation, double accel, double deccel, bool interactive);
-	
+	void moveToPosition(vmath::Vector3d position, vmath::Matrix3d rotation, double accel, double deccel, bool interactive);	
 	void setJointPosition(int jointIndex, double angle, double velocity, double accel);
+	std::shared_ptr<MotionPlan> buildMotionPlan(const double startPosition,const double endPosition, const double totalTime, const double approachVelocity, const double maxSpeed, const double maxAccel);
 
 	void updateController();
 
