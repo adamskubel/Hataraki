@@ -233,6 +233,66 @@ void testMotionPlan()
 
 }
 
+void testPlanBuilding()
+{
+	double startAngle = 0, targetAngle = AS5048::degreesToSteps(90), targetTime = 4;
+	timespec start;
+	TimeUtil::setNow(start);
+	auto plan = MotionController::buildMotionPlan(startAngle,targetAngle,targetTime,500,3000,2000);
+
+	cout << "Plan building took: " << TimeUtil::timeSince(start)*1000.0 << " ms" << endl;
+
+	cout << "Speed at time(0) = " << plan->getSpeedAtTime(0) << endl;
+	cout << "Speed at time(1) = " << plan->getSpeedAtTime(1) << endl;
+	cout << "Speed at time(2) = " << plan->getSpeedAtTime(2) << endl;
+	cout << "Speed at time(2.1) = " << plan->getSpeedAtTime(2.1) << endl;
+	cout << "Speed at time(3.1) = " << plan->getSpeedAtTime(3.1) << endl;
+	cout << "Speed at time(4) = " << plan->getSpeedAtTime(4) << endl;
+	cout << "Speed at time(4.1) = " << plan->getSpeedAtTime(4.1) << endl;
+
+	cout << "Position at time(0) = " << plan->getPositionAtTime(0) << endl;
+	cout << "Position at time(1) = " << plan->getPositionAtTime(1) << endl;
+	cout << "Position at time(2) = " << plan->getPositionAtTime(2) << endl;
+	cout << "Position at time(2.1) = " << plan->getPositionAtTime(2.1) << endl;
+	cout << "Position at time(4) = " << plan->getPositionAtTime(4) << endl;
+	cout << "Position at time(4.1) = " << plan->getPositionAtTime(4.1) << endl;
+	cout << "Position at time(50) = " << plan->getPositionAtTime(50) << endl;
+}
+
+void testOptimalPlanBuilding()
+{
+	double startAngle = 0, targetAngle = AS5048::degreesToSteps(90);
+	timespec start;
+	TimeUtil::setNow(start);
+
+	double accel = 2000, approachSpeed = 500, approachDist = 150;
+	double maxSpeed = 1000;
+
+	double targetTime = MotionController::optimalSpeed(accel,approachDist,(targetAngle-startAngle),approachSpeed,maxSpeed,maxSpeed);
+
+	cout << "Minimum time = " << targetTime << "s, OptSpeed=" << maxSpeed << " steps/s" << endl;
+
+	auto plan = MotionController::buildMotionPlan(startAngle,targetAngle,targetTime,approachSpeed,accel,maxSpeed);
+
+	cout << "Plan building took: " << TimeUtil::timeSince(start)*1000.0 << " ms" << endl;
+
+	cout << "Speed at time(0) = " << plan->getSpeedAtTime(0) << endl;
+	cout << "Speed at time(1) = " << plan->getSpeedAtTime(1) << endl;
+	cout << "Speed at time(2) = " << plan->getSpeedAtTime(2) << endl;
+	cout << "Speed at time(2.1) = " << plan->getSpeedAtTime(2.1) << endl;
+	cout << "Speed at time(3.1) = " << plan->getSpeedAtTime(3.1) << endl;
+	cout << "Speed at time(4) = " << plan->getSpeedAtTime(4) << endl;
+	cout << "Speed at time(4.1) = " << plan->getSpeedAtTime(4.1) << endl;
+
+	cout << "Position at time(0) = " << plan->getPositionAtTime(0) << endl;
+	cout << "Position at time(1) = " << plan->getPositionAtTime(1) << endl;
+	cout << "Position at time(2) = " << plan->getPositionAtTime(2) << endl;
+	cout << "Position at time(2.1) = " << plan->getPositionAtTime(2.1) << endl;
+	cout << "Position at time(4) = " << plan->getPositionAtTime(4) << endl;
+	cout << "Position at time(4.1) = " << plan->getPositionAtTime(4.1) << endl;
+	cout << "Position at time(50) = " << plan->getPositionAtTime(50) << endl;
+}
+
 void handle(int sig) {
 	void *array[30];
 	size_t size;
@@ -292,5 +352,5 @@ int main(int argc, char *argv[])
 	//
 	//testFK();	
 
-	testMotionPlan();
+	testOptimalPlanBuilding();
 }

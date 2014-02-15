@@ -32,6 +32,15 @@ namespace MotionControllerState {
 	static int Stepping = 1;
 }
 
+
+struct PlanSolution {
+	
+	double t0,t1,t2,t3;
+	double travelVelocity;
+	double accel0,accel1;
+	bool valid;
+};
+
 class MotionController {
 	
 	struct MotionStep {
@@ -72,7 +81,10 @@ public:
 		
 	void moveToPosition(vmath::Vector3d position, vmath::Matrix3d rotation, double accel, double deccel, bool interactive);	
 	void setJointPosition(int jointIndex, double angle, double velocity, double accel);
-	std::shared_ptr<MotionPlan> buildMotionPlan(const double startPosition,const double endPosition, const double totalTime, const double approachVelocity, const double maxSpeed, const double maxAccel);
+	
+	static double optimalSpeed(const double a0, const double d3, const double dTotal, const double v1, const double maxSpeed, double & speed);
+	static std::shared_ptr<MotionPlan> buildMotionPlan(const double startPosition,const double endPosition, const double totalTime, const double approachVelocity, const double maxSpeed, const double maxAccel);
+	static void calculatePlan(double a0, double d3, double tTotal, double dTotal, double v1, PlanSolution & result);
 
 	void updateController();
 

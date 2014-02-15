@@ -90,52 +90,101 @@ double getAccelDistFromSpeed(double initialSpeed, double endSpeed, double accel)
 	return time*initialSpeed + (std::pow(time,2) * accel)/2.0;
 }
 
-shared_ptr<MotionPlan> MotionController::buildMotionPlan(const double startAngle,const  double targetAngle, const double targetTravelTime, const  double approachVelocity, const double maxVelocity, const double maxAccel)
+
+double MotionController::optimalSpeed(const double a0, const double d3, const double dTotal, const double v1, const double maxSpeed, double & v0)
+{
+	double v0 = sqrt(2.0)*sqrt(a0*d3*-2.0+a0*dTotal*2.0+v1*v1)*(1.0/2.0);
+
+	if (std::abs(v0) > std::abs(maxSpeed))
+		v0 = maxSpeed;
+
+	return (-v0*(v1*v1)+(v0*v0)*v1+(v1*v1*v1)*(1.0/2.0)+a0*d3*v0-a0*d3*v1+a0*dTotal*v1)/(a0*v0*v1);
+}
+
+void MotionController::calculatePlan(double a0, double d3, double tTotal, double dTotal, double v1, PlanSolution & result)
+{
+	double s_v0[2],s_t0[2],s_t1[2],s_t2[2],s_t3[2];
+	
+
+	result.valid = false;
+
+	s_v0[1] = (sqrt(-v1*v1*v1*v1+(a0*a0)*(d3*d3)+a0*tTotal*(v1*v1*v1)*2.0+(a0*a0)*(tTotal*tTotal)*(v1*v1)+a0*d3*(v1*v1)*2.0-a0*dTotal*(v1*v1)*4.0-(a0*a0)*d3*tTotal*v1*2.0)*(-1.0/2.0)-a0*d3*(1.0/2.0)+(v1*v1)*(1.0/2.0)+a0*tTotal*v1*(1.0/2.0))/v1;
+	
+	if (std::isnan(s_v0[1])) return;
+		
+	if (std::abs(s_v0[1]) < std::abs(v1))
+	{
+		s_v0[1] = ((v1*v1*v1)*(1.0/2.0)+a0*d3*v1-a0*dTotal*v1)/(a0*d3+v1*v1-a0*tTotal*v1);
+		s_t0[1] = ((v1*v1*v1)*(1.0/2.0)+a0*d3*v1-a0*dTotal*v1)/(a0*(a0*d3+v1*v1-a0*tTotal*v1));
+		s_t1[1] = -(a0*d3+v1*v1-a0*tTotal*v1)/(a0*v1);
+		s_t2[1] = ((v1*v1*v1)*(1.0/2.0)-a0*tTotal*(v1*v1)+a0*dTotal*v1)/(a0*(a0*d3+v1*v1-a0*tTotal*v1));
+		s_t3[1] = d3/v1;
+		result.accel0 = a0;
+		result.accel1 = a0;
+	}
+	else
+	{
+		s_t0[1] = (sqrt(-v1*v1*v1*v1+(a0*a0)*(d3*d3)+a0*tTotal*(v1*v1*v1)*2.0+(a0*a0)*(tTotal*tTotal)*(v1*v1)+a0*d3*(v1*v1)*2.0-a0*dTotal*(v1*v1)*4.0-(a0*a0)*d3*tTotal*v1*2.0)*(-1.0/2.0)-a0*d3*(1.0/2.0)+(v1*v1)*(1.0/2.0)+a0*tTotal*v1*(1.0/2.0))/(a0*v1);
+		s_t1[1] = (sqrt(-v1*v1*v1*v1+(a0*a0)*(d3*d3)+a0*tTotal*(v1*v1*v1)*2.0+(a0*a0)*(tTotal*tTotal)*(v1*v1)+a0*d3*(v1*v1)*2.0-a0*dTotal*(v1*v1)*4.0-(a0*a0)*d3*tTotal*v1*2.0)+a0*d3-v1*v1-a0*tTotal*v1)/(a0*v1)+(-a0*d3+v1*v1+a0*tTotal*v1)/(a0*v1);
+		s_t2[1] = -(v1+(sqrt(-v1*v1*v1*v1+(a0*a0)*(d3*d3)+a0*tTotal*(v1*v1*v1)*2.0+(a0*a0)*(tTotal*tTotal)*(v1*v1)+a0*d3*(v1*v1)*2.0-a0*dTotal*(v1*v1)*4.0-(a0*a0)*d3*tTotal*v1*2.0)*(1.0/2.0)+a0*d3*(1.0/2.0)-(v1*v1)*(1.0/2.0)-a0*tTotal*v1*(1.0/2.0))/v1)/a0;
+		s_t3[1] = d3/v1;
+		
+		result.accel0 = a0;
+		result.accel1 = -a0;
+	}
+	
+	int s = 1;	
+	result.t0 = s_t0[s];
+	result.t1 = s_t1[s];
+	result.t2 = s_t2[s];
+	result.t3 = s_t3[s];
+	result.travelVelocity = s_v0[s];
+	result.valid = true;
+}
+
+
+
+shared_ptr<MotionPlan> MotionController::buildMotionPlan(const double startAngle,const  double targetAngle, const double targetTime, const  double approachVelocity, const double maxVelocity, const double maxAccel)
 {
 	const double MinSpeedControlDistance = 150;
 	auto plan = shared_ptr<MotionPlan>(new MotionPlan());
 	
 	if (std::abs(maxAccel) < 50) throw std::runtime_error("Acceleration must be at least 50 steps per second");
 
-	double startVelocity = 0, travelVelocity = (targetAngle - startAngle)/targetTravelTime;
-	double endVelocity = std::abs(approachVelocity) * MathUtils::sgn<double>(travelVelocity);
-	double coastDistance = MinSpeedControlDistance * MathUtils::sgn<double>(travelVelocity);
+	double startVelocity = 0, direction = MathUtils::sgn<double>(targetAngle - startAngle);
+	double endVelocity = std::abs(approachVelocity) * direction;
+	double coastDistance = MinSpeedControlDistance * direction;
 	
-	double accel = std::abs(maxAccel)*MathUtils::sgn<double>(travelVelocity);
-	double decel = -accel;
+	double accel = std::abs(maxAccel)*direction;
+	
+	PlanSolution sol;
+	
+	calculatePlan(accel, coastDistance,targetTime,(targetAngle-startAngle),endVelocity,sol);
 
-	double travelTime = targetTravelTime;
-
-	if (std::abs(travelVelocity) > maxVelocity)
+	//if (std::abs(sol.travelVelocity) > maxVelocity)
+	//{
+	//	stringstream ss;
+	//	ss << "Target velocity " << AS5048::stepsToDegrees(sol.travelVelocity) << " exceeds max joint velocity " << AS5048::stepsToDegrees(maxVelocity);
+	//	throw std::runtime_error(ss.str());
+	//} else
+	if (!sol.valid)
 	{
-		cout << "Warning: Target velocity " << AS5048::stepsToDegrees(travelVelocity)
-			<< " exceeds max joint velocity " << AS5048::stepsToDegrees(maxVelocity) << endl;
-
-		travelVelocity = MathUtils::sgn<double>(travelVelocity) * maxVelocity;
-		travelTime = (targetAngle-startAngle)/travelVelocity;
+		stringstream ss;
+		ss << "No valid solution found.";
+		throw std::runtime_error(ss.str());
 	}
-			
-	double accelTime = (travelVelocity - startVelocity)/accel;
-	double decelTime = (endVelocity - travelVelocity)/decel;
-	double coastTime = coastDistance/endVelocity;
 
-	double equivAccelTime = getAccelDistFromSpeed(startVelocity,travelVelocity,accel)/travelVelocity;
-	double equivDecelTime = getAccelDistFromSpeed(travelVelocity,endVelocity,decel)/travelVelocity;
-	double coastEquivTime = coastDistance/travelVelocity;
-
-	travelTime -= (equivAccelTime + equivDecelTime + coastEquivTime);
-
-	plan->motionIntervals.push_back(MotionInterval(startVelocity,travelVelocity,accelTime));			
-	if (travelTime > 0) plan->motionIntervals.push_back(MotionInterval(travelVelocity,travelTime));
-	plan->motionIntervals.push_back(MotionInterval(travelVelocity,endVelocity,decelTime));
-	plan->motionIntervals.push_back(MotionInterval(endVelocity,coastTime));
+	plan->motionIntervals.push_back(MotionInterval(startVelocity,sol.travelVelocity,sol.t0));
+	plan->motionIntervals.push_back(MotionInterval(sol.travelVelocity,sol.t1));
+	plan->motionIntervals.push_back(MotionInterval(sol.travelVelocity,endVelocity,sol.t2));
+	plan->motionIntervals.push_back(MotionInterval(endVelocity,sol.t3));
 
 	plan->startAngle = startAngle;
 	plan->finalAngle = targetAngle;		
 
-	cout << "T0=" << accelTime << " T1=" << travelTime << " T2=" << decelTime << " T3=" << coastTime<<endl;
+	cout << "V0=" << sol.travelVelocity << " T0=" << sol.t0 << " T1=" << sol.t1 << " T2=" << sol.t2 << " T3=" << sol.t3 <<endl;
 	cout << "FinalAngle=" << AS5048::stepsToDegrees(plan->getPositionAtTime(1000)) << endl;
-
+	
 	return plan;
 }
 
@@ -144,64 +193,8 @@ void MotionController::setJointPosition(int jointIndex, double targetAngle, doub
 {
 	const double MinSpeedControlDistance = 150.0;
 
-	if (jointIndex >= 0 && jointIndex < joints.size()){
-		
-		//PredictiveJointController * pjc = joints.at(jointIndex);
-		//
-		//auto plan = shared_ptr<MotionPlan>(new MotionPlan());
-
-		//double startVelocity = 0;
-		//double endVelocity = pjc->getJointModel()->servoModel.controllerConfig.approachVelocity;
-		//		
-		//double startAngle = pjc->getCurrentAngle();
-
-		//double delta = targetAngle - startAngle;
-		//
-		//double targetVelocity = delta/travelTime;
-		//
-		//endVelocity = std::abs(endVelocity) * MathUtils::sgn<double>(targetVelocity);
-
-		//double coastDistance = MinSpeedControlDistance * MathUtils::sgn<double>(targetVelocity);
-		//
-		//if (std::abs(accel) < 50) accel = 1000;
-		//
-		//accel = std::abs(accel)*MathUtils::sgn<double>(targetVelocity);
-		//double decel = -accel;
-
-		//if (std::abs(targetVelocity) > pjc->getMaxJointVelocity())
-		//{
-		//	cout << "Warning: Target velocity " << AS5048::stepsToDegrees(targetVelocity)
-		//	<< " exceeds max joint velocity " << AS5048::stepsToDegrees(pjc->getMaxJointVelocity()) << endl;
-		//	
-		//	targetVelocity = MathUtils::sgn<double>(targetVelocity) * pjc->getMaxJointVelocity();
-		//	travelTime = delta/targetVelocity;
-		//}
-		//		
-		//	
-		//double accelTime = (targetVelocity - startVelocity)/accel;
-		//double accelDist = accelTime*startVelocity + (std::pow(accelTime,2) * accel)/2.0;
-		//double equivTime = accelDist/targetVelocity;
-		//
-		//double decelTime = (endVelocity - targetVelocity)/decel;
-		//double decelDist = decelTime*targetVelocity + (std::pow(decelTime,2) * decel)/2.0;
-		//double decelEquivTime = decelDist/targetVelocity;
-		//	
-		//double coastTime = coastDistance/endVelocity;
-		//double coastEquivTime = coastDistance/targetVelocity;
-		//
-		//travelTime -= (equivTime + decelEquivTime + coastEquivTime);
-
-		//plan->motionIntervals.push_back(MotionInterval(startVelocity,targetVelocity,accelTime));			
-		//if (travelTime > 0) plan->motionIntervals.push_back(MotionInterval(targetVelocity,travelTime));
-		//plan->motionIntervals.push_back(MotionInterval(targetVelocity,endVelocity,decelTime));
-		//plan->motionIntervals.push_back(MotionInterval(endVelocity,coastTime));
-		//
-		//plan->startAngle = startAngle;
-		//plan->finalAngle = targetAngle;		
-		//
-		//cout << "T0=" << accelTime << " T1=" << travelTime << " T2=" << decelTime << " T3=" << coastTime<<endl;
-		//cout << "FinalAngle=" << AS5048::stepsToDegrees(plan->getPositionAtTime(1000)) << endl;
-		
+	if (jointIndex >= 0 && jointIndex < joints.size()){		
+			
 		auto pjc = joints.at(jointIndex);
 		auto plan = buildMotionPlan(pjc->getCurrentAngle(),targetAngle,travelTime,pjc->getJointModel()->servoModel.controllerConfig.approachVelocity, pjc->getMaxJointVelocity(),accel);
 		
@@ -236,7 +229,7 @@ void MotionController::zeroAllJoints()
 {
 	for (int i=0;i<joints.size();i++)
 	{
-		setJointPosition(i,0,AS5048::degreesToSteps(20),0);
+		setJointPosition(i,0,3,AS5048::degreesToSteps(80));
 	}
 }
 
@@ -338,6 +331,9 @@ void MotionController::postTask(std::function<void()> task)
 vector<shared_ptr<MotionPlan> > MotionController::createMotionPlans(vector<MotionStep*> & steps, double maxAccel, double maxDeccel)
 {
 	const double MinSpeed = 400;
+	const double CoastDistance = 150;
+	const double CoastSpeed = 500;
+
 
 	vector<shared_ptr<MotionPlan> > motionPlan;
 
@@ -351,8 +347,14 @@ vector<shared_ptr<MotionPlan> > MotionController::createMotionPlans(vector<Motio
 		double stepTime = 0;
 		for (int i=0;i<6;i++) 
 		{			
-			double jointTime = AS5048::radiansToSteps(std::abs((*it)->jointAngleDelta[i])) / joints.at(i)->getMaxJointVelocity();
-			stepTime  = std::max(stepTime ,jointTime);
+			double delta = AS5048::radiansToSteps((*it)->jointAngleDelta[i]);
+			double direction = MathUtils::sgn<double>(delta);
+			double maxSpeed = joints.at(i)->getMaxJointVelocity() * direction;
+			double finalSpeed;
+
+			double jointTime = optimalSpeed(maxAccel,CoastDistance * direction,delta,CoastSpeed*direction,maxSpeed,finalSpeed);
+
+			stepTime = std::max(stepTime ,jointTime);
 		}
 
 		for (int i=0;i<6;i++) 
