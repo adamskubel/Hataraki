@@ -1,5 +1,23 @@
 #include "MotionPlan.hpp"
 
+MotionInterval::MotionInterval(double constantSpeed, double _duration)
+{
+	this->startSpeed = constantSpeed;
+	this->endSpeed = constantSpeed;
+	this->duration = _duration;
+
+	if (duration < 0) 
+		throw std::runtime_error("Motion plan has negative duration");
+}
+
+MotionInterval::MotionInterval(double _startSpeed, double _endSpeed, double _duration) {
+	this->startSpeed = _startSpeed;
+	this->endSpeed = _endSpeed;
+	this->duration = _duration;
+
+	if (duration < 0) 
+		throw std::runtime_error("Motion plan has negative duration");
+}
 
 double MotionPlan::getSpeedAtTime(double planTime)
 {

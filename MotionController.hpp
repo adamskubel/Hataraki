@@ -82,9 +82,13 @@ public:
 	void moveToPosition(vmath::Vector3d position, vmath::Matrix3d rotation, double accel, double deccel, bool interactive);	
 	void setJointPosition(int jointIndex, double angle, double velocity, double accel);
 	
-	static double optimalSpeed(const double a0, const double d3, const double dTotal, const double v1, const double maxSpeed, double & speed);
-	static std::shared_ptr<MotionPlan> buildMotionPlan(const double startPosition,const double endPosition, const double totalTime, const double approachVelocity, const double maxSpeed, const double maxAccel);
-	static void calculatePlan(double a0, double d3, double tTotal, double dTotal, double v1, PlanSolution & result);
+	static std::shared_ptr<MotionPlan> buildMotionPlan(const double startPosition,const double endPosition, const double totalTime, const double approachVelocity, const double maxAccel);
+
+	static double optimalSpeed(const double a0, const double d3, const double dTotal, const double v0, const double v2, const double maxSpeed, double & speed);
+	static void calculatePlan(double absAccel, double d3, double tTotal, double dTotal, double v0, double v2, PlanSolution & result);
+
+	static double optimalSpeed2Part(const double a0, const double dTotal, const double v0, const double maxSpeed, double & speed);
+	static void calculatePlan2Part(double absAccel, double tTotal, double dTotal, double v0, PlanSolution & result);
 
 	void updateController();
 

@@ -6,7 +6,7 @@
 	},
 	"GlobalSettings" : {
 		"MaxVoltage" : 2.2,
-		"MotionPlanSteps" : 1,
+		"MotionPlanSteps" : 4,
 		"UpdateFrequency" : 100
 	},
 	"ArmModel" : 

@@ -3,6 +3,7 @@
 
 #include <vector>
 #include <cmath>
+#include <stdexcept>
 
 #include "TimeUtil.hpp"
 
@@ -11,18 +12,8 @@ class MotionInterval {
 public:
 	double startSpeed, endSpeed, duration;
 	
-	MotionInterval(double constantSpeed, double _duration)
-	{
-		this->startSpeed = constantSpeed;
-		this->endSpeed = constantSpeed;
-		this->duration = _duration;
-	}
-	
-	MotionInterval(double _startSpeed, double _endSpeed, double _duration) {
-		this->startSpeed = _startSpeed;
-		this->endSpeed = _endSpeed;
-		this->duration = _duration;
-	}
+	MotionInterval(double constantSpeed, double _duration);	
+	MotionInterval(double _startSpeed, double _endSpeed, double _duration);
 	
 	double getSpeedAtTime(double time);
 	double getPositionAtTime(double time);

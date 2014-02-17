@@ -91,60 +91,160 @@ double getAccelDistFromSpeed(double initialSpeed, double endSpeed, double accel)
 }
 
 
-double MotionController::optimalSpeed(const double a0, const double d3, const double dTotal, const double v1, const double maxSpeed, double & v0)
+double MotionController::optimalSpeed(const double accel, const double d3, const double dTotal, const double v0, const double v2, const double maxSpeed, double & v1)
 {
-	double v0 = sqrt(2.0)*sqrt(a0*d3*-2.0+a0*dTotal*2.0+v1*v1)*(1.0/2.0);
+	double a0 = std::abs(accel);
+	v1 = sqrt(2.0)*sqrt(a0*d3*-2.0+a0*dTotal*2.0+v0*v0+v2*v2)*(1.0/2.0);
 
-	if (std::abs(v0) > std::abs(maxSpeed))
-		v0 = maxSpeed;
+	if (std::isnan(v1))
+	{
+		a0 = -a0;
+		v1 = -sqrt(2.0)*sqrt(a0*d3*-2.0+a0*dTotal*2.0+v0*v0+v2*v2)*(1.0/2.0);
+	}
 
-	return (-v0*(v1*v1)+(v0*v0)*v1+(v1*v1*v1)*(1.0/2.0)+a0*d3*v0-a0*d3*v1+a0*dTotal*v1)/(a0*v0*v1);
+	if (std::abs(v1) > std::abs(maxSpeed))
+		v1 = std::abs(maxSpeed)*MathUtils::sgn<double>(v1);
+
+	return ((v0*v0)*v2*(1.0/2.0)-v1*(v2*v2)+(v1*v1)*v2+(v2*v2*v2)*(1.0/2.0)+a0*d3*v1-a0*d3*v2+a0*dTotal*v2-v0*v1*v2)/(a0*v1*v2);
 }
 
-void MotionController::calculatePlan(double a0, double d3, double tTotal, double dTotal, double v1, PlanSolution & result)
+double MotionController::optimalSpeed2Part(const double accel, const double dTotal, const double v0, const double maxSpeed, double & v1)
 {
-	double s_v0[2],s_t0[2],s_t1[2],s_t2[2],s_t3[2];
-	
+	double a0 = std::abs(accel);
+	v1 = sqrt(a0*dTotal*2.0+v0*v0);
 
+	if (std::isnan(v1))
+	{
+		a0 = -a0;
+		v1 = -sqrt(a0*dTotal*2.0+v0*v0);
+	}
+
+	if (std::abs(v1) > std::abs(maxSpeed))
+		v1 = std::abs(maxSpeed)*MathUtils::sgn<double>(v1);
+
+	return (a0*dTotal-v0*v1+(v0*v0)*(1.0/2.0)+(v1*v1)*(1.0/2.0))/(a0*v1);
+}
+
+
+void MotionController::calculatePlan2Part(double absAccel, double tTotal, double dTotal, double v0, PlanSolution & result)
+{
+	double v1,t0,t1;
 	result.valid = false;
 
-	s_v0[1] = (sqrt(-v1*v1*v1*v1+(a0*a0)*(d3*d3)+a0*tTotal*(v1*v1*v1)*2.0+(a0*a0)*(tTotal*tTotal)*(v1*v1)+a0*d3*(v1*v1)*2.0-a0*dTotal*(v1*v1)*4.0-(a0*a0)*d3*tTotal*v1*2.0)*(-1.0/2.0)-a0*d3*(1.0/2.0)+(v1*v1)*(1.0/2.0)+a0*tTotal*v1*(1.0/2.0))/v1;
+	double a0 = absAccel;
 	
-	if (std::isnan(s_v0[1])) return;
-		
-	if (std::abs(s_v0[1]) < std::abs(v1))
+	
+	double t0_sign = -(sqrt(a0*(dTotal*-2.0+tTotal*v0*2.0+a0*(tTotal*tTotal)))-a0*tTotal)/a0;
+	
+	if (std::isnan(t0_sign)) return;
+
+	if (t0_sign < 0)
 	{
-		s_v0[1] = ((v1*v1*v1)*(1.0/2.0)+a0*d3*v1-a0*dTotal*v1)/(a0*d3+v1*v1-a0*tTotal*v1);
-		s_t0[1] = ((v1*v1*v1)*(1.0/2.0)+a0*d3*v1-a0*dTotal*v1)/(a0*(a0*d3+v1*v1-a0*tTotal*v1));
-		s_t1[1] = -(a0*d3+v1*v1-a0*tTotal*v1)/(a0*v1);
-		s_t2[1] = ((v1*v1*v1)*(1.0/2.0)-a0*tTotal*(v1*v1)+a0*dTotal*v1)/(a0*(a0*d3+v1*v1-a0*tTotal*v1));
-		s_t3[1] = d3/v1;
-		result.accel0 = a0;
-		result.accel1 = a0;
+		a0 = -a0;	
+		v1 = v0+sqrt(a0*(dTotal*-2.0+tTotal*v0*2.0+a0*(tTotal*tTotal)))+a0*tTotal;
+		t0 = (sqrt(a0*(dTotal*-2.0+tTotal*v0*2.0+a0*(tTotal*tTotal)))+a0*tTotal)/a0;
+		t1 = -sqrt(a0*(dTotal*-2.0+tTotal*v0*2.0+a0*(tTotal*tTotal)))/a0;
 	}
 	else
 	{
-		s_t0[1] = (sqrt(-v1*v1*v1*v1+(a0*a0)*(d3*d3)+a0*tTotal*(v1*v1*v1)*2.0+(a0*a0)*(tTotal*tTotal)*(v1*v1)+a0*d3*(v1*v1)*2.0-a0*dTotal*(v1*v1)*4.0-(a0*a0)*d3*tTotal*v1*2.0)*(-1.0/2.0)-a0*d3*(1.0/2.0)+(v1*v1)*(1.0/2.0)+a0*tTotal*v1*(1.0/2.0))/(a0*v1);
-		s_t1[1] = (sqrt(-v1*v1*v1*v1+(a0*a0)*(d3*d3)+a0*tTotal*(v1*v1*v1)*2.0+(a0*a0)*(tTotal*tTotal)*(v1*v1)+a0*d3*(v1*v1)*2.0-a0*dTotal*(v1*v1)*4.0-(a0*a0)*d3*tTotal*v1*2.0)+a0*d3-v1*v1-a0*tTotal*v1)/(a0*v1)+(-a0*d3+v1*v1+a0*tTotal*v1)/(a0*v1);
-		s_t2[1] = -(v1+(sqrt(-v1*v1*v1*v1+(a0*a0)*(d3*d3)+a0*tTotal*(v1*v1*v1)*2.0+(a0*a0)*(tTotal*tTotal)*(v1*v1)+a0*d3*(v1*v1)*2.0-a0*dTotal*(v1*v1)*4.0-(a0*a0)*d3*tTotal*v1*2.0)*(1.0/2.0)+a0*d3*(1.0/2.0)-(v1*v1)*(1.0/2.0)-a0*tTotal*v1*(1.0/2.0))/v1)/a0;
-		s_t3[1] = d3/v1;
-		
-		result.accel0 = a0;
-		result.accel1 = -a0;
+		v1 = v0-sqrt(a0*(dTotal*-2.0+tTotal*v0*2.0+a0*(tTotal*tTotal)))+a0*tTotal;
+		t0 = -(sqrt(a0*(dTotal*-2.0+tTotal*v0*2.0+a0*(tTotal*tTotal)))-a0*tTotal)/a0;
+		t1 = sqrt(a0*(dTotal*-2.0+tTotal*v0*2.0+a0*(tTotal*tTotal)))/a0;
 	}
 	
-	int s = 1;	
-	result.t0 = s_t0[s];
-	result.t1 = s_t1[s];
-	result.t2 = s_t2[s];
-	result.t3 = s_t3[s];
-	result.travelVelocity = s_v0[s];
+	result.t0 = t0;
+	result.t1 = t1;
+	result.accel0 = a0;
+	result.travelVelocity = v1;
+	result.valid = true;
+}
+
+void MotionController::calculatePlan(double absAccel, double d3, double tTotal, double dTotal, double v0, double v2, PlanSolution & result)
+{
+	double v1,t0,t1,t2,t3;
+	result.valid = false;
+
+	double a0 = absAccel, a1 = -absAccel;
+	
+	
+	double t0_sign = -(v0+(sqrt(a0*a1*((v0*v0)*(v2*v2)-v0*(v2*v2*v2)*2.0+v2*v2*v2*v2-a0*tTotal*(v2*v2*v2)*2.0+a0*a1*(d3*d3)+a1*d3*(v2*v2)*2.0+a0*dTotal*
+		(v2*v2)*2.0-a1*dTotal*(v2*v2)*2.0-a1*d3*v0*v2*2.0+a1*tTotal*v0*(v2*v2)*2.0+a0*a1*(tTotal*tTotal)*(v2*v2)-a0*a1*d3*tTotal*v2*2.0))-a0*(v2*v2)-a0*a1*d3+a1*v0*v2+a0*a1*tTotal*v2)/(a0*v2-a1*v2))/a0;
+		
+	double t2_sign = (v2+(sqrt(a0*a1*((v0*v0)*(v2*v2)-v0*(v2*v2*v2)*2.0+v2*v2*v2*v2-a0*tTotal*(v2*v2*v2)*2.0+a0*a1*(d3*d3)+a1*d3*(v2*v2)*2.0+a0*dTotal*(v2*v2)
+		*2.0-a1*dTotal*(v2*v2)*2.0-a1*d3*v0*v2*2.0+a1*tTotal*v0*(v2*v2)*2.0+a0*a1*(tTotal*tTotal)*(v2*v2)-a0*a1*d3*tTotal*v2*2.0))-a0*(v2*v2)-a0*a1*d3+a1*v0*v2+a0*a1*tTotal*v2)/(a0*v2-a1*v2))/a1;
+	
+	//Case 1: Both T0 and T2 are positive = good
+	//Case 2: T0 is negative -> Flip sign of A0 and use EQ 2
+	//Case 3: T2 is negative -> Flip sign of A1 and use EQ 2
+	//Case 4: Both T0 and T2 are negative -> flip sign of both and use EQ 1
+	//Case 5: Either T0 or T2 have non-real components (NaN). Return invalid result.
+
+	
+	if (std::isnan(t0_sign) || std::isnan(t2_sign)) return;
+	if (t0_sign < 0) a0 = -a0;		
+	if (t2_sign < 0) a1 = -a1;
+
+	if (a0 == a1)
+	{
+		v1 = -((v0*v0)*v2-v2*v2*v2-a0*d3*v2*2.0+a0*dTotal*v2*2.0)/(a0*d3*2.0-v0*v2*2.0+(v2*v2)*2.0-a0*tTotal*v2*2.0);
+		t0 = (-v0*(v2*v2)+(v0*v0)*v2*(1.0/2.0)+(v2*v2*v2)*(1.0/2.0)-a0*d3*v0+a0*d3*v2-a0*dTotal*v2+a0*tTotal*v0*v2)/(a0*(a0*d3-v0*v2+v2*v2-a0*tTotal*v2));
+		t1 = -(a0*d3-v0*v2+v2*v2-a0*tTotal*v2)/(a0*v2);
+		t2 = (-v0*(v2*v2)+(v0*v0)*v2*(1.0/2.0)+(v2*v2*v2)*(1.0/2.0)-a0*tTotal*(v2*v2)+a0*dTotal*v2)/(a0*(a0*d3-v0*v2+v2*v2-a0*tTotal*v2));
+		t3 = d3/v2;
+	}
+	else
+	{		
+		t1 = -(a0*(v2*v2)+a0*a1*d3-a1*v0*v2-a0*a1*tTotal*v2+(a0*v2*(sqrt(a0*a1*((v0*v0)*(v2*v2)-v0*(v2*v2*v2)*2.0+v2*v2*v2*v2-a0*tTotal*
+			(v2*v2*v2)*2.0+a0*a1*(d3*d3)+a1*d3*(v2*v2)*2.0+a0*dTotal*(v2*v2)*2.0-a1*dTotal*(v2*v2)*2.0-a1*d3*v0*v2*2.0+a1*tTotal*v0*(v2*v2)
+			*2.0+a0*a1*(tTotal*tTotal)*(v2*v2)-a0*a1*d3*tTotal*v2*2.0))-a0*(v2*v2)-a0*a1*d3+a1*v0*v2+a0*a1*tTotal*v2))/(a0*v2-a1*v2)-(a1*v2*
+			(sqrt(a0*a1*((v0*v0)*(v2*v2)-v0*(v2*v2*v2)*2.0+v2*v2*v2*v2-a0*tTotal*(v2*v2*v2)*2.0+a0*a1*(d3*d3)+a1*d3*(v2*v2)*2.0+a0*dTotal*
+			(v2*v2)*2.0-a1*dTotal*(v2*v2)*2.0-a1*d3*v0*v2*2.0+a1*tTotal*v0*(v2*v2)*2.0+a0*a1*(tTotal*tTotal)*(v2*v2)-a0*a1*d3*tTotal*v2*2.0))-a0*(v2*v2)-a0*a1*d3+a1*v0*v2+a0*a1*tTotal*v2))/(a0*v2-a1*v2))/(a0*a1*v2);
+
+		if (t1 >= 0)
+		{
+
+			v1 = -(sqrt(a0*a1*((v0*v0)*(v2*v2)-v0*(v2*v2*v2)*2.0+v2*v2*v2*v2-a0*tTotal*(v2*v2*v2)*2.0+a0*a1*(d3*d3)+a1*d3*(v2*v2)*2.0+a0*dTotal*(v2*v2)
+				*2.0-a1*dTotal*(v2*v2)*2.0-a1*d3*v0*v2*2.0+a1*tTotal*v0*(v2*v2)*2.0+a0*a1*(tTotal*tTotal)*(v2*v2)-a0*a1*d3*tTotal*v2*2.0))-a0*(v2*v2)-a0*a1*d3+a1*v0*v2+a0*a1*tTotal*v2)/(a0*v2-a1*v2);
+
+			t0 = -(v0+(sqrt(a0*a1*((v0*v0)*(v2*v2)-v0*(v2*v2*v2)*2.0+v2*v2*v2*v2-a0*tTotal*(v2*v2*v2)*2.0+a0*a1*(d3*d3)+a1*d3*(v2*v2)*2.0+a0*dTotal*
+				(v2*v2)*2.0-a1*dTotal*(v2*v2)*2.0-a1*d3*v0*v2*2.0+a1*tTotal*v0*(v2*v2)*2.0+a0*a1*(tTotal*tTotal)*(v2*v2)-a0*a1*d3*tTotal*v2*2.0))-a0*(v2*v2)-a0*a1*d3+a1*v0*v2+a0*a1*tTotal*v2)/(a0*v2-a1*v2))/a0;
+
+			t2 = (v2+(sqrt(a0*a1*((v0*v0)*(v2*v2)-v0*(v2*v2*v2)*2.0+v2*v2*v2*v2-a0*tTotal*(v2*v2*v2)*2.0+a0*a1*(d3*d3)+a1*d3*(v2*v2)*2.0+a0*dTotal*(v2*v2)
+				*2.0-a1*dTotal*(v2*v2)*2.0-a1*d3*v0*v2*2.0+a1*tTotal*v0*(v2*v2)*2.0+a0*a1*(tTotal*tTotal)*(v2*v2)-a0*a1*d3*tTotal*v2*2.0))-a0*(v2*v2)-a0*a1*d3+a1*v0*v2+a0*a1*tTotal*v2)/(a0*v2-a1*v2))/a1;
+
+			t3 = d3/v2;
+		}
+		else //other solution
+		{
+			v1 = (sqrt(a0*a1*((v0*v0)*(v2*v2)-v0*(v2*v2*v2)*2.0+v2*v2*v2*v2-a0*tTotal*(v2*v2*v2)*2.0+a0*a1*(d3*d3)+a1*d3*(v2*v2)*2.0+a0*dTotal*(v2*v2)*2.0-a1*dTotal*(v2*v2)*2.0-a1*d3*v0*v2*2.0+a1*tTotal*v0*(v2*v2)*2.0+a0*a1*(tTotal*tTotal)*(v2*v2)-a0*a1*d3*tTotal*v2*2.0))+a0*(v2*v2)+a0*a1*d3-a1*v0*v2-a0*a1*tTotal*v2)/(a0*v2-a1*v2);
+			
+			t0 = -(v0-(sqrt(a0*a1*((v0*v0)*(v2*v2)-v0*(v2*v2*v2)*2.0+v2*v2*v2*v2-a0*tTotal*(v2*v2*v2)*2.0+a0*a1*(d3*d3)+a1*d3*(v2*v2)*2.0+a0*dTotal*(v2*v2)*2.0-a1*dTotal*(v2*v2)*2.0-a1*d3*v0*v2*2.0+a1*tTotal*v0*(v2*v2)*2.0+a0*a1*(tTotal*tTotal)*(v2*v2)-a0*a1*d3*tTotal*v2*2.0))+a0*(v2*v2)+a0*a1*d3-a1*v0*v2-a0*a1*tTotal*v2)/(a0*v2-a1*v2))/a0;
+			
+			t1 = -(a0*(v2*v2)+a0*a1*d3-a1*v0*v2-a0*a1*tTotal*v2-(a0*v2*(sqrt(a0*a1*((v0*v0)*(v2*v2)-v0*(v2*v2*v2)*2.0+v2*v2*v2*v2-a0*tTotal*
+				(v2*v2*v2)*2.0+a0*a1*(d3*d3)+a1*d3*(v2*v2)*2.0+a0*dTotal*(v2*v2)*2.0-a1*dTotal*(v2*v2)*2.0-a1*d3*v0*v2*2.0+a1*tTotal*v0*(v2*v2)
+				*2.0+a0*a1*(tTotal*tTotal)*(v2*v2)-a0*a1*d3*tTotal*v2*2.0))+a0*(v2*v2)+a0*a1*d3-a1*v0*v2-a0*a1*tTotal*v2))/(a0*v2-a1*v2)+
+				(a1*v2*(sqrt(a0*a1*((v0*v0)*(v2*v2)-v0*(v2*v2*v2)*2.0+v2*v2*v2*v2-a0*tTotal*(v2*v2*v2)*2.0+a0*a1*(d3*d3)+a1*d3*(v2*v2)*2.0+a0*dTotal*(v2*v2)*2.0-a1*dTotal*
+				(v2*v2)*2.0-a1*d3*v0*v2*2.0+a1*tTotal*v0*(v2*v2)*2.0+a0*a1*(tTotal*tTotal)*(v2*v2)-a0*a1*d3*tTotal*v2*2.0))+a0*(v2*v2)+a0*a1*d3-a1*v0*v2-a0*a1*tTotal*v2))/(a0*v2-a1*v2))/(a0*a1*v2);
+
+			t2 = (v2-(sqrt(a0*a1*((v0*v0)*(v2*v2)-v0*(v2*v2*v2)*2.0+v2*v2*v2*v2-a0*tTotal*(v2*v2*v2)*2.0+a0*a1*(d3*d3)+a1*d3*(v2*v2)*2.0+a0*dTotal*(v2*v2)*2.0-a1*dTotal*(v2*v2)*2.0-a1*d3*v0*v2*2.0+a1*tTotal*v0*(v2*v2)*2.0+a0*a1*(tTotal*tTotal)*(v2*v2)-a0*a1*d3*tTotal*v2*2.0))+a0*(v2*v2)+a0*a1*d3-a1*v0*v2-a0*a1*tTotal*v2)/(a0*v2-a1*v2))/a1;
+			
+			t3 = d3/v2;
+		}
+	}
+	
+	result.t0 = t0;
+	result.t1 = t1;
+	result.t2 = t2;
+	result.t3 = t3;
+	result.accel0 = a0;
+	result.accel1 = a1;
+	result.travelVelocity = v1;
 	result.valid = true;
 }
 
 
 
-shared_ptr<MotionPlan> MotionController::buildMotionPlan(const double startAngle,const  double targetAngle, const double targetTime, const  double approachVelocity, const double maxVelocity, const double maxAccel)
+shared_ptr<MotionPlan> MotionController::buildMotionPlan(const double startAngle,const  double targetAngle, const double targetTime, const  double approachVelocity, const double maxAccel)
 {
 	const double MinSpeedControlDistance = 150;
 	auto plan = shared_ptr<MotionPlan>(new MotionPlan());
@@ -159,14 +259,8 @@ shared_ptr<MotionPlan> MotionController::buildMotionPlan(const double startAngle
 	
 	PlanSolution sol;
 	
-	calculatePlan(accel, coastDistance,targetTime,(targetAngle-startAngle),endVelocity,sol);
+	calculatePlan(accel, coastDistance,targetTime,(targetAngle-startAngle),startVelocity,endVelocity,sol);
 
-	//if (std::abs(sol.travelVelocity) > maxVelocity)
-	//{
-	//	stringstream ss;
-	//	ss << "Target velocity " << AS5048::stepsToDegrees(sol.travelVelocity) << " exceeds max joint velocity " << AS5048::stepsToDegrees(maxVelocity);
-	//	throw std::runtime_error(ss.str());
-	//} else
 	if (!sol.valid)
 	{
 		stringstream ss;
@@ -175,7 +269,10 @@ shared_ptr<MotionPlan> MotionController::buildMotionPlan(const double startAngle
 	}
 
 	plan->motionIntervals.push_back(MotionInterval(startVelocity,sol.travelVelocity,sol.t0));
-	plan->motionIntervals.push_back(MotionInterval(sol.travelVelocity,sol.t1));
+	
+	if (sol.t1 > 0)
+		plan->motionIntervals.push_back(MotionInterval(sol.travelVelocity,sol.t1));
+	
 	plan->motionIntervals.push_back(MotionInterval(sol.travelVelocity,endVelocity,sol.t2));
 	plan->motionIntervals.push_back(MotionInterval(endVelocity,sol.t3));
 
@@ -196,7 +293,7 @@ void MotionController::setJointPosition(int jointIndex, double targetAngle, doub
 	if (jointIndex >= 0 && jointIndex < joints.size()){		
 			
 		auto pjc = joints.at(jointIndex);
-		auto plan = buildMotionPlan(pjc->getCurrentAngle(),targetAngle,travelTime,pjc->getJointModel()->servoModel.controllerConfig.approachVelocity, pjc->getMaxJointVelocity(),accel);
+		auto plan = buildMotionPlan(pjc->getCurrentAngle(),targetAngle,travelTime,pjc->getJointModel()->servoModel.controllerConfig.approachVelocity, accel);
 		
 		pjc->validateMotionPlan(plan);
 		
@@ -273,7 +370,8 @@ void MotionController::moveToPosition(Vector3d targetPosition, Matrix3d targetRo
 			cout << "Velocities = ";
 			for (auto it = currentPlan.begin(); it != currentPlan.end(); it++)
 			{
-				cout << setprecision(2) << std::round(AS5048::stepsToDegrees((*it)->getSpeedAtTime(0))/0.01)*0.01 << "  ";
+				double time = (*it)->getPlanDuration();
+				cout << setprecision(2) << std::round(AS5048::stepsToDegrees((*it)->getSpeedAtTime(time/2.0))/0.01)*0.01 << "   ";
 			}
 			cout << endl;
 			cout << std::fixed;
@@ -330,11 +428,8 @@ void MotionController::postTask(std::function<void()> task)
 
 vector<shared_ptr<MotionPlan> > MotionController::createMotionPlans(vector<MotionStep*> & steps, double maxAccel, double maxDeccel)
 {
-	const double MinSpeed = 400;
 	const double CoastDistance = 150;
-	const double CoastSpeed = 500;
-
-
+	
 	vector<shared_ptr<MotionPlan> > motionPlan;
 
 	for (int i=0;i<6;i++) 
@@ -342,72 +437,75 @@ vector<shared_ptr<MotionPlan> > MotionController::createMotionPlans(vector<Motio
 		motionPlan.push_back(shared_ptr<MotionPlan>(new MotionPlan()));
 	}
 
-	for (auto it=steps.begin();it != steps.end(); it++)
+	
+	for (int stepIndex = 0;stepIndex < steps.size(); stepIndex++)
 	{
+		auto step = steps.at(stepIndex);
+		bool lastStep = stepIndex == steps.size() - 1;
+
 		double stepTime = 0;
 		for (int i=0;i<6;i++) 
-		{			
-			double delta = AS5048::radiansToSteps((*it)->jointAngleDelta[i]);
+		{						
+			double lastVelocity = 0;
+
+			if (stepIndex > 0) lastVelocity = motionPlan.at(i)->getSpeedAtTime(motionPlan.at(i)->getPlanDuration());
+
+			double delta = AS5048::radiansToSteps(step->jointAngleDelta[i]);
 			double direction = MathUtils::sgn<double>(delta);
 			double maxSpeed = joints.at(i)->getMaxJointVelocity() * direction;
-			double finalSpeed;
+			double coastVelocity = joints.at(i)->getJointModel()->servoModel.controllerConfig.approachVelocity*direction;
 
-			double jointTime = optimalSpeed(maxAccel,CoastDistance * direction,delta,CoastSpeed*direction,maxSpeed,finalSpeed);
+			double travelVelocity;
 
-			stepTime = std::max(stepTime ,jointTime);
+			double jointTime;
+			
+			if (lastStep)			
+				jointTime = optimalSpeed(maxAccel,CoastDistance * direction,delta,lastVelocity,coastVelocity,maxSpeed,travelVelocity);			
+			else
+				jointTime = optimalSpeed2Part(maxAccel,delta,lastVelocity,maxSpeed,travelVelocity);							
+
+			stepTime = std::max(stepTime,jointTime);
 		}
 
 		for (int i=0;i<6;i++) 
-		{			
-			double velocity =  AS5048::radiansToSteps((*it)->jointAngleDelta[i]/stepTime);
-			double lastVelocity = 0;
-			if (motionPlan.at(i)->motionIntervals.size() > 0)
-			{
-				lastVelocity = motionPlan.at(i)->motionIntervals.back().endSpeed;
-			}
-			double accelTime = (velocity - lastVelocity)/maxAccel;
+		{	
+			double lastVelocity = 0;		
+			if (stepIndex > 0) lastVelocity = motionPlan.at(i)->getSpeedAtTime(motionPlan.at(i)->getPlanDuration());
+
+			double delta = AS5048::radiansToSteps(step->jointAngleDelta[i]);
+			double direction = MathUtils::sgn<double>(delta);
+			double coastVelocity = joints.at(i)->getJointModel()->servoModel.controllerConfig.approachVelocity*direction;
 			
-			if (accelTime > samplePeriod*4.0 && accelTime < stepTime) 
+			PlanSolution sol;
+			if (lastStep)
 			{
-				motionPlan.at(i)->motionIntervals.push_back(MotionInterval(lastVelocity,velocity,accelTime));
+			 	calculatePlan(maxAccel,CoastDistance*direction,stepTime,delta,lastVelocity,coastVelocity,sol);
+				motionPlan.at(i)->motionIntervals.push_back(MotionInterval(lastVelocity,sol.travelVelocity,sol.t0));
 
-				double accelDist = accelTime*lastVelocity + (std::pow(accelTime,2) * maxAccel)/2.0;
-				double equivTime = accelDist/velocity;
+				if (sol.t1 >= samplePeriod) 
+				{
+					motionPlan.at(i)->motionIntervals.push_back(MotionInterval(sol.travelVelocity,sol.t1));
+					cout << "Joint[" << i << "] v1=" << sol.travelVelocity << " delta=" << delta << endl;
+				}
 
-				motionPlan.at(i)->motionIntervals.push_back(MotionInterval(velocity,stepTime-equivTime));
+				motionPlan.at(i)->motionIntervals.push_back(MotionInterval(sol.travelVelocity,coastVelocity,sol.t2));
+				motionPlan.at(i)->motionIntervals.push_back(MotionInterval(coastVelocity,sol.t3));
 			}
 			else
 			{
-				motionPlan.at(i)->motionIntervals.push_back(MotionInterval(velocity,stepTime));
+				calculatePlan2Part(maxAccel,stepTime,delta,lastVelocity,sol);				
+				motionPlan.at(i)->motionIntervals.push_back(MotionInterval(lastVelocity,sol.travelVelocity,sol.t0));
+				
+				if (sol.t1 >= samplePeriod)
+					motionPlan.at(i)->motionIntervals.push_back(MotionInterval(sol.travelVelocity,sol.t1));
 			}
-
-			motionPlan.at(i)->finalAngle = AS5048::radiansToSteps((*it)->targetJointAngles[i]);
 		}
 	}
 
 	for (int i=0;i<6;i++)
 	{
-		if (motionPlan.at(i)->motionIntervals.size() > 0)
-		{
-			double lastVelocity = motionPlan.at(i)->motionIntervals.back().endSpeed;
-			double accelTime = (lastVelocity - MinSpeed)/maxDeccel;
-			
-			if (accelTime > samplePeriod*4.0) 
-			{				
-				if (accelTime < motionPlan.at(i)->motionIntervals.back().duration)
-				{
-					double accelDist = accelTime*lastVelocity + (std::pow(accelTime,2) * -maxDeccel)/2.0;
-					double equivTime = accelDist/lastVelocity;
-
-					motionPlan.at(i)->motionIntervals.back().duration -= equivTime;
-					motionPlan.at(i)->motionIntervals.push_back(MotionInterval(MinSpeed,accelTime));
-				}
-				//else
-				//{
-				//	motionPlan.at(i)->motionIntervals.back()->endSpeed = 0;
-				//}
-			}
-		}
+		motionPlan.at(i)->startAngle = AS5048::radiansToSteps(steps.front()->targetJointAngles[i] - steps.front()->jointAngleDelta[i]);
+		motionPlan.at(i)->finalAngle = AS5048::radiansToSteps(steps.back()->targetJointAngles[i]);
 	}
 
 	return motionPlan;
@@ -532,7 +630,7 @@ bool MotionController::buildMotionSteps(double * targetPosition,Matrix3d targetR
 			MotionStep * step = new MotionStep();
 			//Determine the max joint velocities and store in the step object
 			for (int j=0;j<6;j++) {
-				step->jointAngleDelta[j] = MathUtil::abs(MathUtil::subtractAngles(lastAngles[j],stepAngles[j]));
+				step->jointAngleDelta[j] = MathUtil::subtractAngles(stepAngles[j],lastAngles[j],MathUtil::PI);
 			}
 			//Next, copy the target joint angles to the step object
 			std::copy(std::begin(stepAngles), std::end(stepAngles), std::begin(step->targetJointAngles));
