@@ -255,9 +255,14 @@ int main(int argc, char *argv[])
 					
 					bool interactive = (command.compare("setpos") == 0);
 
+
 					if (input.fail()) {
-						cout << "Usage: <setpos|goto> <x>cm <y>cm <z>cm [accel] [deccel]" << endl;
+						cout << "Usage: <setpos|goto> <x>cm <y>cm <z>cm [pathdiv] [rX rY rZ]" << endl;
 					} else {
+						
+						int pathDivisionCount;
+						input >> pathDivisionCount;
+						if (input.fail()) pathDivisionCount = 20;
 
 						double rX,rY,rZ;
 						input >> rX; input >> rY; input >> rZ;
@@ -266,7 +271,7 @@ int main(int argc, char *argv[])
 							rY = -90; rX = 0; rZ = 0;
 						}
 						
-						motionController->moveToPosition(targetPosition,Matrix3d::createRotationAroundAxis(rX,rY,rZ),defaultAccel,defaultAccel,interactive);
+						motionController->moveToPosition(targetPosition,Matrix3d::createRotationAroundAxis(rX,rY,rZ),pathDivisionCount,interactive);
 					}
 				}
 				else if (command.compare("getpos") == 0) {

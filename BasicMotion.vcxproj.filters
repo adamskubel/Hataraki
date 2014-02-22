@@ -114,6 +114,18 @@
     <ClCompile Include="MotionPlan.cpp">
       <Filter>Source Files\Predictive</Filter>
     </ClCompile>
+    <ClCompile Include="IKPlanner.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="PathPlanner.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="KinematicPlanning.cpp">
+      <Filter>Source Files\Math</Filter>
+    </ClCompile>
+    <ClCompile Include="MotionPlanner.cpp">
+      <Filter>Source Files\Predictive</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="I2CBus.hpp">
@@ -186,6 +198,18 @@
       <Filter>Header Files\Predictive</Filter>
     </ClInclude>
     <ClInclude Include="MotionPlan.hpp">
+      <Filter>Header Files\Predictive</Filter>
+    </ClInclude>
+    <ClInclude Include="IKPlanner.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="PathPlanner.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="KinematicPlanning.hpp">
+      <Filter>Header Files\Math</Filter>
+    </ClInclude>
+    <ClInclude Include="MotionPlanner.hpp">
       <Filter>Header Files\Predictive</Filter>
     </ClInclude>
   </ItemGroup>

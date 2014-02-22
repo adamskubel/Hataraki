@@ -12,6 +12,19 @@ struct Step {
 	
 	double Time;
 	double TimeOffset; //Offset from previous interval
+
+	Step(int numChannels) {
+
+		this->TimeOffset = 0.0;
+		this->Time = -1;
+		for (int i=0;i<numChannels;i++)
+		{
+			Positions.push_back(0);
+			Accelerations.push_back(0);
+			Velocities.push_back(0);
+			Jerks.push_back(0);
+		}
+	}
 		
 	Step(std::vector<double>  _Positions) {
 		this->Positions = _Positions;

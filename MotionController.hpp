@@ -25,7 +25,7 @@
 #include "MathUtils.hpp"
 #include "AS5048.hpp"
 #include "PathPlanner.hpp"
-
+#include "MotionPlanner.hpp"
 
 namespace MotionControllerState {
 
@@ -34,18 +34,7 @@ namespace MotionControllerState {
 }
 
 
-
-struct MotionStep {
-	
-	double targetJointAngles[6];
-	double jointAngleDelta[6];
-	double targetPosition[3];
-	
-};
-
 class MotionController {
-	
-
 
 private:
 	std::vector<PredictiveJointController*> joints;
@@ -55,35 +44,23 @@ private:
 	std::mutex taskQueueMutex;
 	double samplePeriod;
 	long updatePeriod;
-
+	
+	MotionPlanner * motionPlanner;
+	
 public:
 
-	void getJointAngles(double * angles);
-
-	bool getEasiestSolution(const double * currentAngles, vmath::Vector3d targetPosition, vmath::Matrix3d targetRotation, double * result);
-	bool checkSolutionValid(const double * solution);
-	double calculateMotionEffort(const double * solution0, const double * solution1);
-
-	bool buildMotionSteps(double * position, vmath::Matrix3d targetRotation, std::vector<MotionStep*> & steps);
-
+	std::vector<double> getJointAngles();
 	void executeMotionPlan(std::vector<MotionPlan*> & newPlan);
 
-	std::vector<std::shared_ptr<MotionPlan> > createMotionPlans(std::vector<MotionStep*> & steps, double maxAccel, double maxDeccel);
-
-
 public:
-	
 
 	MotionController(std::vector<PredictiveJointController*> & joints, double samplePeriod, int planStepCount);
 
 	PredictiveJointController * getJointByIndex(int jointIndex);
 		
-	void moveToPosition(vmath::Vector3d position, vmath::Matrix3d rotation, double accel, double deccel, bool interactive);	
+	void moveToPosition(vmath::Vector3d position, vmath::Matrix3d rotation, int pathDivisionCount, bool interactive);	
 	void setJointPosition(int jointIndex, double angle, double velocity, double accel);
 	
-	static std::shared_ptr<MotionPlan> buildMotionPlan(const double startPosition,const double endPosition, const double totalTime, const double approachVelocity, const double maxAccel);
-
-
 
 	void updateController();
 

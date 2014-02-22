@@ -15,7 +15,7 @@ TESTFILE=Test.cpp
 
 CLEAN=Main.cpp DRV8830.cpp AS5048.cpp I2CBus.cpp PredictiveJointController.cpp Configuration.cpp MotionController.cpp TimeMultiplexedVoltageConverter.cpp MathUtils.cpp ServoUtil.cpp PoseDynamics.cpp TimeUtil.cpp AsyncLogger.cpp FlipIdentifier.cpp PredictiveJointControl_ControllerImpl.cpp PredictiveJointControl_SignalImpl.cpp SavitzkyGolaySmooth.cpp MotionPlan.cpp
 
-SOURCES=DRV8830.cpp AS5048.cpp I2CBus.cpp PredictiveJointController.cpp Configuration.cpp MotionController.cpp TimeMultiplexedVoltageConverter.cpp MathUtils.cpp ServoUtil.cpp PoseDynamics.cpp TimeUtil.cpp AsyncLogger.cpp FlipIdentifier.cpp PredictiveJointControl_ControllerImpl.cpp PredictiveJointControl_SignalImpl.cpp SavitzkyGolaySmooth.cpp vmath.cpp ikfastsolution.cpp cJSON.cpp MotionPlan.cpp
+SOURCES=DRV8830.cpp AS5048.cpp I2CBus.cpp PredictiveJointController.cpp Configuration.cpp MotionController.cpp TimeMultiplexedVoltageConverter.cpp MathUtils.cpp ServoUtil.cpp PoseDynamics.cpp TimeUtil.cpp AsyncLogger.cpp FlipIdentifier.cpp PredictiveJointControl_ControllerImpl.cpp PredictiveJointControl_SignalImpl.cpp SavitzkyGolaySmooth.cpp vmath.cpp ikfastsolution.cpp cJSON.cpp MotionPlan.cpp MotionPlanner.cpp KinematicSolver.cpp PathPlanner.cpp
 
 OBJECTS=$(SOURCES:.cpp=.o)
 CLEANOBJ=$(CLEAN:.cpp=.o)

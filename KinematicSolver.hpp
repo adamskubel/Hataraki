@@ -16,7 +16,7 @@ struct PlanSolution {
 	bool valid;
 };
 
-class KinematicPlanning {
+class KinematicSolver {
 	
 public:
 	static double optimalSpeed(const double a0, const double d3, const double dTotal, const double v0, const double v2, const double maxSpeed, double & speed);

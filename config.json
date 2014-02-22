@@ -5,7 +5,7 @@
 		"FilePrefix" : "JointData_"
 	},
 	"GlobalSettings" : {
-		"MaxVoltage" : 2.2,
+		"MaxVoltage" : 1.6,
 		"MotionPlanSteps" : 4,
 		"UpdateFrequency" : 100,
 		"DefaultAccel" 	: 5000
@@ -122,6 +122,7 @@
 	"Controllers" : [		
 		{
 			"Name" : "Default",
+			"MaxAcceleration" : 100,
 			"SpeedControlProportionalGain" : 0.1,
 			"SpeedControlIntegralGain" : 0.0,
 			"GravityFlipTriggerEnabled" : 0,

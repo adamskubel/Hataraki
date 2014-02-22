@@ -18,6 +18,8 @@ MotionController::MotionController(vector<PredictiveJointController*> & _joints,
 	this->planStepCount = _planStepCount;
 	state = MotionControllerState::Waiting;
 	this->samplePeriod = _samplePeriod;
+	
+	this->motionPlanner = new MotionPlanner(joints);
 }
 
 PredictiveJointController * MotionController::getJointByIndex(int jointIndex)
@@ -94,49 +96,6 @@ double getAccelDistFromSpeed(double initialSpeed, double endSpeed, double accel)
 
 
 
-
-shared_ptr<MotionPlan> MotionController::buildMotionPlan(const double startAngle,const  double targetAngle, const double targetTime, const  double approachVelocity, const double maxAccel)
-{
-	const double MinSpeedControlDistance = 150;
-	auto plan = shared_ptr<MotionPlan>(new MotionPlan());
-	
-	if (std::abs(maxAccel) < 50) throw std::runtime_error("Acceleration must be at least 50 steps per second");
-
-	double startVelocity = 0, direction = MathUtils::sgn<double>(targetAngle - startAngle);
-	double endVelocity = std::abs(approachVelocity) * direction;
-	double coastDistance = MinSpeedControlDistance * direction;
-	
-	double accel = std::abs(maxAccel)*direction;
-	
-	PlanSolution sol;
-	
-	calculatePlan(accel, coastDistance,targetTime,(targetAngle-startAngle),startVelocity,endVelocity,sol);
-
-	if (!sol.valid)
-	{
-		stringstream ss;
-		ss << "No valid solution found.";
-		throw std::runtime_error(ss.str());
-	}
-
-	plan->motionIntervals.push_back(MotionInterval(startVelocity,sol.travelVelocity,sol.t0));
-	
-	if (sol.t1 > 0)
-		plan->motionIntervals.push_back(MotionInterval(sol.travelVelocity,sol.t1));
-	
-	plan->motionIntervals.push_back(MotionInterval(sol.travelVelocity,endVelocity,sol.t2));
-	plan->motionIntervals.push_back(MotionInterval(endVelocity,sol.t3));
-
-	plan->startAngle = startAngle;
-	plan->finalAngle = targetAngle;		
-
-	cout << "V0=" << sol.travelVelocity << " T0=" << sol.t0 << " T1=" << sol.t1 << " T2=" << sol.t2 << " T3=" << sol.t3 <<endl;
-	cout << "FinalAngle=" << AS5048::stepsToDegrees(plan->getPositionAtTime(1000)) << endl;
-	
-	return plan;
-}
-
-
 void MotionController::setJointPosition(int jointIndex, double targetAngle, double travelTime, double accel)
 {
 	const double MinSpeedControlDistance = 150.0;
@@ -144,7 +103,7 @@ void MotionController::setJointPosition(int jointIndex, double targetAngle, doub
 	if (jointIndex >= 0 && jointIndex < joints.size()){		
 			
 		auto pjc = joints.at(jointIndex);
-		auto plan = buildMotionPlan(pjc->getCurrentAngle(),targetAngle,travelTime,pjc->getJointModel()->servoModel.controllerConfig.approachVelocity, accel);
+		auto plan = motionPlanner->buildMotionPlan(pjc->getCurrentAngle(),targetAngle,travelTime,pjc->getJointModel()->servoModel.controllerConfig.approachVelocity, accel);
 		
 		pjc->validateMotionPlan(plan);
 		
@@ -198,76 +157,71 @@ void MotionController::enableAllJoints()
 }
 
 
-void MotionController::moveToPosition(Vector3d targetPosition, Matrix3d targetRotation, double accel, double deccel, bool interactive)
-{	
-	vector<MotionStep*> motionSteps;
-	bool solutionFound = buildMotionSteps(targetPosition, targetRotation, motionSteps);
+void MotionController::moveToPosition(Vector3d targetPosition, Matrix3d targetRotation, int pathDivisionCount, bool interactive)
+{
+	auto initialAngles = getJointAngles();
+	motionPlanner->setPathDivisions(pathDivisionCount);
+	vector<Step> steps = motionPlanner->buildMotionSteps(initialAngles, targetPosition, targetRotation);
+	cout << "Built " << steps.size() << " steps" << endl;
+	vector<Step> updated = motionPlanner->realizeSteps(steps);
 
-	if (solutionFound) {
+	currentPlan.clear();
+	currentPlan = motionPlanner->convertStepsToPlans(updated, initialAngles);
 
-		currentPlan.clear();
-		currentPlan = createMotionPlans(motionSteps,accel,deccel);
+	bool executePlan = false;
 
-		bool executePlan = false;
-
-		if (interactive)
+	if (interactive)
+	{
+		cout << "Angles    = ";
+		for (auto it = currentPlan.begin(); it != currentPlan.end(); it++)
 		{
-			cout << "Angles    = ";
-			for (auto it = currentPlan.begin(); it != currentPlan.end(); it++)
-			{
-				cout << setprecision(2) << std::round(AS5048::stepsToDegrees((*it)->finalAngle)/0.01)*0.01 << "  ";
-			}
-			cout << endl;
-			cout << "Velocities = ";
-			for (auto it = currentPlan.begin(); it != currentPlan.end(); it++)
-			{
-				double time = (*it)->getPlanDuration();
-				cout << setprecision(2) << std::round(AS5048::stepsToDegrees((*it)->getSpeedAtTime(time/2.0))/0.01)*0.01 << "   ";
-			}
-			cout << endl;
-			cout << std::fixed;
-			cout << "Commence motion? [y]es/[a]bort :" << endl;
-			string strIn;
-			getline(cin,strIn);
+			cout << setprecision(2) << std::round(AS5048::stepsToDegrees((*it)->finalAngle)/0.01)*0.01 << "  ";
+		}
+		cout << endl;
+		cout << "Times = ";
+		for (auto it = currentPlan.begin(); it != currentPlan.end(); it++)
+		{
+			double time = (*it)->getPlanDuration();
+			cout << std::round(time/0.01)*0.01 << "  ";
+			//cout << setprecision(2) << std::round(AS5048::stepsToDegrees((*it)->getSpeedAtTime(time/2.0))/0.01)*0.01 << "   ";
+		}
+		cout << endl;
+		cout << std::fixed;
+		cout << "Commence motion? [y]es/[a]bort :" << endl;
+		string strIn;
+		getline(cin,strIn);
 
-			if (strIn.compare("y") != 0)
-			{				
-				currentPlan.clear();
-			}
-			else
-				executePlan = true;
+		if (strIn.compare("y") != 0)
+		{				
+			currentPlan.clear();
 		}
 		else
 			executePlan = true;
-
-		if (executePlan)
-		{
-			this->postTask([this](){
-
-				for (int i=0;i<6;i++)
-				{
-					joints.at(i)->validateMotionPlan(currentPlan.at(i));
-				}
-				
-				//Simultaneous start
-				for (int i=0;i<6;i++)
-				{					
-					currentPlan.at(i)->startNow();
-				}
-
-				for (int i=0;i<6;i++)
-				{
-					joints.at(i)->executeMotionPlan(currentPlan.at(i));
-				}
-			});
-		}
-
 	}
-	else {
-		cout << "Failed to construct motion plan for target. " << endl;
+	else
+		executePlan = true;
+
+	if (executePlan)
+	{
+		this->postTask([this](){
+
+			for (int i=0;i<6;i++)
+			{
+				joints.at(i)->validateMotionPlan(currentPlan.at(i));
+			}
+
+			//Simultaneous start
+			for (int i=0;i<6;i++)
+			{					
+				currentPlan.at(i)->startNow();
+			}
+
+			for (int i=0;i<6;i++)
+			{
+				joints.at(i)->executeMotionPlan(currentPlan.at(i));
+			}
+		});
 	}
-	
-	std::for_each( motionSteps.begin(), motionSteps.end(),[](MotionStep * step){delete step;});
 }
 
 
@@ -277,244 +231,12 @@ void MotionController::postTask(std::function<void()> task)
 	taskQueue.push(task);
 }
 
-
-vector<shared_ptr<MotionPlan> > MotionController::createMotionPlans(vector<MotionStep*> & steps, double maxAccel, double maxDeccel)
+vector<double> MotionController::getJointAngles()
 {
-	const double CoastDistance = 150;
-	
-	vector<shared_ptr<MotionPlan> > motionPlan;
-
-	for (int i=0;i<6;i++) 
-	{
-		motionPlan.push_back(shared_ptr<MotionPlan>(new MotionPlan()));
-	}
-
-	
-	for (int stepIndex = 0;stepIndex < steps.size(); stepIndex++)
-	{
-		auto step = steps.at(stepIndex);
-		bool lastStep = stepIndex == steps.size() - 1;
-
-		double stepTime = 0;
-		cout << "Step#" << stepIndex << ": ";
-		for (int i=0;i<6;i++)
-		{						
-			double lastVelocity = 0;
-			
-			if (stepIndex > 0) lastVelocity = motionPlan.at(i)->getSpeedAtTime(motionPlan.at(i)->getPlanDuration());
-			
-			double delta = AS5048::radiansToSteps(step->jointAngleDelta[i]);
-			cout << delta << " ";
-						
-			double direction = MathUtils::sgn<double>(delta);
-			double maxSpeed = joints.at(i)->getMaxJointVelocity() * direction;
-			double coastVelocity = joints.at(i)->getJointModel()->servoModel.controllerConfig.approachVelocity*direction;
-
-			double travelVelocity;
-
-			double jointTime;
-			
-			if (lastStep)			
-				jointTime = optimalSpeed(maxAccel,CoastDistance * direction,delta,lastVelocity,coastVelocity,maxSpeed,travelVelocity);			
-			else
-				jointTime = optimalSpeed2Part(maxAccel,delta,lastVelocity,maxSpeed,travelVelocity);							
-
-			jointTime += 0.0001; //Ensure no non-real results due to imprecision errors
-			
-			stepTime = std::max(stepTime,jointTime);
-		}
-		cout << endl;
-
-		for (int i=0;i<6;i++) 
-		{	
-			double lastVelocity = 0;		
-			if (stepIndex > 0) lastVelocity = motionPlan.at(i)->getSpeedAtTime(motionPlan.at(i)->getPlanDuration());
-
-			double delta = AS5048::radiansToSteps(step->jointAngleDelta[i]);
-			double direction = MathUtils::sgn<double>(delta);
-			double coastVelocity = joints.at(i)->getJointModel()->servoModel.controllerConfig.approachVelocity*direction;
-			
-			PlanSolution sol;
-			if (lastStep)
-			{
-			 	calculatePlan(maxAccel,CoastDistance*direction,stepTime,delta,lastVelocity,coastVelocity,sol);
-				//validateSolution(sol);
-
-				motionPlan.at(i)->motionIntervals.push_back(MotionInterval(lastVelocity,sol.travelVelocity,sol.t0));
-
-				if (sol.t1 >= samplePeriod) 
-				{
-					motionPlan.at(i)->motionIntervals.push_back(MotionInterval(sol.travelVelocity,sol.t1));					
-				}
-
-				motionPlan.at(i)->motionIntervals.push_back(MotionInterval(sol.travelVelocity,coastVelocity,sol.t2));
-				motionPlan.at(i)->motionIntervals.push_back(MotionInterval(coastVelocity,sol.t3));
-				
-				cout << sol.travelVelocity << " ;";
-			}
-			else
-			{
-				calculatePlan2Part(maxAccel,stepTime,delta,lastVelocity,sol);
-				//validateSolution(sol);
-
-				motionPlan.at(i)->motionIntervals.push_back(MotionInterval(lastVelocity,sol.travelVelocity,sol.t0));
-				
-				if (sol.t1 >= samplePeriod)
-					motionPlan.at(i)->motionIntervals.push_back(MotionInterval(sol.travelVelocity,sol.t1));
-				
-				cout << sol.travelVelocity << " ";
-			}
-		}
-		cout << endl;
-	}
-
-	for (int i=0;i<6;i++)
-	{
-		motionPlan.at(i)->startAngle = AS5048::radiansToSteps(steps.front()->targetJointAngles[i] - steps.front()->jointAngleDelta[i]);
-		motionPlan.at(i)->finalAngle = AS5048::radiansToSteps(steps.back()->targetJointAngles[i]);
-	}
-
-	return motionPlan;
-}
-
-void MotionController::getJointAngles(double * angles)
-{
-	int i=0;
-	for (auto it = joints.begin(); it != joints.end(); it++,i++)
+	vector<double> angles;
+	for (auto it = joints.begin(); it != joints.end(); it++)
 	{					
-		angles[i] = AS5048::stepsToRadians((*it)->getCurrentAngle());
+		angles.push_back(AS5048::stepsToRadians((*it)->getCurrentAngle()));
 	}
-}
-
-
-bool MotionController::checkSolutionValid(const double * solution)
-{
-	int j=0;
-	for (auto it = joints.begin(); it != joints.end(); it++,j++)
-	{
-		JointModel * jointModel = (*it)->getJointModel();
-		double angleSteps = AS5048::radiansToSteps(solution[j]);
-		if (angleSteps < jointModel->minAngle || angleSteps > jointModel->maxAngle)
-			return false;
-	}
-	return true;
-}
-
-double MotionController::calculateMotionEffort(const double * currentSolution, const double * targetSolution)
-{
-	if (checkSolutionValid(targetSolution)) {
-
-		double maxDiff = MathUtil::PI * 6.0;
-		double totalDiff = 0;
-		for (int i=0;i<6;i++) {
-			totalDiff += MathUtil::abs(MathUtil::subtractAngles(currentSolution[i],targetSolution[i]));
-		}
-
-		if (totalDiff > maxDiff) {
-			cout << "Unexpected value for total effort: " << totalDiff << "rad . Max effort = " << maxDiff << " rad" << endl;
-		}
-
-		return maxDiff - totalDiff;
-	}
-	
-	return 0;
-}
-
-bool MotionController::getEasiestSolution(const double * currentAngles, Vector3d targetPosition, Matrix3d rotationMatrix, double * result) {
-
-	double targetRotation[9];
-	MathUtil::getRowMajorData(rotationMatrix,targetRotation);
-
-
-	IkSolutionList<IkReal> solutions;
-	ComputeIk(targetPosition,targetRotation,NULL, solutions);
-	
-	double bestSolution[6];
-	double bestSolutionScore = 0;
-
-	for (int i=0;i<solutions.GetNumSolutions();i++)
-	{		
-		double solution[6];
-
-		solutions.GetSolution(i).GetSolution(solution,NULL);
-
-		double score = calculateMotionEffort(currentAngles,solution);
-
-		if (score > bestSolutionScore) {
-			bestSolutionScore = score;
-			std::copy(std::begin(solution), std::end(solution), std::begin(bestSolution));
-		}
-	}
-	
-	if (bestSolutionScore > 0) {
-
-		for (int i=0;i<6;i++)
-			result[i] = bestSolution[i];
-
-		return true;
-	}
-	return false;
-}
-
-
-vector<Step> MotionController::buildMotionSteps(double * targetPosition,Matrix3d targetRotation)
-{
-	vector<Step> steps;
-
-	int numSteps = planStepCount;
-
-	double currentPosition[3];
-	double rotationMatrix[9];
-
-	double jointAngles[6];
-	getJointAngles(jointAngles);
-	
-	//Store robot space angles
-	double lastAngles[6];
-	std::copy(std::begin(jointAngles), std::end(jointAngles), std::begin(lastAngles));
-
-	ComputeFk(jointAngles,currentPosition,rotationMatrix);
-
-	double delta[3];
-	MathUtil::subtractVectors(targetPosition,currentPosition,delta);
-
-	bool planningSucceeded = true;
-
-	
-	for (int i=1;i<=numSteps;i++) {
-
-		double stepPosition[3];
-		double stepSize[3];
-		MathUtil::scaleVector(delta,((double)i)/((double)numSteps),stepSize);
-		MathUtil::addVectors(currentPosition,stepSize,stepPosition);
-
-		double stepAngles[6];
-
-		Vector3d v = Vector3d(stepPosition[0],stepPosition[1],stepPosition[2]);
-		bool solutionExists = getEasiestSolution(lastAngles,v,targetRotation,stepAngles);
-
-		if (solutionExists) {	
-			
-			MotionStep * step = new MotionStep();
-			//Determine the max joint velocities and store in the step object
-			for (int j=0;j<6;j++) {
-				step->jointAngleDelta[j] = MathUtil::subtractAngles(stepAngles[j],lastAngles[j],MathUtil::PI);
-			}
-			//Next, copy the target joint angles to the step object
-			std::copy(std::begin(stepAngles), std::end(stepAngles), std::begin(step->targetJointAngles));
-			std::copy(std::begin(stepAngles), std::end(stepAngles), std::begin(lastAngles));
-			//Then copy the tip position
-			std::copy(std::begin(stepPosition), std::end(stepPosition), std::begin(step->targetPosition));
-			//Finally, store the step object in the result vector
-			steps.push_back(step);
-		}
-		else
-		{
-			cout << "Solution could not be found for position: " << stepPosition[0] << "," << stepPosition[1] << "," << stepPosition[2] << endl;
-			planningSucceeded = false;
-			break;
-		}
-	}
-
-	return planningSucceeded;	
+	return angles;
 }

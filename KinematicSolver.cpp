@@ -1,9 +1,9 @@
-#include "KinematicPlanning.hpp"
+#include "KinematicSolver.hpp"
 #include <iostream>
 
 using namespace std;
 
-void KinematicPlanning::validateSolution(PlanSolution & sol)
+void KinematicSolver::validateSolution(PlanSolution & sol)
 {
 	if (!sol.valid) cout << "Solution is invalid" << endl;
 	if ((sol.t0 < 0 || std::isnan(sol.t0)) || (sol.t1 < 0 || std::isnan(sol.t1)) || (sol.t2 < 0 || std::isnan(sol.t2)) || (sol.t3 < 0 || std::isnan(sol.t3)) || std::isnan(sol.travelVelocity))
@@ -21,7 +21,7 @@ void KinematicPlanning::validateSolution(PlanSolution & sol)
 }
 
 
-double KinematicPlanning::optimalSpeed(const double accel, const double d3, const double dTotal, const double v0, const double v2, const double maxSpeed, double & v1)
+double KinematicSolver::optimalSpeed(const double accel, const double d3, const double dTotal, const double v0, const double v2, const double maxSpeed, double & v1)
 {
 	double a0 = std::abs(accel);
 	double direction = MathUtils::sgn<double>(dTotal);
@@ -42,7 +42,7 @@ double KinematicPlanning::optimalSpeed(const double accel, const double d3, cons
 	return ((v0*v0)*v2*(1.0/2.0)-v1*(v2*v2)+(v1*v1)*v2+(v2*v2*v2)*(1.0/2.0)+a0*d3*v1-a0*d3*v2+a0*dTotal*v2-v0*v1*v2)/(a0*v1*v2);
 }
 
-double KinematicPlanning::optimalSpeed2Part(const double accel, const double dTotal, const double v0, const double maxSpeed, double & v1)
+double KinematicSolver::optimalSpeed2Part(const double accel, const double dTotal, const double v0, const double maxSpeed, double & v1)
 {
 	double a0 = std::abs(accel);
 	double direction = MathUtils::sgn<double>(dTotal);
@@ -63,7 +63,7 @@ double KinematicPlanning::optimalSpeed2Part(const double accel, const double dTo
 }
 
 
-void KinematicPlanning::calculatePlan2Part(double absAccel, double tTotal, double dTotal, double v0, PlanSolution & result)
+void KinematicSolver::calculatePlan2Part(double absAccel, double tTotal, double dTotal, double v0, PlanSolution & result)
 {
 	double v1,t0,t1;
 	result.valid = false;
@@ -104,7 +104,7 @@ void KinematicPlanning::calculatePlan2Part(double absAccel, double tTotal, doubl
 	if (MathDebug) validateSolution(result);
 }
 
-void KinematicPlanning::calculatePlan(double absAccel, double d3, double tTotal, double dTotal, double v0, double v2, PlanSolution & result)
+void KinematicSolver::calculatePlan(double absAccel, double d3, double tTotal, double dTotal, double v0, double v2, PlanSolution & result)
 {
 	double v1,t0,t1,t2,t3;
 	result.valid = false;

@@ -40,6 +40,7 @@
 #include "Configuration.hpp"
 #include "MotionController.hpp"
 #include "MathUtils.hpp"
+#include "MotionPlanner.hpp"
 
 #define VMATH_NAMESPACE vmath
 #include "vmath.h"
@@ -50,9 +51,12 @@
 
 using namespace std;
 using namespace ikfast2;
+using namespace vmath;
 
 MotionController * motionController;
+vector<PredictiveJointController*> controllers;
 
+/*
 void testCsvWriteTime()
 {	
 	std::ofstream csvLog;
@@ -375,6 +379,17 @@ void testCompletePlanBuilding()
 	
 	for (auto it=plan.begin();it!=plan.end();it++)
 		validatePlan(it->get());
+}*/
+
+void testMotionPlanning()
+{
+	MotionPlanner mp(controllers);
+	
+	auto steps = mp.buildMotionSteps({0,0,0,0,0,0}, Vector3d(10,0,-6), Matrix3d::createRotationAroundAxis(0, -90, 0));
+	mp.realizeSteps(steps);
+	
+	auto plans = mp.convertStepsToPlans(steps, {0,0,0,0,0,0});
+		
 }
 
 void handle(int sig) {
@@ -414,7 +429,6 @@ int main(int argc, char *argv[])
 	
 	ArmModel * armModel = new ArmModel(cJSON_GetObjectItem(Configuration::getInstance().getRoot(),"ArmModel"));
 
-	vector<PredictiveJointController*> controllers;
 
 	for (int i=0;i<armModel->joints.size();i++)
 	{
@@ -423,22 +437,22 @@ int main(int argc, char *argv[])
 	}
 	
 	motionController = new MotionController(controllers,samplePeriod,5);
+	
+	testMotionPlanning();
 
+	/*
 	//testServoModel(&(controllers.at(0)->getJointModel()->servoModel));
 	//testArmModel(armModel);
 
 	//double angles[] = {0,0.1,0,0.1,0.1,0};
 	//testPoseDynamics(armModel,angles);
-
-
 	//double angles2[] = {0,15,0,15,15,0};
 	//testPoseDynamics(armModel,angles2);
-
 	//testCsvWriteTime();
-	//
 	//testFK();	
 	
 	testOptimalPlanBuilding();
 	testOptimalPlanBuilding2();
 	testCompletePlanBuilding();
+	*/
 }

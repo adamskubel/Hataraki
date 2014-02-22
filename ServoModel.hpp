@@ -83,6 +83,8 @@ public:
 	double approachVelocity;
 	double approachDistanceThreshold;
 
+	double maxAcceleration;
+
 	ControllerConfig(cJSON * rawConfig) 
 	{
 		speedControlProportionalGain = cJSON_GetObjectItem(rawConfig,"SpeedControlProportionalGain")->valuedouble;
@@ -98,6 +100,8 @@ public:
 		savitzyGolayWindowSize = Configuration::getInstance().getObject(rawConfig,"SavitzkyGolayFilter.WindowSize")->valueint;
 		savitzyGolayPolyDegree = Configuration::getInstance().getObject(rawConfig,"SavitzkyGolayFilter.PolynomialDegree")->valueint;
 		savitzyGolayFilteringEnabled = Configuration::getInstance().getObject(rawConfig,"SavitzkyGolayFilter.Enabled")->valueint != 0;
+
+		maxAcceleration = AS5048::degreesToSteps(Configuration::getInstance().getObject(rawConfig,"MaxAcceleration")->valuedouble);
 
 		velocityCorrectionProportionalGain = Configuration::getInstance().getObject(rawConfig,"DynamicController.VelocityKPForPositionCorrection")->valuedouble;
 		velocityCorrectionDerivativeGain = Configuration::getInstance().getObject(rawConfig,"DynamicController.VelocityKDForPositionCorrection")->valuedouble;

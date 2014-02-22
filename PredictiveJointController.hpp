@@ -297,6 +297,7 @@ public:
 
 	double getMaxJointVelocity();
 	double getCurrentAngle();
+	double getMaxAcceleration();
 	
 	JointModel * getJointModel();	
 };

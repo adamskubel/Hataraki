@@ -354,12 +354,15 @@ double PredictiveJointController::getMaxJointVelocity()
 	return servoModel->getSpeedForTorqueVoltage(AverageTorque,DRV8830::stepsToVoltage(getMaxVoltageSteps()));
 }
 
+double PredictiveJointController::getMaxAcceleration()
+{
+	return config->maxAcceleration;
+}
 
 JointModel * PredictiveJointController::getJointModel()
 {
 	return jointModel;
 }
-
 
 double PredictiveJointController::getCurrentAngle()
 {
