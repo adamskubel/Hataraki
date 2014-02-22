@@ -24,6 +24,7 @@
 #include "PredictiveJointController.hpp"
 #include "MathUtils.hpp"
 #include "AS5048.hpp"
+#include "PathPlanner.hpp"
 
 
 namespace MotionControllerState {
@@ -33,23 +34,18 @@ namespace MotionControllerState {
 }
 
 
-struct PlanSolution {
+
+struct MotionStep {
 	
-	double t0,t1,t2,t3;
-	double travelVelocity;
-	double accel0,accel1;
-	bool valid;
+	double targetJointAngles[6];
+	double jointAngleDelta[6];
+	double targetPosition[3];
+	
 };
 
 class MotionController {
 	
-	struct MotionStep {
 
-		double targetJointAngles[6];
-		double jointAngleDelta[6];
-		double targetPosition[3];
-
-	};
 
 private:
 	std::vector<PredictiveJointController*> joints;
@@ -59,6 +55,8 @@ private:
 	std::mutex taskQueueMutex;
 	double samplePeriod;
 	long updatePeriod;
+
+public:
 
 	void getJointAngles(double * angles);
 
@@ -72,6 +70,7 @@ private:
 
 	std::vector<std::shared_ptr<MotionPlan> > createMotionPlans(std::vector<MotionStep*> & steps, double maxAccel, double maxDeccel);
 
+
 public:
 	
 
@@ -84,11 +83,7 @@ public:
 	
 	static std::shared_ptr<MotionPlan> buildMotionPlan(const double startPosition,const double endPosition, const double totalTime, const double approachVelocity, const double maxAccel);
 
-	static double optimalSpeed(const double a0, const double d3, const double dTotal, const double v0, const double v2, const double maxSpeed, double & speed);
-	static void calculatePlan(double absAccel, double d3, double tTotal, double dTotal, double v0, double v2, PlanSolution & result);
 
-	static double optimalSpeed2Part(const double a0, const double dTotal, const double v0, const double maxSpeed, double & speed);
-	static void calculatePlan2Part(double absAccel, double tTotal, double dTotal, double v0, PlanSolution & result);
 
 	void updateController();
 

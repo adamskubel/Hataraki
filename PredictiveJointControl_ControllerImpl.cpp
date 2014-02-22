@@ -23,7 +23,6 @@ namespace ControllerConfiguration
 	//Speed Control
 	const double MinSpeedControlMeasureDelay = 0.03; //seconds
 	const double MaxSpeedControlMeasureDelay = 0.09; //seconds
-	const double MinSpeedControlDistance = 150;
 	const double MinVelocityRValue = 0.95;
 	const double BaseSpeedControlMeasureTorque = 0.01;
 	const double MaxVelocitySetpointError = 20; //steps/second
@@ -216,7 +215,7 @@ void PredictiveJointController::doDynamicControl()
 		double finalAngleError = motionPlan->finalAngle - cSensorAngle;
 
 		//Approaching, stick to plan velocity
-		if (std::abs(finalAngleError) < MinSpeedControlDistance)
+		if (std::abs(finalAngleError) < config->approachDistanceThreshold)
 		{			
 			dynamicControlMode = DynamicControlMode::Approaching;
 		}

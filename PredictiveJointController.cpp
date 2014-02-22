@@ -122,8 +122,7 @@ void PredictiveJointController::disable()
 }
 
 void PredictiveJointController::executeMotionPlan(std::shared_ptr<MotionPlan> requestedMotionPlan)
-{
-	cout << "Starting new motion plan. " << endl;
+{	
 	validateMotionPlan(requestedMotionPlan);
 	
 	if (this->motionPlan != NULL)

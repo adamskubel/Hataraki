@@ -148,6 +148,8 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 	
+	double defaultAccel = cJSON_GetObjectItem(globalConfig,"DefaultAccel")->valuedouble;
+
 	PoseDynamics::getInstance().setArmModel(armModel);
 		
 	motionController = new MotionController(controllers,samplePeriod,cJSON_GetObjectItem(globalConfig,"MotionPlanSteps")->valueint);
@@ -244,7 +246,6 @@ int main(int argc, char *argv[])
 				else if (command.compare("setpos") == 0 || command.compare("goto") == 0) {
 
 					Vector3d targetPosition;
-					double accel = 5000.0, deccel = 5000.0;
 
 					input >> targetPosition.x;
 					input >> targetPosition.y;
@@ -265,7 +266,7 @@ int main(int argc, char *argv[])
 							rY = -90; rX = 0; rZ = 0;
 						}
 						
-						motionController->moveToPosition(targetPosition,Matrix3d::createRotationAroundAxis(rX,rY,rZ),accel,deccel,interactive);
+						motionController->moveToPosition(targetPosition,Matrix3d::createRotationAroundAxis(rX,rY,rZ),defaultAccel,defaultAccel,interactive);
 					}
 				}
 				else if (command.compare("getpos") == 0) {

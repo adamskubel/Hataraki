@@ -10,6 +10,8 @@ using namespace ikfast2;
 using namespace ikfast;
 using namespace vmath;
 
+#define MathDebug true
+
 MotionController::MotionController(vector<PredictiveJointController*> & _joints, double _samplePeriod, int _planStepCount) {
 	this->joints = _joints;
 	this->updatePeriod = (long)(_samplePeriod*1000000.0); //seconds to microseconds
@@ -90,157 +92,6 @@ double getAccelDistFromSpeed(double initialSpeed, double endSpeed, double accel)
 	return time*initialSpeed + (std::pow(time,2) * accel)/2.0;
 }
 
-
-double MotionController::optimalSpeed(const double accel, const double d3, const double dTotal, const double v0, const double v2, const double maxSpeed, double & v1)
-{
-	double a0 = std::abs(accel);
-	v1 = sqrt(2.0)*sqrt(a0*d3*-2.0+a0*dTotal*2.0+v0*v0+v2*v2)*(1.0/2.0);
-
-	if (std::isnan(v1))
-	{
-		a0 = -a0;
-		v1 = -sqrt(2.0)*sqrt(a0*d3*-2.0+a0*dTotal*2.0+v0*v0+v2*v2)*(1.0/2.0);
-	}
-
-	if (std::abs(v1) > std::abs(maxSpeed))
-		v1 = std::abs(maxSpeed)*MathUtils::sgn<double>(v1);
-
-	return ((v0*v0)*v2*(1.0/2.0)-v1*(v2*v2)+(v1*v1)*v2+(v2*v2*v2)*(1.0/2.0)+a0*d3*v1-a0*d3*v2+a0*dTotal*v2-v0*v1*v2)/(a0*v1*v2);
-}
-
-double MotionController::optimalSpeed2Part(const double accel, const double dTotal, const double v0, const double maxSpeed, double & v1)
-{
-	double a0 = std::abs(accel);
-	v1 = sqrt(a0*dTotal*2.0+v0*v0);
-
-	if (std::isnan(v1))
-	{
-		a0 = -a0;
-		v1 = -sqrt(a0*dTotal*2.0+v0*v0);
-	}
-
-	if (std::abs(v1) > std::abs(maxSpeed))
-		v1 = std::abs(maxSpeed)*MathUtils::sgn<double>(v1);
-
-	return (a0*dTotal-v0*v1+(v0*v0)*(1.0/2.0)+(v1*v1)*(1.0/2.0))/(a0*v1);
-}
-
-
-void MotionController::calculatePlan2Part(double absAccel, double tTotal, double dTotal, double v0, PlanSolution & result)
-{
-	double v1,t0,t1;
-	result.valid = false;
-
-	double a0 = absAccel;
-	
-	
-	double t0_sign = -(sqrt(a0*(dTotal*-2.0+tTotal*v0*2.0+a0*(tTotal*tTotal)))-a0*tTotal)/a0;
-	
-	if (std::isnan(t0_sign)) return;
-
-	if (t0_sign < 0)
-	{
-		a0 = -a0;	
-		v1 = v0+sqrt(a0*(dTotal*-2.0+tTotal*v0*2.0+a0*(tTotal*tTotal)))+a0*tTotal;
-		t0 = (sqrt(a0*(dTotal*-2.0+tTotal*v0*2.0+a0*(tTotal*tTotal)))+a0*tTotal)/a0;
-		t1 = -sqrt(a0*(dTotal*-2.0+tTotal*v0*2.0+a0*(tTotal*tTotal)))/a0;
-	}
-	else
-	{
-		v1 = v0-sqrt(a0*(dTotal*-2.0+tTotal*v0*2.0+a0*(tTotal*tTotal)))+a0*tTotal;
-		t0 = -(sqrt(a0*(dTotal*-2.0+tTotal*v0*2.0+a0*(tTotal*tTotal)))-a0*tTotal)/a0;
-		t1 = sqrt(a0*(dTotal*-2.0+tTotal*v0*2.0+a0*(tTotal*tTotal)))/a0;
-	}
-	
-	result.t0 = t0;
-	result.t1 = t1;
-	result.accel0 = a0;
-	result.travelVelocity = v1;
-	result.valid = true;
-}
-
-void MotionController::calculatePlan(double absAccel, double d3, double tTotal, double dTotal, double v0, double v2, PlanSolution & result)
-{
-	double v1,t0,t1,t2,t3;
-	result.valid = false;
-
-	double a0 = absAccel, a1 = -absAccel;
-	
-	
-	double t0_sign = -(v0+(sqrt(a0*a1*((v0*v0)*(v2*v2)-v0*(v2*v2*v2)*2.0+v2*v2*v2*v2-a0*tTotal*(v2*v2*v2)*2.0+a0*a1*(d3*d3)+a1*d3*(v2*v2)*2.0+a0*dTotal*
-		(v2*v2)*2.0-a1*dTotal*(v2*v2)*2.0-a1*d3*v0*v2*2.0+a1*tTotal*v0*(v2*v2)*2.0+a0*a1*(tTotal*tTotal)*(v2*v2)-a0*a1*d3*tTotal*v2*2.0))-a0*(v2*v2)-a0*a1*d3+a1*v0*v2+a0*a1*tTotal*v2)/(a0*v2-a1*v2))/a0;
-		
-	double t2_sign = (v2+(sqrt(a0*a1*((v0*v0)*(v2*v2)-v0*(v2*v2*v2)*2.0+v2*v2*v2*v2-a0*tTotal*(v2*v2*v2)*2.0+a0*a1*(d3*d3)+a1*d3*(v2*v2)*2.0+a0*dTotal*(v2*v2)
-		*2.0-a1*dTotal*(v2*v2)*2.0-a1*d3*v0*v2*2.0+a1*tTotal*v0*(v2*v2)*2.0+a0*a1*(tTotal*tTotal)*(v2*v2)-a0*a1*d3*tTotal*v2*2.0))-a0*(v2*v2)-a0*a1*d3+a1*v0*v2+a0*a1*tTotal*v2)/(a0*v2-a1*v2))/a1;
-	
-	//Case 1: Both T0 and T2 are positive = good
-	//Case 2: T0 is negative -> Flip sign of A0 and use EQ 2
-	//Case 3: T2 is negative -> Flip sign of A1 and use EQ 2
-	//Case 4: Both T0 and T2 are negative -> flip sign of both and use EQ 1
-	//Case 5: Either T0 or T2 have non-real components (NaN). Return invalid result.
-
-	
-	if (std::isnan(t0_sign) || std::isnan(t2_sign)) return;
-	if (t0_sign < 0) a0 = -a0;		
-	if (t2_sign < 0) a1 = -a1;
-
-	if (a0 == a1)
-	{
-		v1 = -((v0*v0)*v2-v2*v2*v2-a0*d3*v2*2.0+a0*dTotal*v2*2.0)/(a0*d3*2.0-v0*v2*2.0+(v2*v2)*2.0-a0*tTotal*v2*2.0);
-		t0 = (-v0*(v2*v2)+(v0*v0)*v2*(1.0/2.0)+(v2*v2*v2)*(1.0/2.0)-a0*d3*v0+a0*d3*v2-a0*dTotal*v2+a0*tTotal*v0*v2)/(a0*(a0*d3-v0*v2+v2*v2-a0*tTotal*v2));
-		t1 = -(a0*d3-v0*v2+v2*v2-a0*tTotal*v2)/(a0*v2);
-		t2 = (-v0*(v2*v2)+(v0*v0)*v2*(1.0/2.0)+(v2*v2*v2)*(1.0/2.0)-a0*tTotal*(v2*v2)+a0*dTotal*v2)/(a0*(a0*d3-v0*v2+v2*v2-a0*tTotal*v2));
-		t3 = d3/v2;
-	}
-	else
-	{		
-		t1 = -(a0*(v2*v2)+a0*a1*d3-a1*v0*v2-a0*a1*tTotal*v2+(a0*v2*(sqrt(a0*a1*((v0*v0)*(v2*v2)-v0*(v2*v2*v2)*2.0+v2*v2*v2*v2-a0*tTotal*
-			(v2*v2*v2)*2.0+a0*a1*(d3*d3)+a1*d3*(v2*v2)*2.0+a0*dTotal*(v2*v2)*2.0-a1*dTotal*(v2*v2)*2.0-a1*d3*v0*v2*2.0+a1*tTotal*v0*(v2*v2)
-			*2.0+a0*a1*(tTotal*tTotal)*(v2*v2)-a0*a1*d3*tTotal*v2*2.0))-a0*(v2*v2)-a0*a1*d3+a1*v0*v2+a0*a1*tTotal*v2))/(a0*v2-a1*v2)-(a1*v2*
-			(sqrt(a0*a1*((v0*v0)*(v2*v2)-v0*(v2*v2*v2)*2.0+v2*v2*v2*v2-a0*tTotal*(v2*v2*v2)*2.0+a0*a1*(d3*d3)+a1*d3*(v2*v2)*2.0+a0*dTotal*
-			(v2*v2)*2.0-a1*dTotal*(v2*v2)*2.0-a1*d3*v0*v2*2.0+a1*tTotal*v0*(v2*v2)*2.0+a0*a1*(tTotal*tTotal)*(v2*v2)-a0*a1*d3*tTotal*v2*2.0))-a0*(v2*v2)-a0*a1*d3+a1*v0*v2+a0*a1*tTotal*v2))/(a0*v2-a1*v2))/(a0*a1*v2);
-
-		if (t1 >= 0)
-		{
-
-			v1 = -(sqrt(a0*a1*((v0*v0)*(v2*v2)-v0*(v2*v2*v2)*2.0+v2*v2*v2*v2-a0*tTotal*(v2*v2*v2)*2.0+a0*a1*(d3*d3)+a1*d3*(v2*v2)*2.0+a0*dTotal*(v2*v2)
-				*2.0-a1*dTotal*(v2*v2)*2.0-a1*d3*v0*v2*2.0+a1*tTotal*v0*(v2*v2)*2.0+a0*a1*(tTotal*tTotal)*(v2*v2)-a0*a1*d3*tTotal*v2*2.0))-a0*(v2*v2)-a0*a1*d3+a1*v0*v2+a0*a1*tTotal*v2)/(a0*v2-a1*v2);
-
-			t0 = -(v0+(sqrt(a0*a1*((v0*v0)*(v2*v2)-v0*(v2*v2*v2)*2.0+v2*v2*v2*v2-a0*tTotal*(v2*v2*v2)*2.0+a0*a1*(d3*d3)+a1*d3*(v2*v2)*2.0+a0*dTotal*
-				(v2*v2)*2.0-a1*dTotal*(v2*v2)*2.0-a1*d3*v0*v2*2.0+a1*tTotal*v0*(v2*v2)*2.0+a0*a1*(tTotal*tTotal)*(v2*v2)-a0*a1*d3*tTotal*v2*2.0))-a0*(v2*v2)-a0*a1*d3+a1*v0*v2+a0*a1*tTotal*v2)/(a0*v2-a1*v2))/a0;
-
-			t2 = (v2+(sqrt(a0*a1*((v0*v0)*(v2*v2)-v0*(v2*v2*v2)*2.0+v2*v2*v2*v2-a0*tTotal*(v2*v2*v2)*2.0+a0*a1*(d3*d3)+a1*d3*(v2*v2)*2.0+a0*dTotal*(v2*v2)
-				*2.0-a1*dTotal*(v2*v2)*2.0-a1*d3*v0*v2*2.0+a1*tTotal*v0*(v2*v2)*2.0+a0*a1*(tTotal*tTotal)*(v2*v2)-a0*a1*d3*tTotal*v2*2.0))-a0*(v2*v2)-a0*a1*d3+a1*v0*v2+a0*a1*tTotal*v2)/(a0*v2-a1*v2))/a1;
-
-			t3 = d3/v2;
-		}
-		else //other solution
-		{
-			v1 = (sqrt(a0*a1*((v0*v0)*(v2*v2)-v0*(v2*v2*v2)*2.0+v2*v2*v2*v2-a0*tTotal*(v2*v2*v2)*2.0+a0*a1*(d3*d3)+a1*d3*(v2*v2)*2.0+a0*dTotal*(v2*v2)*2.0-a1*dTotal*(v2*v2)*2.0-a1*d3*v0*v2*2.0+a1*tTotal*v0*(v2*v2)*2.0+a0*a1*(tTotal*tTotal)*(v2*v2)-a0*a1*d3*tTotal*v2*2.0))+a0*(v2*v2)+a0*a1*d3-a1*v0*v2-a0*a1*tTotal*v2)/(a0*v2-a1*v2);
-			
-			t0 = -(v0-(sqrt(a0*a1*((v0*v0)*(v2*v2)-v0*(v2*v2*v2)*2.0+v2*v2*v2*v2-a0*tTotal*(v2*v2*v2)*2.0+a0*a1*(d3*d3)+a1*d3*(v2*v2)*2.0+a0*dTotal*(v2*v2)*2.0-a1*dTotal*(v2*v2)*2.0-a1*d3*v0*v2*2.0+a1*tTotal*v0*(v2*v2)*2.0+a0*a1*(tTotal*tTotal)*(v2*v2)-a0*a1*d3*tTotal*v2*2.0))+a0*(v2*v2)+a0*a1*d3-a1*v0*v2-a0*a1*tTotal*v2)/(a0*v2-a1*v2))/a0;
-			
-			t1 = -(a0*(v2*v2)+a0*a1*d3-a1*v0*v2-a0*a1*tTotal*v2-(a0*v2*(sqrt(a0*a1*((v0*v0)*(v2*v2)-v0*(v2*v2*v2)*2.0+v2*v2*v2*v2-a0*tTotal*
-				(v2*v2*v2)*2.0+a0*a1*(d3*d3)+a1*d3*(v2*v2)*2.0+a0*dTotal*(v2*v2)*2.0-a1*dTotal*(v2*v2)*2.0-a1*d3*v0*v2*2.0+a1*tTotal*v0*(v2*v2)
-				*2.0+a0*a1*(tTotal*tTotal)*(v2*v2)-a0*a1*d3*tTotal*v2*2.0))+a0*(v2*v2)+a0*a1*d3-a1*v0*v2-a0*a1*tTotal*v2))/(a0*v2-a1*v2)+
-				(a1*v2*(sqrt(a0*a1*((v0*v0)*(v2*v2)-v0*(v2*v2*v2)*2.0+v2*v2*v2*v2-a0*tTotal*(v2*v2*v2)*2.0+a0*a1*(d3*d3)+a1*d3*(v2*v2)*2.0+a0*dTotal*(v2*v2)*2.0-a1*dTotal*
-				(v2*v2)*2.0-a1*d3*v0*v2*2.0+a1*tTotal*v0*(v2*v2)*2.0+a0*a1*(tTotal*tTotal)*(v2*v2)-a0*a1*d3*tTotal*v2*2.0))+a0*(v2*v2)+a0*a1*d3-a1*v0*v2-a0*a1*tTotal*v2))/(a0*v2-a1*v2))/(a0*a1*v2);
-
-			t2 = (v2-(sqrt(a0*a1*((v0*v0)*(v2*v2)-v0*(v2*v2*v2)*2.0+v2*v2*v2*v2-a0*tTotal*(v2*v2*v2)*2.0+a0*a1*(d3*d3)+a1*d3*(v2*v2)*2.0+a0*dTotal*(v2*v2)*2.0-a1*dTotal*(v2*v2)*2.0-a1*d3*v0*v2*2.0+a1*tTotal*v0*(v2*v2)*2.0+a0*a1*(tTotal*tTotal)*(v2*v2)-a0*a1*d3*tTotal*v2*2.0))+a0*(v2*v2)+a0*a1*d3-a1*v0*v2-a0*a1*tTotal*v2)/(a0*v2-a1*v2))/a1;
-			
-			t3 = d3/v2;
-		}
-	}
-	
-	result.t0 = t0;
-	result.t1 = t1;
-	result.t2 = t2;
-	result.t3 = t3;
-	result.accel0 = a0;
-	result.accel1 = a1;
-	result.travelVelocity = v1;
-	result.valid = true;
-}
 
 
 
@@ -426,6 +277,7 @@ void MotionController::postTask(std::function<void()> task)
 	taskQueue.push(task);
 }
 
+
 vector<shared_ptr<MotionPlan> > MotionController::createMotionPlans(vector<MotionStep*> & steps, double maxAccel, double maxDeccel)
 {
 	const double CoastDistance = 150;
@@ -444,13 +296,16 @@ vector<shared_ptr<MotionPlan> > MotionController::createMotionPlans(vector<Motio
 		bool lastStep = stepIndex == steps.size() - 1;
 
 		double stepTime = 0;
-		for (int i=0;i<6;i++) 
+		cout << "Step#" << stepIndex << ": ";
+		for (int i=0;i<6;i++)
 		{						
 			double lastVelocity = 0;
-
+			
 			if (stepIndex > 0) lastVelocity = motionPlan.at(i)->getSpeedAtTime(motionPlan.at(i)->getPlanDuration());
-
+			
 			double delta = AS5048::radiansToSteps(step->jointAngleDelta[i]);
+			cout << delta << " ";
+						
 			double direction = MathUtils::sgn<double>(delta);
 			double maxSpeed = joints.at(i)->getMaxJointVelocity() * direction;
 			double coastVelocity = joints.at(i)->getJointModel()->servoModel.controllerConfig.approachVelocity*direction;
@@ -464,8 +319,11 @@ vector<shared_ptr<MotionPlan> > MotionController::createMotionPlans(vector<Motio
 			else
 				jointTime = optimalSpeed2Part(maxAccel,delta,lastVelocity,maxSpeed,travelVelocity);							
 
+			jointTime += 0.0001; //Ensure no non-real results due to imprecision errors
+			
 			stepTime = std::max(stepTime,jointTime);
 		}
+		cout << endl;
 
 		for (int i=0;i<6;i++) 
 		{	
@@ -480,26 +338,34 @@ vector<shared_ptr<MotionPlan> > MotionController::createMotionPlans(vector<Motio
 			if (lastStep)
 			{
 			 	calculatePlan(maxAccel,CoastDistance*direction,stepTime,delta,lastVelocity,coastVelocity,sol);
+				//validateSolution(sol);
+
 				motionPlan.at(i)->motionIntervals.push_back(MotionInterval(lastVelocity,sol.travelVelocity,sol.t0));
 
 				if (sol.t1 >= samplePeriod) 
 				{
-					motionPlan.at(i)->motionIntervals.push_back(MotionInterval(sol.travelVelocity,sol.t1));
-					cout << "Joint[" << i << "] v1=" << sol.travelVelocity << " delta=" << delta << endl;
+					motionPlan.at(i)->motionIntervals.push_back(MotionInterval(sol.travelVelocity,sol.t1));					
 				}
 
 				motionPlan.at(i)->motionIntervals.push_back(MotionInterval(sol.travelVelocity,coastVelocity,sol.t2));
 				motionPlan.at(i)->motionIntervals.push_back(MotionInterval(coastVelocity,sol.t3));
+				
+				cout << sol.travelVelocity << " ;";
 			}
 			else
 			{
-				calculatePlan2Part(maxAccel,stepTime,delta,lastVelocity,sol);				
+				calculatePlan2Part(maxAccel,stepTime,delta,lastVelocity,sol);
+				//validateSolution(sol);
+
 				motionPlan.at(i)->motionIntervals.push_back(MotionInterval(lastVelocity,sol.travelVelocity,sol.t0));
 				
 				if (sol.t1 >= samplePeriod)
 					motionPlan.at(i)->motionIntervals.push_back(MotionInterval(sol.travelVelocity,sol.t1));
+				
+				cout << sol.travelVelocity << " ";
 			}
 		}
+		cout << endl;
 	}
 
 	for (int i=0;i<6;i++)
@@ -591,8 +457,10 @@ bool MotionController::getEasiestSolution(const double * currentAngles, Vector3d
 }
 
 
-bool MotionController::buildMotionSteps(double * targetPosition,Matrix3d targetRotation, vector<MotionStep*> & steps)
+vector<Step> MotionController::buildMotionSteps(double * targetPosition,Matrix3d targetRotation)
 {
+	vector<Step> steps;
+
 	int numSteps = planStepCount;
 
 	double currentPosition[3];

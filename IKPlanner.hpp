@@ -1,0 +1,10 @@
+#ifndef HATARAKI_BASICMOTION_IKPLANNER_HPP_
+#define HATARAKI_BASICMOTION_IKPLANNER_HPP_
+
+class IKPlanner {
+		
+	
+};
+
+
+#endif

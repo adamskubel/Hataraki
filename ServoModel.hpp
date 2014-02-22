@@ -81,6 +81,7 @@ public:
 	
 	double velocityCorrectionProportionalGain,velocityCorrectionDerivativeGain;
 	double approachVelocity;
+	double approachDistanceThreshold;
 
 	ControllerConfig(cJSON * rawConfig) 
 	{
@@ -101,6 +102,7 @@ public:
 		velocityCorrectionProportionalGain = Configuration::getInstance().getObject(rawConfig,"DynamicController.VelocityKPForPositionCorrection")->valuedouble;
 		velocityCorrectionDerivativeGain = Configuration::getInstance().getObject(rawConfig,"DynamicController.VelocityKDForPositionCorrection")->valuedouble;
 		approachVelocity = AS5048::degreesToSteps(Configuration::getInstance().getObject(rawConfig,"DynamicController.SetpointApproachVelocity")->valuedouble);
+		approachDistanceThreshold = AS5048::degreesToSteps(Configuration::getInstance().getObject(rawConfig,"DynamicController.SetpointApproachDistanceThreshold")->valuedouble);
 	}
 };
 

@@ -51,6 +51,8 @@
 using namespace std;
 using namespace ikfast2;
 
+MotionController * motionController;
+
 void testCsvWriteTime()
 {	
 	std::ofstream csvLog;
@@ -269,58 +271,80 @@ void testPlanBuilding()
 	cout << "Position at time(50) = " << plan->getPositionAtTime(50) << endl;
 }
 
+void validatePlan(MotionPlan * plan)
+{
+	int count = 0;
+	if (plan->motionIntervals.empty())
+	{
+		cout << "Plan is empty" << endl;
+		return;
+	}
+	for (auto it=plan->motionIntervals.begin(); it != plan->motionIntervals.end(); it++)
+	{
+		if (it->duration < 0)
+		{
+			cout << "Error: Interval " << count << " has negative time." << endl;
+		}		
+		count++;
+	}
+
+	for (double d=0;d<5;d++)
+	{
+		cout << "V("<<d<<")=" << plan->getSpeedAtTime(d) << "\t";
+		cout << "P("<<d<<")=" << plan->getPositionAtTime(d);
+		cout << endl;
+	}
+	double d = 1000;
+	cout << "P("<<d<<")=" << plan->getPositionAtTime(d) << endl;
+}
+
 void testOptimalPlanBuilding()
 {
-	double startAngle = 0, targetAngle = AS5048::degreesToSteps(-90);
+	double startAngle = 0, targetAngle = -364; //AS5048::degreesToSteps(-90);
 	timespec start;
 	TimeUtil::setNow(start);
 
-	double accel = 2000, approachSpeed = -500, approachDist = -150;
+	double accel = 5000, approachSpeed = -455, approachDist = -150, initialSpeed = -1018;
 	double maxSpeed = 1000, s;
 
-	double targetTime = MotionController::optimalSpeed(accel,approachDist,(targetAngle-startAngle),0,approachSpeed,maxSpeed,s);
-
-	cout << "Minimum time = " << targetTime << "s, OptSpeed=" << s << " steps/s" << endl;
-
-	auto plan = MotionController::buildMotionPlan(startAngle,targetAngle,targetTime,approachSpeed,accel);
+	double targetTime = MotionController::optimalSpeed(accel,approachDist,(targetAngle-startAngle),initialSpeed,approachSpeed,maxSpeed,s);
 	
-	cout << "Plan building took: " << TimeUtil::timeSince(start)*1000.0 << " ms" << endl;
+	cout << "Minimum time = " << targetTime << "s, OptSpeed=" << s << " steps/s" << endl;
+	targetTime += 0.001;
+	//auto plan = MotionController::buildMotionPlan(startAngle,targetAngle,targetTime,approachSpeed,accel);
+	PlanSolution result;
+	MotionController::calculatePlan(accel,approachDist,targetTime,(targetAngle-startAngle),initialSpeed,approachSpeed,result);
 
-	cout << "Speed at time(0) = " << plan->getSpeedAtTime(0) << endl;
-	cout << "Speed at time(1) = " << plan->getSpeedAtTime(1) << endl;
-	cout << "Speed at time(2) = " << plan->getSpeedAtTime(2) << endl;
-	cout << "Speed at time(2.1) = " << plan->getSpeedAtTime(2.1) << endl;
-	cout << "Speed at time(3.1) = " << plan->getSpeedAtTime(3.1) << endl;
-	cout << "Speed at time(4) = " << plan->getSpeedAtTime(4) << endl;
-	cout << "Speed at time(4.1) = " << plan->getSpeedAtTime(4.1) << endl;
+	MotionController::validateSolution(result);
+		
+	cout << "Accel0=" << result.accel0 << endl;
+	cout << "Accel1=" << result.accel1 << endl;
+	
+	//validatePlan(plan.get());
 
-	cout << "Position at time(0) = " << plan->getPositionAtTime(0) << endl;
-	cout << "Position at time(1) = " << plan->getPositionAtTime(1) << endl;
-	cout << "Position at time(2) = " << plan->getPositionAtTime(2) << endl;
-	cout << "Position at time(2.1) = " << plan->getPositionAtTime(2.1) << endl;
-	cout << "Position at time(4) = " << plan->getPositionAtTime(4) << endl;
-	cout << "Position at time(4.1) = " << plan->getPositionAtTime(4.1) << endl;
-	cout << "Position at time(50) = " << plan->getPositionAtTime(50) << endl;
 }
 
 void testOptimalPlanBuilding2()
 {
-	double startAngle = 0, targetAngle = AS5048::degreesToSteps(-90);
+	double startAngle = 0, targetAngle = AS5048::degreesToSteps(-2);
 	timespec start;
 	TimeUtil::setNow(start);
 
-	double accel = 2000, initialSpeed = 0;
-	double maxSpeed = 1000, s;
+	double accel = 1000, initialSpeed = 0;
+	double maxSpeed = 10000, s;
 
-	double targetTime = MotionController::optimalSpeed2Part(accel,(targetAngle-startAngle),initialSpeed,maxSpeed,s);
+	double targetTime = MotionController::optimalSpeed2Part(accel,(targetAngle-startAngle),initialSpeed,maxSpeed,s)+0.1;
 
-	cout << "2-Part plan" << endl;
+	cout << endl << endl << "2-Part plan" << endl;
 	cout << "Minimum time = " << targetTime << "s, OptSpeed=" << s << " steps/s" << endl;
 	
 	PlanSolution result;
 	MotionController::calculatePlan2Part(accel,targetTime,(targetAngle-startAngle),initialSpeed,result);
 
-	cout << "Valid=" << result.valid << " T0=" << result.t0 << " T1=" << result.t1 << " V1=" << result.travelVelocity << " A0=" << result.accel0 << endl;
+	cout << "Accel0=" << result.accel0 << endl;
+	cout << "Accel1=" << result.accel1 << endl;
+
+	MotionController::validateSolution(result);
 
 	MotionPlan * plan = new MotionPlan();
 	if (result.t0 >= 0.01)
@@ -329,25 +353,28 @@ void testOptimalPlanBuilding2()
 		plan->motionIntervals.push_back(MotionInterval(result.travelVelocity,result.travelVelocity,result.t1));
 	plan->startAngle = 0;
 
-	cout << "Plan building took: " << TimeUtil::timeSince(start)*1000.0 << " ms" << endl;
+	validatePlan(plan);
+}
 
-	cout << "Plan duration=" << plan->getPlanDuration() << endl;
-
-	cout << "Speed at time(0) = " << plan->getSpeedAtTime(0) << endl;
-	cout << "Speed at time(1) = " << plan->getSpeedAtTime(1) << endl;
-	cout << "Speed at time(2) = " << plan->getSpeedAtTime(2) << endl;
-	cout << "Speed at time(2.1) = " << plan->getSpeedAtTime(2.1) << endl;
-	cout << "Speed at time(3.1) = " << plan->getSpeedAtTime(3.1) << endl;
-	cout << "Speed at time(4) = " << plan->getSpeedAtTime(4) << endl;
-	cout << "Speed at time(4.1) = " << plan->getSpeedAtTime(4.1) << endl;
-
-	cout << "Position at time(0) = " << plan->getPositionAtTime(0) << endl;
-	cout << "Position at time(1) = " << plan->getPositionAtTime(1) << endl;
-	cout << "Position at time(2) = " << plan->getPositionAtTime(2) << endl;
-	cout << "Position at time(2.1) = " << plan->getPositionAtTime(2.1) << endl;
-	cout << "Position at time(4) = " << plan->getPositionAtTime(4) << endl;
-	cout << "Position at time(4.1) = " << plan->getPositionAtTime(4.1) << endl;
-	cout << "Position at time(50) = " << plan->getPositionAtTime(50) << endl;
+void testCompletePlanBuilding()
+{
+	vector<MotionStep*> steps;
+	for (double s=1;s<5;s++)
+	{
+		double stepSize = MathUtil::degreesToRadians(-2*s);
+		MotionStep * step = new MotionStep();
+		for (int i=0;i<6;i++)
+		{
+			step->jointAngleDelta[i] = stepSize;
+		}
+		steps.push_back(step);
+	}
+	
+	cout << endl << endl << "Creating motion plan" << endl;
+	auto plan = motionController->createMotionPlans(steps, 10000, 10000);
+	
+	for (auto it=plan.begin();it!=plan.end();it++)
+		validatePlan(it->get());
 }
 
 void handle(int sig) {
@@ -366,7 +393,7 @@ void handle(int sig) {
 
 int main(int argc, char *argv[])
 {
-	double samplePeriod;
+	double samplePeriod = 0.01;
 
 	signal(SIGSEGV, handle);
 	
@@ -394,6 +421,8 @@ int main(int argc, char *argv[])
 		PredictiveJointController * pjc = new PredictiveJointController(&(armModel->joints.at(i)),NULL, 0.01);	
 		controllers.push_back(pjc);
 	}
+	
+	motionController = new MotionController(controllers,samplePeriod,5);
 
 	//testServoModel(&(controllers.at(0)->getJointModel()->servoModel));
 	//testArmModel(armModel);
@@ -411,4 +440,5 @@ int main(int argc, char *argv[])
 	
 	testOptimalPlanBuilding();
 	testOptimalPlanBuilding2();
+	testCompletePlanBuilding();
 }

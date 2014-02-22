@@ -3,6 +3,8 @@ Microsoft Visual Studio Solution File, Format Version 11.00
 # Visual Studio 2010
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "BasicMotion", "BasicMotion.vcxproj", "{398F70D2-EDCB-4AA0-B143-C40AA63DAAA0}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "PathPlanningTest", "..\PathPlanningTest\PathPlanningTest.vcxproj", "{3FC8E3FC-232B-4A7B-8AEC-F0D453EA871C}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
@@ -13,6 +15,10 @@ Global
 		{398F70D2-EDCB-4AA0-B143-C40AA63DAAA0}.Debug|Win32.Build.0 = Debug|Win32
 		{398F70D2-EDCB-4AA0-B143-C40AA63DAAA0}.Release|Win32.ActiveCfg = Release|Win32
 		{398F70D2-EDCB-4AA0-B143-C40AA63DAAA0}.Release|Win32.Build.0 = Release|Win32
+		{3FC8E3FC-232B-4A7B-8AEC-F0D453EA871C}.Debug|Win32.ActiveCfg = Debug|Win32
+		{3FC8E3FC-232B-4A7B-8AEC-F0D453EA871C}.Debug|Win32.Build.0 = Debug|Win32
+		{3FC8E3FC-232B-4A7B-8AEC-F0D453EA871C}.Release|Win32.ActiveCfg = Release|Win32
+		{3FC8E3FC-232B-4A7B-8AEC-F0D453EA871C}.Release|Win32.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
