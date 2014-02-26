@@ -346,9 +346,13 @@ int main(int argc, char *argv[])
 			}
 		}
 	}
+	catch (std::logic_error & e)
+	{
+		cout << "Illogically, " << e.what() << endl;
+	}
 	catch (std::runtime_error & e)
 	{
-		cout << "Exception: " << e.what() << endl;
+		cout << "Runtime Exception: " << e.what() << endl;
 	}
 
 	cout << "Powering down control loops..";	

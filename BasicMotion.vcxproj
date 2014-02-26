@@ -71,7 +71,6 @@
     <ClCompile Include="IJointControl.hpp" />
     <ClCompile Include="ikfastsolution.cpp" />
     <ClCompile Include="IKPlanner.cpp" />
-    <ClCompile Include="KinematicPlanning.cpp" />
     <ClCompile Include="KinematicSolver.cpp" />
     <ClCompile Include="Main.cpp" />
     <ClCompile Include="MathUtils.cpp" />
@@ -102,7 +101,7 @@
     <ClInclude Include="I2CBus.hpp" />
     <ClInclude Include="ikfast.h" />
     <ClInclude Include="IKPlanner.hpp" />
-    <ClInclude Include="KinematicPlanning.hpp" />
+    <ClInclude Include="KinematicSolver.hpp" />
     <ClInclude Include="LowpassFilter.hpp" />
     <ClInclude Include="MathUtils.hpp" />
     <ClInclude Include="MotionController.hpp" />
