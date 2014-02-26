@@ -107,8 +107,8 @@ void PredictiveJointController::setTargetState()
 				
 		if (dynamicControl)
 		{
-			cTargetAngle = motionPlan->getPositionAtTime(MathUtil::timeSince(motionPlan->startTime));
-			cTargetVelocity = motionPlan->getSpeedAtTime(MathUtil::timeSince(motionPlan->startTime));
+			cTargetAngle = motionPlan->getPositionAtTime(TimeUtil::timeSince(motionPlan->startTime));
+			cTargetVelocity = motionPlan->getSpeedAtTime(TimeUtil::timeSince(motionPlan->startTime));
 		}
 		else
 		{
@@ -272,11 +272,11 @@ void PredictiveJointController::doSpeedControl()
 
 	if (speedControlState == SpeedControlState::Measuring)
 	{
-		if (MathUtil::timeSince(speedControlMeasureStart) > MinSpeedControlMeasureDelay && cVelocityApproximationError < MinVelocityRValue)
+		if (TimeUtil::timeSince(speedControlMeasureStart) > MinSpeedControlMeasureDelay && cVelocityApproximationError < MinVelocityRValue)
 		{
 			speedControlState = SpeedControlState::Adjusting;
 		}
-		else if (MathUtil::timeSince(speedControlMeasureStart) > MaxSpeedControlMeasureDelay)
+		else if (TimeUtil::timeSince(speedControlMeasureStart) > MaxSpeedControlMeasureDelay)
 		{
 			speedControlState = SpeedControlState::Adjusting;
 		}
@@ -291,7 +291,7 @@ void PredictiveJointController::doSpeedControl()
 		cControlTorque += ((cVelocityError * speedControlProportionalGain) + (velocityErrorIntegral * speedControlIntegralGain))/-servoModel->getTorqueSpeedSlope();
 		commandDriver(servoModel->getVoltageForTorqueSpeed(cControlTorque,cTargetVelocity),DriverMode::TMVoltage);	
 		speedControlState = SpeedControlState::Measuring;
-		MathUtil::setNow(speedControlMeasureStart);
+		TimeUtil::setNow(speedControlMeasureStart);
 	}
 
 	velocityErrorIntegral *= 0.95;
@@ -356,11 +356,11 @@ bool PredictiveJointController::doStepControl(double targetAngle)
 		break;
 	case SteppingState::Braking:
 		steppingState = SteppingState::Reading;
-		MathUtil::setNow(readDelayStart);
+		TimeUtil::setNow(readDelayStart);
 		commandDriver(0,DriverMode::Brake);
 		break;
 	case SteppingState::Reading:
-		if (MathUtil::timeSince(readDelayStart) > SteppingModeReadDelay) 
+		if (TimeUtil::timeSince(readDelayStart) > SteppingModeReadDelay) 
 		{
 			int stepDirection = MathUtils::sgn<double>(distanceToTarget);
 
@@ -509,14 +509,14 @@ void PredictiveJointController::commitCommands()
 			}
 			
 			timespec startTime;
-			MathUtil::setNow(startTime);
+			TimeUtil::setNow(startTime);
 			if (cDriverCommand != driverCommand)
 			{
 				bus->selectAddress(servoModel->driverAddress);
 				DRV8830::writeCommand(bus,driverCommand);
 				cDriverCommand = driverCommand;
 			}
-			cDriverWriteTime = MathUtil::timeSince(startTime)*1000.0;
+			cDriverWriteTime = TimeUtil::timeSince(startTime)*1000.0;
 		}
 	}
 	catch (std::runtime_error & e)

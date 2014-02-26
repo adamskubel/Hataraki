@@ -5,6 +5,7 @@ using namespace std;
 
 PathPlanner::PathPlanner(int numChannels, std::vector<double> _velocityConstraints, std::vector<double> _accelerationConstraints, std::vector<double> _jerkConstraints)
 {
+	this->SamplePeriod = 0.01;
 	this->numChannels = numChannels;
 	this->velocityConstraints = _velocityConstraints;
 	this->accelerationConstraints = _accelerationConstraints;
@@ -53,26 +54,54 @@ void PathPlanner::updateDerivatives(std::vector<Step> & plan)
 				double dt2 = s0->TimeOffset;
 				double dt1 = s1->TimeOffset;
 				
-				double ddxdt =  ((dx2/dt2)-(dx1/dt1))/((dt2+dt1)/2);
-				
-				bool update = true;
-				if (ddxdt > accelerationConstraints[c]) ddxdt = accelerationConstraints[c];
-				else if (ddxdt < -accelerationConstraints[c]) ddxdt = -accelerationConstraints[c];
-				else
-					update = false;
-				
-				if (update)
+				if (true)
 				{
-					double s_dt2 = (-dx1-ddxdt*(dt1*dt1)*(1.0/2.0)-sqrt((dx1*dx1)*4.0+(ddxdt*ddxdt)*(dt1*dt1*dt1*dt1)+ddxdt*(dt1*dt1)*dx1*4.0+ddxdt*(dt1*dt1)*dx2*8.0)*(1.0/2.0))/(ddxdt*dt1);
+					double ddxdt =  ((dx2/dt2)-(dx1/dt1))/((dt2+dt1)/2);
 					
-					if (s_dt2 < 0)
-						s_dt2 = (-dx1-ddxdt*(dt1*dt1)*(1.0/2.0)+sqrt((dx1*dx1)*4.0+(ddxdt*ddxdt)*(dt1*dt1*dt1*dt1)+ddxdt*(dt1*dt1)*dx1*4.0+ddxdt*(dt1*dt1)*dx2*8.0)*(1.0/2.0))/(ddxdt*dt1);
+					//if ((dt2+dt1)/2 < SamplePeriod) ddxdt =  ((dx2/dt2)-(dx1/dt1))/(SamplePeriod);
 					
-					if (s_dt2 > s0->TimeOffset)
-						s0->TimeOffset = s_dt2;
-//					else cout << "2-New time is less than existing time" << endl;
+					bool update = true;
+					if (ddxdt > accelerationConstraints[c]) ddxdt = accelerationConstraints[c];
+					else if (ddxdt < -accelerationConstraints[c]) ddxdt = -accelerationConstraints[c];
+					else
+						update = false;
+					
+					if (update)
+					{
+						double s_dt2 = (-dx1-ddxdt*(dt1*dt1)*(1.0/2.0)-sqrt((dx1*dx1)*4.0+(ddxdt*ddxdt)*(dt1*dt1*dt1*dt1)+ddxdt*(dt1*dt1)*dx1*4.0+ddxdt*(dt1*dt1)*dx2*8.0)*(1.0/2.0))/(ddxdt*dt1);
+						
+						if (s_dt2 < 0)
+							s_dt2 = (-dx1-ddxdt*(dt1*dt1)*(1.0/2.0)+sqrt((dx1*dx1)*4.0+(ddxdt*ddxdt)*(dt1*dt1*dt1*dt1)+ddxdt*(dt1*dt1)*dx1*4.0+ddxdt*(dt1*dt1)*dx2*8.0)*(1.0/2.0))/(ddxdt*dt1);
+						
+						if (s_dt2 > s0->TimeOffset)
+							s0->TimeOffset = s_dt2;
+					}
+					s0->Accelerations[c] = ddxdt;
 				}
-				s0->Accelerations[c] = ddxdt;
+				else
+				{
+					double ddxdt =  ((dx2/dt2)-(dx1/dt1))/((dt2+dt1)/2);
+					
+					//if ((dt2+dt1)/2 < SamplePeriod) ddxdt =  ((dx2/dt2)-(dx1/dt1))/(SamplePeriod);
+					
+					bool update = true;
+					if (ddxdt > accelerationConstraints[c]) ddxdt = accelerationConstraints[c];
+					else if (ddxdt < -accelerationConstraints[c]) ddxdt = -accelerationConstraints[c];
+					else
+						update = false;
+					
+					if (update)
+					{
+						double s_dt2 = (-dx1-ddxdt*(dt1*dt1)*(1.0/2.0)-sqrt((dx1*dx1)*4.0+(ddxdt*ddxdt)*(dt1*dt1*dt1*dt1)+ddxdt*(dt1*dt1)*dx1*4.0+ddxdt*(dt1*dt1)*dx2*8.0)*(1.0/2.0))/(ddxdt*dt1);
+						
+						if (s_dt2 < 0)
+							s_dt2 = (-dx1-ddxdt*(dt1*dt1)*(1.0/2.0)+sqrt((dx1*dx1)*4.0+(ddxdt*ddxdt)*(dt1*dt1*dt1*dt1)+ddxdt*(dt1*dt1)*dx1*4.0+ddxdt*(dt1*dt1)*dx2*8.0)*(1.0/2.0))/(ddxdt*dt1);
+						
+						if (s_dt2 > s0->TimeOffset)
+							s0->TimeOffset = s_dt2;
+					}
+					s0->Accelerations[c] = ddxdt;
+				}
 			}
 			
 			if (i >= 3 && false)
@@ -255,7 +284,7 @@ std::vector<Step> PathPlanner::plan(std::vector<Step> & input)
 	
 	updateDerivatives(plan);
 	
-//	calculateTimeValues(plan);
+	calculateTimeValues(plan);
 	
 	return plan;
 }

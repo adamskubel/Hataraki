@@ -6,7 +6,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <linux/i2c-dev.h>
 #include <sys/ioctl.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -14,6 +13,11 @@
 #include <sys/time.h>
 #include <inttypes.h>
 #include <stdio.h>
+
+#ifdef __linux__
+#define I2C_SUPPORTED
+#include <linux/i2c-dev.h>
+#endif
 
 #include <stdexcept>
 #include <sstream>

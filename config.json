@@ -5,7 +5,7 @@
 		"FilePrefix" : "JointData_"
 	},
 	"GlobalSettings" : {
-		"MaxVoltage" : 1.6,
+		"MaxVoltage" : 2.2,
 		"MotionPlanSteps" : 4,
 		"UpdateFrequency" : 100,
 		"DefaultAccel" 	: 5000

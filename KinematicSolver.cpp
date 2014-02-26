@@ -6,7 +6,7 @@ using namespace std;
 void KinematicSolver::validateSolution(PlanSolution & sol)
 {
 	if (!sol.valid) cout << "Solution is invalid" << endl;
-	if ((sol.t0 < 0 || std::isnan(sol.t0)) || (sol.t1 < 0 || std::isnan(sol.t1)) || (sol.t2 < 0 || std::isnan(sol.t2)) || (sol.t3 < 0 || std::isnan(sol.t3)) || std::isnan(sol.travelVelocity))
+	if ((sol.t0 < 0 || std::isnan(sol.t0)) || (sol.t1 < 0 || std::isnan(sol.t1)) || (sol.t2 < 0 || std::isnan(sol.t2)) || (sol.t3 < 0 || std::isnan(sol.t3)) || std::isnan(sol.v1))
 	{
 		cout << "Sol.T0 = " << sol.t0 << "\t";
 		cout << "Sol.T1 = " << sol.t1 << "\t";
@@ -14,17 +14,53 @@ void KinematicSolver::validateSolution(PlanSolution & sol)
 		cout << "Sol.T3 = " << sol.t3 << "\t";
 		cout << "Sol.A0 = " << sol.accel0 << "\t";
 		cout << "Sol.A1 = " << sol.accel1 << "\t";
-		cout << "Sol.V1 = " << sol.travelVelocity << endl;
+		cout << "Sol.V1 = " << sol.v1 << endl;
 		
 		cout << "Input: T_Total = " << sol.i_tTotal << "\tD_Total = " << sol.i_dTotal << "\tV0 = " << sol.i_v0 << "\tD3 = " << sol.i_d3 << "\tV2 = " << sol.i_v2 << endl;
 	}
+}
+
+//tD*v0 - 0.5A*tD^2 == D_target, solve for v0
+// v0 == D_target/tD + 0.5A*tD
+double KinematicSolver::calculateMaximumInitialSpeed(const double accel, const double dTotal, const double tTotal)
+{
+	double a0 = -std::abs(accel)*sgn(dTotal);
+	return dTotal/tTotal + a0*0.5*tTotal;
+}
+
+
+bool KinematicSolver::threePart_checkSolutionExists(double aMax, double initialVelocity, double finalVelocity, double delta, double time)
+{
+	throw std::logic_error("Not implemented");
+
+	double minTime = std::abs((finalVelocity - initialVelocity)/aMax);
+	double minDist = initialVelocity*minTime + 0.5*sgn(delta)*aMax*std::pow(minTime,2);
+
+	if (sgn(minDist) == sgn(delta) && std::abs(minDist) > std::abs(delta))
+		return false;
+	return true;
+}
+
+bool KinematicSolver::threePart_checkTimeInvariantSolutionExists(double aMax, double initialVelocity, double finalVelocity, double delta)
+{
+	double minTime = std::abs((finalVelocity - initialVelocity)/aMax);
+	double minDist = initialVelocity*minTime + 0.5*sgn(delta)*aMax*std::pow(minTime,2);
+
+	if (sgn(minDist) == sgn(delta) && std::abs(minDist) > std::abs(delta))
+		return false;
+	return true;
+}
+
+void KinematicSolver::threePart_calculate(double aMax, double delta, double v0, double vF, double time, PlanSolution & sol)
+{
+
 }
 
 
 double KinematicSolver::optimalSpeed(const double accel, const double d3, const double dTotal, const double v0, const double v2, const double maxSpeed, double & v1)
 {
 	double a0 = std::abs(accel);
-	double direction = MathUtils::sgn<double>(dTotal);
+	double direction = sgn(dTotal);
 	
 	v1 = direction*sqrt(2.0)*sqrt(a0*d3*-2.0+a0*dTotal*2.0+v0*v0+v2*v2)*(1.0/2.0);
 	
@@ -35,17 +71,23 @@ double KinematicSolver::optimalSpeed(const double accel, const double d3, const 
 	}
 	
 	if (std::abs(v1) > std::abs(maxSpeed))
-		v1 = std::abs(maxSpeed)*MathUtils::sgn<double>(v1);
+		v1 = std::abs(maxSpeed)*sgn(v1);
 	//else
 	//v1 *= 0.99;
 	
 	return ((v0*v0)*v2*(1.0/2.0)-v1*(v2*v2)+(v1*v1)*v2+(v2*v2*v2)*(1.0/2.0)+a0*d3*v1-a0*d3*v2+a0*dTotal*v2-v0*v1*v2)/(a0*v1*v2);
 }
 
+double KinematicSolver::twoPart_minimumTime(const double aMax, const double vMax, const double dTotal, const double v0)
+{
+	double s;
+	return optimalSpeed2Part(aMax, dTotal, v0, vMax, s);
+}
+
 double KinematicSolver::optimalSpeed2Part(const double accel, const double dTotal, const double v0, const double maxSpeed, double & v1)
 {
 	double a0 = std::abs(accel);
-	double direction = MathUtils::sgn<double>(dTotal);
+	double direction = sgn(dTotal);
 	v1 = direction*sqrt(a0*dTotal*2.0+v0*v0);
 	
 	if (std::isnan(v1))
@@ -55,7 +97,7 @@ double KinematicSolver::optimalSpeed2Part(const double accel, const double dTota
 	}
 	
 	if (std::abs(v1) > std::abs(maxSpeed))
-		v1 = std::abs(maxSpeed)*MathUtils::sgn<double>(v1);
+		v1 = std::abs(maxSpeed)*sgn(v1);
 	//else
 	//v1 *= 0.99;
 	
@@ -63,7 +105,7 @@ double KinematicSolver::optimalSpeed2Part(const double accel, const double dTota
 }
 
 
-void KinematicSolver::calculatePlan2Part(double absAccel, double tTotal, double dTotal, double v0, PlanSolution & result)
+void KinematicSolver::twoPart_calculate(double absAccel, double tTotal, double dTotal, double v0, PlanSolution & result)
 {
 	double v1,t0,t1;
 	result.valid = false;
@@ -98,7 +140,7 @@ void KinematicSolver::calculatePlan2Part(double absAccel, double tTotal, double 
 	result.t0 = t0;
 	result.t1 = t1;
 	result.accel0 = a0;
-	result.travelVelocity = v1;
+	result.v1 = v1;
 	result.valid = true;
 	
 	if (MathDebug) validateSolution(result);
@@ -219,7 +261,7 @@ void KinematicSolver::calculatePlan(double absAccel, double d3, double tTotal, d
 	result.t3 = t3;
 	result.accel0 = a0;
 	result.accel1 = a1;
-	result.travelVelocity = v1;
+	result.v1 = v1;
 	result.valid = true;
 	
 	if (MathDebug) validateSolution(result);

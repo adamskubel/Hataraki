@@ -4,22 +4,34 @@ using namespace std;
 
 double TimeUtil::AlarmThreshold = 0.5;
 
+
+
 void TimeUtil::setNow(timespec & now) 
 {		
+#ifdef __linux__
 	clock_gettime(CLOCK_REALTIME, &now);
+#else
+	clock_serv_t cclock;
+	mach_timespec_t mts;
+	host_get_clock_service(mach_host_self(), CALENDAR_CLOCK, &cclock);
+	clock_get_time(cclock, &mts);
+	mach_port_deallocate(mach_task_self(), cclock);
+	now.tv_sec = mts.tv_sec;
+	now.tv_nsec = mts.tv_nsec;
+#endif
 }
 
 double TimeUtil::timeSince(struct timespec & sinceTime)
 {
 	struct timespec now;
-	clock_gettime(CLOCK_REALTIME, &now);
+	setNow(now);
 	return getTimeDelta(sinceTime,now);
 }
 
 double TimeUtil::timeUntil(struct timespec & untilTime)
 {
 	struct timespec now;
-	clock_gettime(CLOCK_REALTIME, &now);
+	setNow(now);
 	return getTimeDelta(now,untilTime);
 }
 

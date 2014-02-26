@@ -31,7 +31,7 @@ void PredictiveJointController::init()
 
 	logfileName = "Data_" + jointModel->name + ".csv";
 				
-	MathUtil::setNow(controllerStartTime);
+	TimeUtil::setNow(controllerStartTime);
 
 	cSensorAngle = 0;
 	cRawSensorAngle = 0;
@@ -239,7 +239,7 @@ void PredictiveJointController::logState()
 	TimeUtil::setNow(logStart);
 
 	const double torqueScale = 100.0;
-	double writeTime = MathUtil::timeSince(controllerStartTime);
+	double writeTime = TimeUtil::timeSince(controllerStartTime);
 	stringstream ss;
 
 	ss
@@ -347,7 +347,7 @@ void PredictiveJointController::printState()
 }
 
 
-double PredictiveJointController::getMaxJointVelocity()
+double PredictiveJointController::getMaxVelocity()
 {
 	const double AverageTorque = 0;
 

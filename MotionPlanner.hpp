@@ -16,13 +16,38 @@
 
 class MotionPlanner {
 		
+	
+	struct StepMotionPlan
+	{
+		std::vector<MotionInterval> intervals;
+		
+		StepMotionPlan(std::vector<MotionInterval> intervals)
+		{
+			this->isFinalVelocityEnforced = false;
+			this->finalVelocity = 0;
+			this->intervals = intervals;
+		}
+		
+	public:
+		double finalVelocity;
+		bool isFinalVelocityEnforced;
+		
+	public:
+		void setFinalVelocity(double finalVelocity)
+		{
+			this->finalVelocity = finalVelocity;
+			isFinalVelocityEnforced = true;
+		}
+	};
+	
+	
 private:
 	PathPlanner * pathPlanner;
 	std::vector<PredictiveJointController*> joints;
 	
 	double interpolationDistance;
 	int pathDivisionCount;
-	double firstStepTime, lastStepTime;
+	double firstStepTime, lastStepTime, samplePeriod;
 	
 	
 	bool getEasiestSolution(const double * currentAngles, vmath::Vector3d targetPosition, vmath::Matrix3d targetRotation, double * result);
@@ -40,9 +65,14 @@ public:
 	static std::shared_ptr<MotionPlan> buildMotionPlan(const double startPosition,const double endPosition, const double totalTime, const double approachVelocity, const double maxAccel);
 
 	static std::vector<std::shared_ptr<MotionPlan> > convertStepsToPlans(std::vector<Step> & steps, std::vector<double> initialAngles);
+	std::vector<std::shared_ptr<MotionPlan> > createClosedSolutionMotionPlanFromSteps(std::vector<Step> & steps);
 
 	void setPathDivisions(int divisionCount);
 	
+	std::vector<std::shared_ptr<MotionPlan> > buildPlan(std::vector<Step> & steps);
+	
+	void enforceFinalVelocity(std::vector<StepMotionPlan> * stepPlans, std::vector<Step> & steps, int stepNumber);
+	void enforceFinalVelocity2(std::vector<StepMotionPlan> * stepPlans, std::vector<Step> & steps, int stepNumber, int channel, double initialVelocity);
 };
 
 

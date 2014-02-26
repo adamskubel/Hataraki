@@ -2,8 +2,30 @@
 
 using namespace std;
 
+
 I2CBus::I2CBus(const char * busname)
 {
+	
+}
+
+void I2CBus::writeToBus(unsigned char * buf, int length)
+{
+}
+
+void I2CBus::readFromBus(unsigned char * buffer, int length)
+{
+}
+
+void I2CBus::selectAddress(int addr)
+{
+	
+}
+
+#ifdef I2C_SUPPORTED
+
+I2CBus::I2CBus(const char * busname)
+{
+
     char filename[40];
 	sprintf(filename,"%s",busname);
     if ((file = open(filename,O_RDWR)) < 0) {
@@ -54,3 +76,5 @@ double I2CBus::getAverageDataRate()
 {
 	return sma->avg();
 }
+
+#endif

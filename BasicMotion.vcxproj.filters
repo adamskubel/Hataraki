@@ -126,6 +126,9 @@
     <ClCompile Include="MotionPlanner.cpp">
       <Filter>Source Files\Predictive</Filter>
     </ClCompile>
+    <ClCompile Include="KinematicSolver.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="I2CBus.hpp">

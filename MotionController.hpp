@@ -27,18 +27,13 @@
 #include "PathPlanner.hpp"
 #include "MotionPlanner.hpp"
 
-namespace MotionControllerState {
-
-	static int Waiting = 0;
-	static int Stepping = 1;
-}
 
 
 class MotionController {
 
 private:
 	std::vector<PredictiveJointController*> joints;
-	int numSteps, state, planStepCount;
+	int numSteps, planStepCount;
 	std::vector<std::shared_ptr<MotionPlan> > currentPlan;
 	std::queue<std::function<void()> > taskQueue;
 	std::mutex taskQueueMutex;
@@ -49,7 +44,8 @@ private:
 	
 public:
 
-	std::vector<double> getJointAngles();
+	std::vector<double> getJointAnglesRadians();
+	std::vector<double> getJointAnglesSteps();
 	void executeMotionPlan(std::vector<MotionPlan*> & newPlan);
 
 public:

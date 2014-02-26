@@ -295,7 +295,7 @@ public:
 	void executeMotionPlan(std::shared_ptr<MotionPlan> requestedMotionPlan);
 	void run();
 
-	double getMaxJointVelocity();
+	double getMaxVelocity();
 	double getCurrentAngle();
 	double getMaxAcceleration();
 	

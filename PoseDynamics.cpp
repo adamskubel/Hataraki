@@ -92,7 +92,7 @@ Vector3d PoseDynamics::computeTorqueFromAngularAcceleration(int targetJoint)
 	//p0 = inertia * angularVelocity0
 	//p1 = inertia * angularVelocity1
 	
-	SegmentModel * segment = &(armModel->segments[targetJoint]);
+//	SegmentModel * segment = &(armModel->segments[targetJoint]);
 	JointModel * joint = &(armModel->joints[targetJoint]);
 		
 	Matrix3d segmentRotation = segmentTransforms[targetJoint].Rotation;

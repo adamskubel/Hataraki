@@ -10,15 +10,8 @@
 
 #include "ikfast.h"
 
-#include <errno.h>
-#include <string.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <linux/i2c-dev.h>
-#include <sys/ioctl.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
 #include <sys/time.h>
 #include <inttypes.h>
 #include <stdio.h>
@@ -381,14 +374,89 @@ void testCompletePlanBuilding()
 		validatePlan(it->get());
 }*/
 
+
+double fmt(double d)
+{
+	return std::round(d/0.01)*0.01;
+}
+
+
 void testMotionPlanning()
 {
-	MotionPlanner mp(controllers);
+	MotionPlanner * mp = new MotionPlanner(controllers);
 	
-	auto steps = mp.buildMotionSteps({0,0,0,0,0,0}, Vector3d(10,0,-6), Matrix3d::createRotationAroundAxis(0, -90, 0));
-	mp.realizeSteps(steps);
+	double  initialAngles_deg[] = {0.1,-6.4,0,34,63,0}; //11 0 -6
+	vector<double> intialAngles_rad, initialAngles_step;
+
+	for (int i=0;i<6;i++) intialAngles_rad.push_back(MathUtil::degreesToRadians(initialAngles_deg[i]));
+	for (int i=0;i<6;i++) initialAngles_step.push_back(AS5048::degreesToSteps(initialAngles_deg[i]));
 	
-	auto plans = mp.convertStepsToPlans(steps, {0,0,0,0,0,0});
+	int divisionCount = 20;
+	mp->setPathDivisions(divisionCount);
+	auto steps = mp->buildMotionSteps(intialAngles_rad, Vector3d(10,1,-5)/100.0, Matrix3d::createRotationAroundAxis(0, -90, 0));
+	
+	if (divisionCount != steps.size()) cout << "Division count is " << steps.size() << ", expected " << divisionCount << endl;
+
+	auto testOutput = mp->realizeSteps(steps);
+	auto motionPlan = mp->convertStepsToPlans(testOutput, initialAngles_step);
+	
+	std::ofstream outFile("test_motionplanning.csv");
+	int numChannels = 6;
+	outFile << "Time,";
+	for (int c=0;c<numChannels;c++)
+	{
+		outFile <<
+		"X" << c <<
+		",dX" << c <<
+		",ddX" << c <<
+		",dddX" << c <<
+		",pX" << c <<
+		",pdX" << c <<
+		",";
+	}
+	outFile << endl;
+	
+	for (auto it = testOutput.begin(); it != testOutput.end(); it++)
+	{
+		outFile << it->Time << ",";
+		for (int c=0;c<numChannels;c++)
+		{
+			outFile
+			<< fmt(it->Positions[c]) << ","
+			<< fmt(it->Velocities[c]) << ","
+			<< fmt(it->Accelerations[c]) << ","
+			<< fmt(it->Jerks[c]) << ","
+			<< fmt(motionPlan[c]->getPositionAtTime(it->Time)) << ","
+			<< fmt(motionPlan[c]->getSpeedAtTime(it->Time)) << ",";
+		}
+		outFile << endl;
+	}
+	outFile.close();
+
+
+	std::ofstream outFile2("test_motionplanning_2.csv");
+	//for (int c=0;c<numChannels;c++)
+	//{
+	//
+	//}
+	//outFile2 << endl;
+
+	//for (int c=0;c<numChannels;c++)
+	//{
+	int c = 1;
+	outFile2 <<
+		"T_offset" << c <<
+		"StartSpeed" << c <<
+		"EndSpeed" << c << endl;
+
+	for (auto it=motionPlan[c]->motionIntervals.begin(); it != motionPlan[c]->motionIntervals.end(); it++)
+	{
+		outFile2 << it->duration << "," << it->startSpeed << "," << it->endSpeed << endl;
+	}
+	outFile2.close();
+	//}
+
+
 		
 }
 
@@ -401,7 +469,7 @@ void handle(int sig) {
 
 	// print out all the frames to stderr
 	fprintf(stderr, "Error: signal %d:\n", sig);
-	backtrace_symbols_fd(array, size, STDERR_FILENO);
+	backtrace_symbols_fd(array, (int)size, STDERR_FILENO);
 	exit(1);
 }
 
@@ -425,7 +493,7 @@ int main(int argc, char *argv[])
 
 	cJSON * globalConfig = cJSON_GetObjectItem(Configuration::getInstance().getRoot(),"GlobalSettings");	
 	DRV8830::MaxVoltageStep = DRV8830::voltageToSteps(cJSON_GetObjectItem(globalConfig,"MaxVoltage")->valuedouble);		
-	cJSON * jointArray = cJSON_GetObjectItem(Configuration::getInstance().getRoot(),"JointDefinitions");
+//	cJSON * jointArray = cJSON_GetObjectItem(Configuration::getInstance().getRoot(),"JointDefinitions");
 	
 	ArmModel * armModel = new ArmModel(cJSON_GetObjectItem(Configuration::getInstance().getRoot(),"ArmModel"));
 

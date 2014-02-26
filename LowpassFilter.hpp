@@ -2,7 +2,7 @@
 #define HATARAKI_BASICMOTION_LOWPASS_FILTER_HPP_
 
 #include "MathUtils.hpp"
-#include <time.h>
+#include "TimeUtil.hpp"
 
 class LowpassFilter {
 private:
@@ -25,9 +25,9 @@ public:
 	
 	double next(double next) {
 		
-		return filter(lastValue,next,timeConstant,MathUtil::timeSince(lastTime));
-		clock_gettime(CLOCK_REALTIME, &lastTime);
-		
+		double value = filter(lastValue,next,timeConstant,TimeUtil::timeSince(lastTime));
+		TimeUtil::setNow(lastTime);
+		return value;
 	}
 	
 	

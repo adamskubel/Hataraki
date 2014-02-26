@@ -14,7 +14,6 @@
 #include <string.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <linux/i2c-dev.h>
 #include <sys/ioctl.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -257,12 +256,12 @@ int main(int argc, char *argv[])
 
 
 					if (input.fail()) {
-						cout << "Usage: <setpos|goto> <x>cm <y>cm <z>cm [pathdiv] [rX rY rZ]" << endl;
+						cout << "Usage: <setpos|goto> <x>cm <y>cm <z>cm [rX rY rZ]" << endl;
 					} else {
 						
-						int pathDivisionCount;
-						input >> pathDivisionCount;
-						if (input.fail()) pathDivisionCount = 20;
+						int pathDivisionCount = 1;
+						//input >> pathDivisionCount;
+						//if (input.fail()) pathDivisionCount = 1;
 
 						double rX,rY,rZ;
 						input >> rX; input >> rY; input >> rZ;

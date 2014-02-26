@@ -18,8 +18,8 @@ namespace DriveMode
 
 namespace DRV8830Registers
 {
-	static int CONTROL = 0x00;
-	static int FAULT = 0x01;
+	const int CONTROL = 0x00;
+	const int FAULT = 0x01;
 }
 
 //struct FaultRegister {
@@ -72,7 +72,7 @@ public:
 	static int buildCommand(double voltageMagnitude, int mode);
 	static int buildCommand(double voltage);
 
-	static void writeCommand(I2CBus * bus,int command);
+	static void writeCommand(I2CBus * bus,unsigned char command);
 
 	//static void buildVoltageDitherArray(double vTarget,int * vCmdArray, int cycleLength,int cycleCount);
 

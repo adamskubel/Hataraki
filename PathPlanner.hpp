@@ -45,7 +45,8 @@ private:
 	std::vector<double> velocityConstraints;
 	std::vector<double> accelerationConstraints;
 	std::vector<double> jerkConstraints;
-	
+	double SamplePeriod;
+
 	void updateDerivatives(std::vector<Step> & plan);
 	
 	void calculateTimeValues(std::vector<Step> & plan);

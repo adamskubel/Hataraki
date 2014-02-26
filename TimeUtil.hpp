@@ -3,13 +3,18 @@
 
 #define NanoSecondsPerSecond 1000000000.0
 
-#include <time.h>
 
 #include <string>
 #include <stdexcept>
 #include <iostream>
+#include <cmath>
 
-#include "MathUtils.hpp"
+#ifdef __linux__
+	#include <time.h>
+#else
+	#include <mach/clock.h>
+	#include <mach/mach.h>
+#endif
 
 class TimeUtil {
 

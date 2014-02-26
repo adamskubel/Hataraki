@@ -16,7 +16,6 @@ MotionController::MotionController(vector<PredictiveJointController*> & _joints,
 	this->joints = _joints;
 	this->updatePeriod = (long)(_samplePeriod*1000000.0); //seconds to microseconds
 	this->planStepCount = _planStepCount;
-	state = MotionControllerState::Waiting;
 	this->samplePeriod = _samplePeriod;
 	
 	this->motionPlanner = new MotionPlanner(joints);
@@ -69,10 +68,10 @@ void MotionController::updateController(){
 		}
 		TimeUtil::assertTime(step,"Task execution");
 		
-		double totalTime = MathUtil::timeSince(start);
+		double totalTime = TimeUtil::timeSince(start);
 		long adjustedSleep = updatePeriod - (totalTime*1000000);
 		if (adjustedSleep > 0 && adjustedSleep <= updatePeriod)
-			usleep(adjustedSleep);
+			usleep(static_cast<unsigned int>(adjustedSleep));
 	}
 	catch (std::runtime_error & e)
 	{
@@ -98,8 +97,6 @@ double getAccelDistFromSpeed(double initialSpeed, double endSpeed, double accel)
 
 void MotionController::setJointPosition(int jointIndex, double targetAngle, double travelTime, double accel)
 {
-	const double MinSpeedControlDistance = 150.0;
-
 	if (jointIndex >= 0 && jointIndex < joints.size()){		
 			
 		auto pjc = joints.at(jointIndex);
@@ -159,14 +156,22 @@ void MotionController::enableAllJoints()
 
 void MotionController::moveToPosition(Vector3d targetPosition, Matrix3d targetRotation, int pathDivisionCount, bool interactive)
 {
-	auto initialAngles = getJointAngles();
 	motionPlanner->setPathDivisions(pathDivisionCount);
-	vector<Step> steps = motionPlanner->buildMotionSteps(initialAngles, targetPosition, targetRotation);
-	cout << "Built " << steps.size() << " steps" << endl;
-	vector<Step> updated = motionPlanner->realizeSteps(steps);
+	vector<Step> steps = motionPlanner->buildMotionSteps( getJointAnglesRadians(), targetPosition, targetRotation);
 
-	currentPlan.clear();
-	currentPlan = motionPlanner->convertStepsToPlans(updated, initialAngles);
+	if (false)
+	{
+		cout << "Built " << steps.size() << " steps" << endl;
+		vector<Step> updated = motionPlanner->realizeSteps(steps);
+
+		currentPlan.clear();
+		currentPlan = motionPlanner->convertStepsToPlans(updated, getJointAnglesSteps());
+	}
+	else
+	{
+		currentPlan.clear();
+		currentPlan = motionPlanner->createClosedSolutionMotionPlanFromSteps(steps);
+	}
 
 	bool executePlan = false;
 
@@ -231,12 +236,22 @@ void MotionController::postTask(std::function<void()> task)
 	taskQueue.push(task);
 }
 
-vector<double> MotionController::getJointAngles()
+vector<double> MotionController::getJointAnglesRadians()
 {
 	vector<double> angles;
 	for (auto it = joints.begin(); it != joints.end(); it++)
 	{					
 		angles.push_back(AS5048::stepsToRadians((*it)->getCurrentAngle()));
+	}
+	return angles;
+}
+
+vector<double> MotionController::getJointAnglesSteps()
+{
+	vector<double> angles;
+	for (auto it = joints.begin(); it != joints.end(); it++)
+	{					
+		angles.push_back((*it)->getCurrentAngle());
 	}
 	return angles;
 }

@@ -11,7 +11,7 @@ void sgs_error(const char * errorString)
 }
 
 // constructor with sizes
-SGMatrix::SGMatrix(const size_t rows,const size_t cols,const double defval) 
+SGMatrix::SGMatrix(const size_t_sg rows,const size_t_sg cols,const double defval) 
         : std::vector<std::vector<double>>(rows) {
     int i;
     for (i = 0; i < rows; ++i) {
@@ -32,7 +32,7 @@ SGMatrix::SGMatrix(const SGMatrix &m) : std::vector<std::vector<double>>(m.size(
     SGMatrix::iterator inew = begin();
     SGMatrix::const_iterator iold = m.begin();
     for (/* empty */; iold < m.end(); ++inew, ++iold) {
-        const size_t oldsz = iold->size();
+        const size_t_sg oldsz = iold->size();
         inew->resize(oldsz);
         const std::vector<double> oldvec(*iold);
         *inew = oldvec;
@@ -43,7 +43,7 @@ SGMatrix::SGMatrix(const SGMatrix &m) : std::vector<std::vector<double>>(m.size(
 SGMatrix::SGMatrix(const std::vector<double> &v) 
         : std::vector<std::vector<double>>(1) {
 
-    const size_t oldsz = v.size();
+    const size_t_sg oldsz = v.size();
     front().resize(oldsz);
     front() = v;
 }
@@ -89,7 +89,7 @@ void permute(SGMatrix &A, std::vector<int> &idx)
  * scaling information in the vector scale. The map of swapped indices is
  * recorded in swp. The return value is +1 or -1 depending on whether the
  * number of row swaps was even or odd respectively. */
-static int partial_pivot(SGMatrix &A, const size_t row, const size_t col, 
+static int partial_pivot(SGMatrix &A, const size_t_sg row, const size_t_sg col, 
                          std::vector<double> &scale, std::vector<int> &idx, double tol)
 {
     if (tol <= 0.0)
@@ -98,11 +98,11 @@ static int partial_pivot(SGMatrix &A, const size_t row, const size_t col,
     int swapNum = 1;
 
     // default pivot is the current position, [row,col]
-    int pivot = row; 
+    size_t_sg pivot = row;
     double piv_elem = fabs(A[idx[row]][col]) * scale[idx[row]];
 
     // loop over possible pivots below current
-    int j;
+    size_t_sg j;
     for (j = row + 1; j < A.nr_rows(); ++j) { 
 
         const double tmp = fabs(A[idx[j]][col]) * scale[idx[j]];  
@@ -137,7 +137,7 @@ static int partial_pivot(SGMatrix &A, const size_t row, const size_t col,
  * place.  A is not modified, and the solution, b, is returned in a. */
 static void lu_backsubst(SGMatrix &A, SGMatrix &a, bool diag=false) 
 {
-    int r,c,k;
+    size_t_sg r,c,k;
     
     for (r = (A.nr_rows() - 1); r >= 0; --r) {
         for (c = (A.nr_cols() - 1); c > r; --c) {
@@ -256,7 +256,7 @@ static SGMatrix lin_solve(const SGMatrix &A, const SGMatrix &a,
 //! Returns the inverse of a matrix using LU-decomposition. 
 static SGMatrix invert(const SGMatrix &A) 
 {
-    const int n = A.size();
+    const size_t_sg n = static_cast<size_t_sg>(A.size());
     SGMatrix E(n, n, 0.0);
     SGMatrix B(A);
     int i;
@@ -307,10 +307,10 @@ SGMatrix operator *(const SGMatrix &a, const SGMatrix &b)
 
 
 //! calculate savitzky golay coefficients.
-static std::vector<double> SGCoefficients(const std::vector<double> &b, const size_t deg)
+static std::vector<double> SGCoefficients(const std::vector<double> &b, const size_t_sg deg)
 {
-    const size_t rows(b.size());
-    const size_t cols(deg + 1);
+    const size_t_sg rows(b.size());
+    const size_t_sg cols(deg + 1);
     SGMatrix A(rows, cols);
     std::vector<double> res(rows);
         
@@ -388,8 +388,8 @@ std::vector<double> SGSmoothUtil::SGSmooth(const std::vector<double> &v, const i
  *  then calculate the first derivative and return it. */
 static std::vector<double> lsqr_fprime(const std::vector<double> &b, const int deg)
 {
-    const int rows(b.size());
-    const int cols(deg + 1);
+    const size_t_sg rows(b.size());
+    const size_t_sg cols(deg + 1);
     SGMatrix A(rows, cols);
     std::vector<double> res(rows);
 

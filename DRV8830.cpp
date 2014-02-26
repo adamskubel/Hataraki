@@ -24,7 +24,7 @@ int DRV8830::voltageToSteps(double input)
 
 unsigned char DRV8830::readFaultRegister(I2CBus * bus)
 {
-	unsigned char buf[1] = {DRV8830Registers::FAULT};
+	unsigned char buf[1] = {(unsigned char)DRV8830Registers::FAULT};
 	bus->writeToBus(buf,1);
 	
 	unsigned char result[1] = {0};
@@ -44,21 +44,21 @@ double DRV8830::getNearestVoltage(double voltageTarget)
 
 bool DRV8830::hasFault(unsigned char faultRegisterValue)
 {
-	return (faultRegisterValue & 0x01 != 0);
+	return ((faultRegisterValue & 0x01) != 0);
 }
 
 void DRV8830::printFaultRegister(unsigned char faultRegisterValue)
 {
 	cout << "Register value = 0x" << hex << (int)faultRegisterValue << ". Fault flags: ";
-	if (faultRegisterValue & 0x01 != 0)
+	if ((faultRegisterValue & 0x01) != 0)
 	{
-		if (faultRegisterValue & 0x02 != 0)
+		if ((faultRegisterValue & 0x02) != 0)
 			cout << "Overcurrent | ";
-		if (faultRegisterValue & 0x04 != 0)
+		if ((faultRegisterValue & 0x04) != 0)
 			cout << "Undervoltage lockout | ";
-		if (faultRegisterValue & 0x08 != 0)
+		if ((faultRegisterValue & 0x08) != 0)
 			cout << "Overtemperature condition | ";
-		if (faultRegisterValue & 0x10 != 0)
+		if ((faultRegisterValue & 0x10) != 0)
 			cout << "Current Limit";
 	}
 	else
@@ -157,14 +157,14 @@ void DRV8830::writeVoltage(I2CBus * bus, double voltage)
 
 void DRV8830::writeVoltageMode(I2CBus * bus, double voltage, int mode)
 {
-	int command = buildCommand(voltage,mode);
+	unsigned char command = buildCommand(voltage,mode);
 
-	unsigned char buffer[2] = {DRV8830Registers::CONTROL,command};
+	unsigned char buffer[2] = {static_cast<unsigned char>(DRV8830Registers::CONTROL),command};
 	bus->writeToBus(buffer,2);
 }
 
-void DRV8830::writeCommand(I2CBus * bus,int command)
+void DRV8830::writeCommand(I2CBus * bus,unsigned char command)
 {
-	unsigned char buffer[2] = {DRV8830Registers::CONTROL,command};
+	unsigned char buffer[2] = {static_cast<unsigned char>(DRV8830Registers::CONTROL),command};
 	bus->writeToBus(buffer,2);
 }

@@ -2,7 +2,6 @@
 #define HATARAKI_BASICMOTION_MATH_UTILS_HPP_
 
 
-#include <time.h>
 #include <math.h>
 
 #include <cmath>
@@ -14,12 +13,14 @@
 #include "vmath.h"
 
 
-namespace MathUtils {
-	
+//namespace MathUtils {
+
 	template <typename T> int sgn(T val) {
 		return (T(0) < val) - (val < T(0));
 	}
-};
+
+	
+//};
 
 class MathUtil {
 
@@ -120,17 +121,6 @@ public:
 		for (int i=0;i<3;i++){
 			vScale[i] = v0[i] * scale;
 		}
-	}
-
-	static void setNow(struct timespec & now) {		
-		clock_gettime(CLOCK_REALTIME, &now);
-	}
-
-	
-	static double timeSince(struct timespec & sinceTime){
-		struct timespec now;
-		clock_gettime(CLOCK_REALTIME, &now);
-		return getTimeDelta(sinceTime,now);
 	}
 
 	static bool linearRegression(std::list<std::pair<double, double> > data, double & slope, double & intercept, double & rValue);

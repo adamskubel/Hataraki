@@ -9,6 +9,9 @@
 
 #include "AsyncLogger.hpp"
 
+typedef int size_t_sg;
+
+
 /* Matrix class.
  *
  * This is a matrix class derived from a vector of std::vector<double>s.  Note that
@@ -26,7 +29,7 @@ private:
     SGMatrix &operator =(const SGMatrix &) { return *this; };
 public:
     //! constructor with sizes
-    SGMatrix(const size_t rows, const size_t cols, const double def=0.0);
+    SGMatrix(const size_t_sg rows, const size_t_sg cols, const double def=0.0);
     //! copy constructor for matrix
     SGMatrix(const SGMatrix &m);
     //! copy constructor for vector
@@ -36,9 +39,9 @@ public:
     // ~SGMatrix() {};
 
     //! get size
-    size_t nr_rows(void) const { return size(); };
+    size_t_sg nr_rows(void) const { return static_cast<size_t_sg>(size()); };
     //! get size
-    size_t nr_cols(void) const { return front().size(); };
+    size_t_sg nr_cols(void) const { return static_cast<size_t_sg>(front().size()); };
 };
 
 class SGSmoothUtil {
