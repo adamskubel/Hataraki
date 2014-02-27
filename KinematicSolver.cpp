@@ -5,60 +5,115 @@ using namespace std;
 
 void KinematicSolver::validateSolution(PlanSolution & sol)
 {
-	if (!sol.valid) cout << "Solution is invalid" << endl;
-	if ((sol.t0 < 0 || std::isnan(sol.t0)) || (sol.t1 < 0 || std::isnan(sol.t1)) || (sol.t2 < 0 || std::isnan(sol.t2)) || (sol.t3 < 0 || std::isnan(sol.t3)) || std::isnan(sol.v1))
-	{
-		cout << "Sol.T0 = " << sol.t0 << "\t";
-		cout << "Sol.T1 = " << sol.t1 << "\t";
-		cout << "Sol.T2 = " << sol.t2 << "\t";
-		cout << "Sol.T3 = " << sol.t3 << "\t";
-		cout << "Sol.A0 = " << sol.accel0 << "\t";
-		cout << "Sol.A1 = " << sol.accel1 << "\t";
-		cout << "Sol.V1 = " << sol.v1 << endl;
-		
-		cout << "Input: T_Total = " << sol.i_tTotal << "\tD_Total = " << sol.i_dTotal << "\tV0 = " << sol.i_v0 << "\tD3 = " << sol.i_d3 << "\tV2 = " << sol.i_v2 << endl;
-	}
-}
+	////if (!sol.valid) cout << "Solution is invalid" << endl;
+	//if ((sol.t0 < 0 || std::isnan(sol.t0)) || (sol.t1 < 0 || std::isnan(sol.t1)) || (sol.t2 < 0 || std::isnan(sol.t2)) || (sol.t3 < 0 || std::isnan(sol.t3)) || std::isnan(sol.v1))
+	//{
+	//	cout << "Sol.T0 = " << sol.t0 << "\t";
+	//	cout << "Sol.T1 = " << sol.t1 << "\t";
+	//	cout << "Sol.T2 = " << sol.t2 << "\t";
+	//	cout << "Sol.T3 = " << sol.t3 << "\t";
+	//	cout << "Sol.A0 = " << sol.a0 << "\t";
+	//	cout << "Sol.A1 = " << sol.a1 << "\t";
+	//	cout << "Sol.V1 = " << sol.v1 << endl;
+	//	
+	//	//cout << "Input: T_Total = " << sol.i_tTotal << "\tD_Total = " << sol.i_dTotal << "\tV0 = " << sol.i_v0 << "\tD3 = " << sol.i_d3 << "\tV2 = " << sol.i_v2 << endl;
+	//}
+} 
 
-//tD*v0 - 0.5A*tD^2 == D_target, solve for v0
-// v0 == D_target/tD + 0.5A*tD
+// ****** Two part problem **********
+
 double KinematicSolver::twoPart_maxInitialVelocity(const double aMax, const double d, const double tTotal)
 {
+	// Solving the equation:
+	//tD*v0 - 0.5A*tD^2 == D_target, solve for v0
+	// v0 == D_target/tD + 0.5A*tD
 	double a0 = -std::abs(aMax)*sgn(d);
 	return d/tTotal + a0*0.5*tTotal;
 }
 
-bool KinematicSolver::twoPart_checkSolutionExists(const double aMax, const double v0, const double d, const double t)
+double KinematicSolver::twoPart_minimumTime(const double aMax, const double vMax, const double d, const double v0)
 {
-	if (sgn(v0) != 0 && sgn(v0) != sgn(d))
-		return false;
-
-	if (abs(v0 * t) > abs(d)) //possible overshoot
+	double a0 = aMax * sgn(d);
+	
+	double v1 = sgn(d)*sqrt(a0*d*2.0+v0*v0);
+	
+	if (std::isnan(v1))
 	{
-		double a0 = -abs(aMax)*sgn(d);
-
-		//Solution exists if sign changes
-		return sgn(v0*t - a0*0.5*t^2) != sgn(d);
+		throw std::runtime_error("Complex result in two-part minimization");
+		//a0 = -a0;
+		//v1 = sgn(d)*sqrt(a0*d*2.0+v0*v0);
 	}
-	else //possible undershoot
+	
+	if (std::abs(v1) > std::abs(vMax))
+		v1 = std::abs(vMax)*sgn(v1);
+	
+	return (a0*d-v0*v1+(v0*v0)*(1.0/2.0)+(v1*v1)*(1.0/2.0))/(a0*v1);
+}
+
+bool KinematicSolver::twoPart_attemptSolution(const double aMax, const double v0, const double d, const double t, double & v0_new)
+{
+	PlanSolution sol;
+	twoPart_calculate(aMax,v0,d,t,sol);
+
+	if (sol.status == PlanSolution::SolutionStatus::AdjustedSolution)
 	{
-		double a0 = abs(aMax)*sgn(d);
-		return abs(v0*t + a0*0.5*pow(t,2)) >= abs(d);
+		v0_new = sol.adjusted.v0_max;
+		return false;
+	}
+	else if (sol.status == PlanSolution::SolutionStatus::OriginalSolution)
+	{
+		return true;
+	}
+	else
+	{
+		throw std::logic_error("Two part problem should always have a possible solution.");
 	}
 }
 
-bool KinematicSolver::threePart_checkSolutionExists(double aMax, double v0, double vF, double d, double t)
+
+void KinematicSolver::twoPart_calculate(double aMax,double v0, double d, double tTotal, PlanSolution & sol)
 {
-	//No solution if initial velocity is in the wrong direction
-	if (sgn(v0) != 0 && sgn(v0) != sgn(d))
-		return false;
+	double v1,t0,t1,a0;
 
-	if (abs(vF - v0)/abs(aMax) < t)
-		return false;
+	if (abs(v0 * tTotal) > abs(d))
+		a0 = aMax * -sgn(d);
+	else
+		a0 = aMax * sgn(d);
 
-	//Attempt calculation
-	return true;
+	sol.status = PlanSolution::SolutionStatus::NoSolution;
+	
+	double t0_sign = -(sqrt(a0*(d*-2.0+tTotal*v0*2.0+a0*(tTotal*tTotal)))-a0*tTotal)/a0;
+	
+	if (std::isnan(t0_sign))
+	{
+		a0 = -std::abs(aMax)*sgn(d);
+		double v0_max = d/tTotal + a0*0.5*tTotal;
+		sol.adjusted.v0_max = v0_max;
+		sol.status = PlanSolution::AdjustedSolution;
+	}
+	else if (t0_sign < 0)
+	{
+		a0 = -a0;
+		v1 = v0+sqrt(a0*(d*-2.0+tTotal*v0*2.0+a0*(tTotal*tTotal)))+a0*tTotal;
+		t0 = (sqrt(a0*(d*-2.0+tTotal*v0*2.0+a0*(tTotal*tTotal)))+a0*tTotal)/a0;
+		t1 = -sqrt(a0*(d*-2.0+tTotal*v0*2.0+a0*(tTotal*tTotal)))/a0;
+		sol.status = PlanSolution::OriginalSolution;
+	}
+	else
+	{
+		v1 = v0-sqrt(a0*(d*-2.0+tTotal*v0*2.0+a0*(tTotal*tTotal)))+a0*tTotal;
+		t0 = -(sqrt(a0*(d*-2.0+tTotal*v0*2.0+a0*(tTotal*tTotal)))-a0*tTotal)/a0;
+		t1 = sqrt(a0*(d*-2.0+tTotal*v0*2.0+a0*(tTotal*tTotal)))/a0;
+		sol.status = PlanSolution::OriginalSolution;
+	}
+	
+	sol.a0 = a0;
+	sol.setResult(v1,t0,t1,0);
+	
+	if (MathDebug) validateSolution(sol);
 }
+
+// ********** Three part problem *************
 
 bool KinematicSolver::threePart_checkTimeInvariantSolutionExists(double aMax, double initialVelocity, double finalVelocity, double delta)
 {
@@ -70,18 +125,107 @@ bool KinematicSolver::threePart_checkTimeInvariantSolutionExists(double aMax, do
 	return true;
 }
 
-void KinematicSolver::threePart_calculate(double aMax, double delta, double v0, double vF, double time, PlanSolution & sol)
+double KinematicSolver::threePart_minimumTime(const double aMax, const double vMax, const double v0, const double v2, const double d)
 {
+	double a0 = aMax * sgn(d);
+
+	double v1 = sqrt(2.0)*sqrt(a0*dTotal*2.0+v0*v0+v2*v2)*(1.0/2.0);
+	double minTime = (a0*dTotal-v0*v1-v1*v2+(v0*v0)*(1.0/2.0)+v1*v1+(v2*v2)*(1.0/2.0))/(a0*v1);
+
+	return minTime;
+}
+
+bool KinematicSolver::threePart_attemptSolution(const double aMax, const double d, const double v0, const double vF, const double t, double & v0_new)
+{
+	PlanSolution sol;
+	threePart_calculate(aMax,d,v0,vF,t,sol);
+
+	if (sol.status == PlanSolution::SolutionStatus::NoSolution)
+	{
+		throw std::runtime_error("No solution is possible");
+	}
+	else if (sol.status == PlanSolution::SolutionStatus::AdjustedSolution)
+	{
+		if (v0 > sol.adjusted.v0_max)
+			v0_new = sol.adjusted.v0_max;
+		else if (v0 < sol.adjusted.v0_min)
+			v0_new = sol.adjusted.v0_min;
+		else
+			throw std::logic_error("Attempted to adjust initial velocity, but it is already within the acceptable range.");
+
+		return false;
+	}
+	return true;
+}
+
+void KinematicSolver::threePart_calculate(double aMax, double d, double v0, double vF, double t, PlanSolution & sol)
+{
+	double v1,t0,t1,t2;
+
+	sol.status = PlanSolution::SolutionStatus::NoSolution;
+	int form = 1;
+	int dir = sgn(d);
+
 	//Solution 1 
-	// U shape (decel - travel - accel)
-	// test: a0 negative, a1 positive, if v1 is negative then test fails and no valid solution exists
-	// If V1 is complex, then the time interval is too short for this solution.
+	// U shape (decel - travel - accel) AKA CONCAVE
+	// test: a0 negative, a1 positive, if v1 is negative then test fails and no valid solution exists 
+	// If V1 is complex, then the time interval is too short for this solution. (go to 2)
 	// If t2 and t1 are zero, then the solution is a straight line
+
+	if (form == 1)
+	{
+		double a0 = -dir*aMax, a1= dir*aMax;
+
+		threePartEval(a0,a1,d,t,v0,vF,v1,t0,t1,t2);
 	
-	//Solution 2 (fastest)
+		if (std::isnan(v1))
+		{
+			form = 2;
+		}
+		else if (abs(v1) > 0 && sgn(v1) != dir)
+		{
+			sol.status = PlanSolution::AdjustedSolution;
+			double concave_v0_max = sqrt(a0*d*-2.0-vF*vF);
+			sol.adjusted.v0_max = concave_v0_max;
+			sol.adjusted.v0_min = 0;
+		}
+		else
+		{
+			sol.status = PlanSolution::SolutionStatus::OriginalSolution;
+			sol.setResult(v1,t0,t1,t2);
+		}
+	}
+	
+	//Solution 2 (fastest) AKA CONVEX
 	// n shape (accel - travel - decel)
-	// test: a0 positive, a1 negative. If t0 and/or t2 are negative, then the time is too slow for this solution
+	// test: a0 positive, a1 negative. If t0 and/or t2 are negative, then the time is too long for this solution (go to 3)
 	// If v1 is complex, then the time is too short for this solution (and thus no solution is possible)
+	
+	if (form == 2)
+	{
+		double a0 = dir*aMax, a1 = -dir*aMax;
+		threePartEval(a0,a1,d,t,v0,vF,v1,t0,t1,t2);
+	
+		if (isnan(v1))
+		{
+			sol.status = PlanSolution::AdjustedSolution;
+			double convex_v0_min = vF+a0*t+sqrt(2.0)*sqrt(a0*(d*-2.0+t*vF*2.0+a0*(t*t)));
+			double convex_v0_max = vF+sqrt(a0*(d*-2.0+t*vF*2.0+a0*(t*t)))+a0*t;
+			double convex_v0_max_2= vF-sqrt(a0*(d*-2.0+t*vF*2.0+a0*(t*t)))+a0*t;
+			
+			sol.adjusted.v0_min = convex_v0_min;
+			sol.adjusted.v0_max = convax_v0_max_2;
+		}
+		else if (t0 < 0 || t2 < 0)
+		{
+			form = 3;
+		}
+		else
+		{
+			sol.status = PlanSolution::SolutionStatus::OriginalSolution;
+			sol.setResult(v1,t0,t1,t2);
+		}
+	}
 
 	//Solution 3
 	// \__
@@ -92,25 +236,46 @@ void KinematicSolver::threePart_calculate(double aMax, double delta, double v0, 
 	// If t2 is negative, time is too slow
 	// If t0 or t1 is negative, time is too fast
 	// But, if we obey the above preconditions, this solution should always work
-
-
-}
-
-double KinematicSolver::threePart_maxTimeInvariantInitialVelocity(const double aMax, const double vF, const double d)
-{
-	//The optimal solution for time invariant problem is always a straight line
 	
+	if (form == 3)
+	{
+		double a0,a1;
+		a0 = a1 = sgn(vF-v0) * aMax;
+		threePartEval(a0,a1,d,t,v0,vF,v1,t0,t1,t2);
+		//done unless I fucked up
+		sol.setResult(v1,t0,t1,t2);
+		sol.status = PlanSolution::SolutionStatus::OriginalSolution;
+	}
 }
 
-double KinematicSolver::threePart_maxInitialVelocity(const double aMax, const double vF, const double d, const double t)
+PlanSolution threePartEval(double a0, double a1, double dTotal, double tTotal, double v0, double v2, double & v1, double & t0, double & t1, double & t2)
 {
-	//THIS IS HARD
-
-	//NEXT STEP: Plot T0,T1,T2 with respect to V0. ALL ON THE SAME GRAPH!!!
+	if (a0 == a1)
+	{
+		v1 = (a0*dTotal*2.0+v0*v0-v2*v2)/(v0*2.0-v2*2.0+a0*tTotal*2.0);
+		t0 = (a0*dTotal+v0*v2-(v0*v0)*(1.0/2.0)-(v2*v2)*(1.0/2.0)-a0*tTotal*v0)/(a0*(v0-v2+a0*tTotal));
+		t1 = (v0-v2+a0*tTotal)/a0;
+		t2 = (-a0*dTotal+v0*v2-(v0*v0)*(1.0/2.0)-(v2*v2)*(1.0/2.0)+a0*tTotal*v2)/(a0*(v0-v2+a0*tTotal));
+	}	
+	else 
+	{
+		v1 = -(a1*v0-a0*v2+sqrt(a0*a1*(a0*dTotal*2.0-a1*dTotal*2.0-v0*v2*2.0+v0*v0+v2*v2+a1*tTotal*v0*2.0-a0*tTotal*v2*2.0+a0*a1*(tTotal*tTotal)))+a0*a1*tTotal)/(a0-a1);
+		t0 = -(v0+(a1*v0-a0*v2+sqrt(a0*a1*(a0*dTotal*2.0-a1*dTotal*2.0-v0*v2*2.0+v0*v0+v2*v2+a1*tTotal*v0*2.0-a0*tTotal*v2*2.0+a0*a1*(tTotal*tTotal)))+a0*a1*tTotal)/(a0-a1))/a0;
+		t1 = (a1*v0-a0*v2-(a0*(a1*v0-a0*v2+sqrt(a0*a1*(a0*dTotal*2.0-a1*dTotal*2.0-v0*v2*2.0+v0*v0+v2*v2+a1*tTotal*v0*2.0-a0*tTotal*v2*2.0+a0*a1*(tTotal*tTotal)))+a0*a1*tTotal))/(a0-a1)+
+			  (a1*(a1*v0-a0*v2+sqrt(a0*a1*(a0*dTotal*2.0-a1*dTotal*2.0-v0*v2*2.0+v0*v0+v2*v2+a1*tTotal*v0*2.0-a0*tTotal*v2*2.0+a0*a1*(tTotal*tTotal)))+a0*a1*tTotal))/(a0-a1)+a0*a1*tTotal)/(a0*a1);
+		t2 = (v2+(a1*v0-a0*v2+sqrt(a0*a1*(a0*dTotal*2.0-a1*dTotal*2.0-v0*v2*2.0+v0*v0+v2*v2+a1*tTotal*v0*2.0-a0*tTotal*v2*2.0+a0*a1*(tTotal*tTotal)))+a0*a1*tTotal)/(a0-a1))/a1;
+	}
+	//else
+	//{
+	//	v1 = -(a1*v0-a0*v2-sqrt(a0*a1*(a0*dTotal*2.0-a1*dTotal*2.0-v0*v2*2.0+v0*v0+v2*v2+a1*tTotal*v0*2.0-a0*tTotal*v2*2.0+a0*a1*(tTotal*tTotal)))+a0*a1*tTotal)/(a0-a1);
+	//	t0 = -(v0+(a1*v0-a0*v2-sqrt(a0*a1*(a0*dTotal*2.0-a1*dTotal*2.0-v0*v2*2.0+v0*v0+v2*v2+a1*tTotal*v0*2.0-a0*tTotal*v2*2.0+a0*a1*(tTotal*tTotal)))+a0*a1*tTotal)/(a0-a1))/a0;
+	//	t1 = (a1*v0-a0*v2+a0*a1*tTotal-(a0*(a1*v0-a0*v2-sqrt(a0*a1*(a0*dTotal*2.0-a1*dTotal*2.0-v0*v2*2.0+v0*v0+v2*v2+a1*tTotal*v0*2.0-a0*tTotal*v2*2.0+a0*a1*(tTotal*tTotal)))
+	//										+a0*a1*tTotal))/(a0-a1)+(a1*(a1*v0-a0*v2-sqrt(a0*a1*(a0*dTotal*2.0-a1*dTotal*2.0-v0*v2*2.0+v0*v0+v2*v2+a1*tTotal*v0*2.0-a0*tTotal*v2*2.0+a0*a1*(tTotal*tTotal)))+a0*a1*tTotal))/(a0-a1))/(a0*a1);
+	//	t2 = (v2+(a1*v0-a0*v2-sqrt(a0*a1*(a0*dTotal*2.0-a1*dTotal*2.0-v0*v2*2.0+v0*v0+v2*v2+a1*tTotal*v0*2.0-a0*tTotal*v2*2.0+a0*a1*(tTotal*tTotal)))+a0*a1*tTotal)/(a0-a1))/a1;
+	//}
 }
 
-
-double KinematicSolver::optimalSpeed(const double accel, const double d3, const double d, const double v0, const double v2, const double maxSpeed, double & v1)
+double KinematicSolver::fourPart_minimumTime(const double accel, const double d3, const double d, const double v0, const double v2, const double maxSpeed, double & v1)
 {
 	double a0 = std::abs(accel);
 	double direction = sgn(d);
@@ -125,84 +290,14 @@ double KinematicSolver::optimalSpeed(const double accel, const double d3, const 
 	
 	if (std::abs(v1) > std::abs(maxSpeed))
 		v1 = std::abs(maxSpeed)*sgn(v1);
-	//else
-	//v1 *= 0.99;
 	
 	return ((v0*v0)*v2*(1.0/2.0)-v1*(v2*v2)+(v1*v1)*v2+(v2*v2*v2)*(1.0/2.0)+a0*d3*v1-a0*d3*v2+a0*d*v2-v0*v1*v2)/(a0*v1*v2);
 }
 
-double KinematicSolver::twoPart_minimumTime(const double aMax, const double vMax, const double d, const double v0)
-{
-	double s;
-	return optimalSpeed2Part(aMax, d, v0, vMax, s);
-}
-
-double KinematicSolver::optimalSpeed2Part(const double accel, const double d, const double v0, const double maxSpeed, double & v1)
-{
-	double a0 = std::abs(accel);
-	double direction = sgn(d);
-	v1 = direction*sqrt(a0*d*2.0+v0*v0);
-	
-	if (std::isnan(v1))
-	{
-		a0 = -a0;
-		v1 = direction*sqrt(a0*d*2.0+v0*v0);
-	}
-	
-	if (std::abs(v1) > std::abs(maxSpeed))
-		v1 = std::abs(maxSpeed)*sgn(v1);
-	//else
-	//v1 *= 0.99;
-	
-	return (a0*d-v0*v1+(v0*v0)*(1.0/2.0)+(v1*v1)*(1.0/2.0))/(a0*v1);
-}
-
-
-void KinematicSolver::twoPart_calculate(double absAccel, double tTotal, double d, double v0, PlanSolution & result)
-{
-	double v1,t0,t1;
-	result.valid = false;
-	result.t3 = 0;
-	result.t2 = 0;
-	result.accel1= 0;
-	
-	double a0 = std::abs(absAccel);
-	
-	result.i_dTotal = d;
-	result.i_v0 = v0;
-	result.i_tTotal = tTotal;
-	
-	double t0_sign = -(sqrt(a0*(d*-2.0+tTotal*v0*2.0+a0*(tTotal*tTotal)))-a0*tTotal)/a0;
-	
-	if (std::isnan(t0_sign)) return;
-	
-	if (t0_sign < 0)
-	{
-		a0 = -a0;
-		v1 = v0+sqrt(a0*(d*-2.0+tTotal*v0*2.0+a0*(tTotal*tTotal)))+a0*tTotal;
-		t0 = (sqrt(a0*(d*-2.0+tTotal*v0*2.0+a0*(tTotal*tTotal)))+a0*tTotal)/a0;
-		t1 = -sqrt(a0*(d*-2.0+tTotal*v0*2.0+a0*(tTotal*tTotal)))/a0;
-	}
-	else
-	{
-		v1 = v0-sqrt(a0*(d*-2.0+tTotal*v0*2.0+a0*(tTotal*tTotal)))+a0*tTotal;
-		t0 = -(sqrt(a0*(d*-2.0+tTotal*v0*2.0+a0*(tTotal*tTotal)))-a0*tTotal)/a0;
-		t1 = sqrt(a0*(d*-2.0+tTotal*v0*2.0+a0*(tTotal*tTotal)))/a0;
-	}
-	
-	result.t0 = t0;
-	result.t1 = t1;
-	result.accel0 = a0;
-	result.v1 = v1;
-	result.valid = true;
-	
-	if (MathDebug) validateSolution(result);
-}
-
-void KinematicSolver::calculatePlan(double absAccel, double d3, double tTotal, double d, double v0, double v2, PlanSolution & result)
+void KinematicSolver::fourPart_calculate(double absAccel, double d3, double tTotal, double d, double v0, double v2, PlanSolution & result)
 {
 	double v1,t0,t1,t2,t3;
-	result.valid = false;
+	result.status = PlanSolution::SolutionStatus::NoSolution;
 	
 	double a0,a1;
 	
@@ -217,11 +312,11 @@ void KinematicSolver::calculatePlan(double absAccel, double d3, double tTotal, d
 		a1 = std::abs(absAccel);
 	}
 	
-	result.i_d3 = d3;
-	result.i_dTotal = d;
-	result.i_v0 = v0;
-	result.i_v2 = v2;
-	result.i_tTotal = tTotal;
+	//result.i_d3 = d3;
+	//result.i_dTotal = d;
+	//result.i_v0 = v0;
+	//result.i_v2 = v2;
+	//result.i_tTotal = tTotal;
 	
 		
 	double t0_sign,t2_sign;
@@ -312,10 +407,58 @@ void KinematicSolver::calculatePlan(double absAccel, double d3, double tTotal, d
 	result.t1 = t1;
 	result.t2 = t2;
 	result.t3 = t3;
-	result.accel0 = a0;
-	result.accel1 = a1;
+	result.a0 = a0;
+	result.a1 = a1;
 	result.v1 = v1;
-	result.valid = true;
+	result.status = PlanSolution::SolutionStatus::OriginalSolution;
 	
 	if (MathDebug) validateSolution(result);
 }
+
+
+/*
+
+
+
+bool KinematicSolver::twoPart_checkSolutionExists(const double aMax, const double v0, const double d, const double t)
+{
+	if (sgn(v0) != 0 && sgn(v0) != sgn(d))
+		return false;
+
+	if (abs(v0 * t) > abs(d)) //possible overshoot
+	{
+		double a0 = -abs(aMax)*sgn(d);
+
+		//Solution exists if sign changes
+		return sgn(v0*t - a0*0.5*pow(t,2)) != sgn(d);
+	}
+	else //possible undershoot
+	{
+		double a0 = abs(aMax)*sgn(d);
+		return abs(v0*t + a0*0.5*pow(t,2)) >= abs(d);
+	}
+}
+
+double KinematicSolver::threePart_maxInitialVelocity(const double aMax, const double vF, const double d, const double t)
+{
+	//Solution 1 :
+	//TYPE A - A valid solution exists for all speed between 0 and V1(v0) == 0
+	//In this case, too slow is impossible. So just choose the fastest speed (better to choose a speed that results in smoother motion)
+	//double concave_v0_max = sqrt(a0*dTotal*-2.0-vF*vF);
+
+
+	//Solution 2 - The range of possible input velocities is large. 
+	// It can be any value between the point at which t0/t1/t2 become real, and the point at which they become negative (x-intersect).	
+	//TYPE B - A valid solution exists for a narrow range of speeds. Current speed can be too slow or too fast.
+
+	//double a0 = aMax;
+
+	//double convex_v0_min = vF+a0*t+sqrt(2.0)*sqrt(a0*(d*-2.0+t*vF*2.0+a0*(t*t)));
+
+	//double convex_v0_max = vF+sqrt(a0*(d*-2.0+t*vF*2.0+a0*(t*t)))+a0*t;
+	//double convex_v0_max_2= vF-sqrt(a0*(d*-2.0+t*vF*2.0+a0*(t*t)))+a0*t;
+	
+	throw std::logic_error("Nope.");
+	return 0;
+}
+*/

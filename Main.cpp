@@ -364,3 +364,73 @@ int main(int argc, char *argv[])
 	AsyncLogger::getInstance().joinThread();
 }
 
+/*
+ 
+ Primary application architecture
+ 
+ Currently, I use a two threads. The IO+Control thread, and the input thread.
+ 
+ Coupling the IO thread to the control thread may seem stupid, but it's actually kind of logical. 
+ Because control is completely dependent on IO, there's no point in doing control unless IO has completed.
+ 
+ However, there are some calculations involved in the control algorithms that can be run async.
+ 
+ Aside from that, the IO --> Control relationship cannot be (and need not be?) broken IF I continue using I2C. SPI has different implications.
+ 
+ So, the system will run on: 
+	- A UI thread
+	- A collection of IO-Control threads
+	- Some thread to coordinate everything
+	- One or more threads to perform intense computations in the background
+
+ Right now I have no coordination between IO threads (because there's only one), and the UI thread is driving everything.
+ 
+ The coordination thread manages the IO/Control threads. 
+	1. Starts threads for each IO bus 
+	2. Distributes commands to the appropriate thread (one message/task queue per thread)
+	3. Cleans up, etc
+ 
+ ************
+ 
+ How will wheel control work?
+ 
+ The wheel controller should actually be *very* similar to the joint controller. There are a few key differences in requirements:
+	- Rotation can go past 360 degrees
+	- The motion plan could be deterministic, or it could be realtime. 
+	-- For instance, as we drive along some path, the velocity of each wheel will be constantly adjusted to steer/correct. 
+	
+ In terms of controller design, the general architecture should be largely the same. Differences will be limited to the planning component
+ and to the calculations of angle, which are no longer bounded to +- PI. 
+ 
+ ***********
+ 
+ At this point it is wise to consider the executive control infrastructure. For the "blind" prototype, I have no intention of building in any meaningful
+ amount of intelligence. Thus, the sole means of control will be user input. A textual interface is far from ideal - I would prefer direct USB control 
+ using a gamepad/mouse/keyboard, but network control using similar peripherals is ok too. Just not over ssh. 
+ 
+ From an architectural perspective, all the control logic is isolated to the UI thread (and possibly some networking threads). 
+ Input events can be discrete and continuous. The UI logic should be as light as possible, especially for continuous/analog type inputs. 
+ The reasoning is that the interpretation of the input is highly subject on the current state of the system.
+ 
+ ***********
+ 
+ In conclusion, my current architecture is more or less on track. I need to isolate the UI thread from the ex-control logic,
+ and I need to isolate the ex-control logic from the device control logic. This should be fairly straightforward, but issues
+ may (but will probably not) arise with concurrency if joints aren't executed in a deterministic order.
+ 
+ Wheel are independent of everything, and wheel (lol) likely be on the same bus as each other. 
+ 
+ Next steps:
+	- Complete the motion planning
+	- Optimize the joint speed controllers to track better
+		- Tune speed controller parameters, filters, and logic
+		- Some mechanical changes may be needed, particularly with the roll joints.
+		- Switching joint #0 to use the timing belt would improve its performance considerably
+		- Redesigning joints #4 and #5 to use the planetary mini-motors would give them less backlash and lighter weight
+	- Define the controller component, and isolate it from the UI thread
+	- Implement the wheel drive controllers, as well as a controller component that controls angles, velocities, etc
+	- Build a better UI. Keyboard based is a good start, feedback can be via network or screen, but if a GUI is used it must be ensured there is no performance penalty
+ 
+ 
+ 
+ */

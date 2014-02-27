@@ -6,34 +6,72 @@
 
 #define MathDebug true
 
+
+
 struct PlanSolution {
-	
-	double i_dTotal, i_tTotal, i_v0, i_v2, i_d3;
-	
-	double t0,t1,t2,t3;
-	double v1;
-	double accel0,accel1;
-	bool valid;
+
+	enum SolutionStatus 
+	{
+		NoSolution,
+		AdjustedSolution,
+		OriginalSolution
+	};
+
+	struct Input
+	{
+		double v0,vF,d,t,v3;
+	};
+	Input input;
+		
+	double t0,t1,t2,t3,v1;
+	double a0,a1;
+
+
+	SolutionStatus status;
+
+	struct Adjusted
+	{
+		double v0_min, v0_max;
+	};
+	Adjusted adjusted;
+
+public:
+	void setResult(double v1, double t0, double t1, double t2)
+	{
+		this->v1 = v1;
+		this->t0 = t0;
+		this->t1 = t1;
+		this->t2 = t2;
+	}
+
+	void setResult(double v1, double t0, double t1, double t2, double t3)
+	{
+		this->v1 = v1;
+		this->t0 = t0;
+		this->t1 = t1;
+		this->t2 = t2;
+		this->t3 = t3;
+	}
 };
 
 class KinematicSolver {
 	
 public:
-	static double optimalSpeed(const double a0, const double d3, const double d, const double v0, const double v2, const double maxSpeed, double & speed);
-	static void calculatePlan(double absAccel, double d3, double tTotal, double d, double v0, double v2, PlanSolution & result);
+	static double	fourPart_minimumTime(const double a0, const double d3, const double d, const double v0, const double v2, const double maxSpeed, double & speed);
+	static void		fourPart_calculate(double absAccel, double d3, double tTotal, double d, double v0, double v2, PlanSolution & result);
 		
-	static double optimalSpeed2Part(const double a0, const double d, const double v0, const double maxSpeed, double & speed);
+	static double	optimalSpeed2Part(const double a0, const double d, const double v0, const double maxSpeed, double & speed);
 
 	static bool		twoPart_checkSolutionExists(double aMax, double v0, double delta, double time);	
 	static double	twoPart_minimumTime(const double accel, const double d, const double v0, const double maxSpeed);
 	static double	twoPart_maxInitialVelocity(const double aMax, const double d, const double tTotal);
-	static void		twoPart_calculate(double absAccel, double tTotal, double d, double v0, PlanSolution & result);
+	static bool		twoPart_attemptSolution(const double aMax, const double v0, const double d, const double t, double & v0_new);
+	static void		twoPart_calculate(double absAccel, double v0, double d, double tTotal, PlanSolution & result);
 			
 	static bool		threePart_checkTimeInvariantSolutionExists(double aMax, double initialVelocity, double finalVelocity, double delta);
-	static bool		threePart_checkSolutionExists(double aMax, double initialVelocity, double finalVelocity, double delta, double time);
-	static double	threePart_minimumTime(const double aMax, const double vMax, const double distance, const double v0, const double v1);
+	static double	threePart_minimumTime(const double aMax, const double vMax, const double v0, const double vF, const double d);
 	static double	threePart_maxTimeInvariantInitialVelocity(const double aMax, const double vF, const double d);
-	static double	threePart_maxInitialVelocity(const double aMax, const double vF, const double d, const double tTotal);
+	static bool		threePart_attemptSolution(const double aMax, const double d, const double v0, const double vF, const double t, double & v0_new);
 	static void		threePart_calculate(const double aMax, const double d, const double v0, const double vF, const double tTotal, PlanSolution & result);
 	
 	static void validateSolution(PlanSolution & sol);

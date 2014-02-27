@@ -50,8 +50,6 @@ void MotionPlanner::setPathDivisions(int _pathDivisionCount)
 }
 
 
-
-
 /*
  1. A set of final velocities is stored in the step plan
  2. Recalculate the joint motion plans for minimum time, while meeting final velocity 
@@ -88,7 +86,12 @@ void MotionPlanner::calculateStep(vector<StepMotionPlan> * stepPlans, std::vecto
 				if (!KinematicSolver::threePart_checkTimeInvariantSolutionExists(aMax,v0,vF,delta))
 				{
 					//No solution exists. Determine the minimum time needed to traverse the distance at max accel (implies adjusted initial speed)
-					jointTime = 0;					
+					// d = vF*t + a/2 * t^2
+					// solve for t
+
+					//jointTime = -(v0+sqrt(a0*dTotal*2.0+v0*v0))/a0;
+					double a0 = aMax * sgn(delta);
+					jointTime = -(vF-sqrt(a0*dTotal*2.0+vF*vF))/a0;					
 				}
 				else
 				{
@@ -118,18 +121,18 @@ void MotionPlanner::calculateStep(vector<StepMotionPlan> * stepPlans, std::vecto
 			{
 				if (enforce)
 				{
-					if (!KinematicSolver::threePart_checkSolutionExists(aMax,v0,vF,delta,stepTime))
-					{
-						double newInitialVelocity = 0;// KinematicSolver::threePart_optimalInitialSpeed();
-						stepPlans[c].at(i-1).setFinalVelocity(newInitialVelocity);
+					double v0_new = 0;
+					if (!KinematicSolver::threePart_attemptSolution(aMax,delta,v0,vF,stepTime,v0_new))
+					{						
+						stepPlans[c].at(i-1).setFinalVelocity(v0_new);
 					}
 				}
 				else
 				{
-					if (!KinematicSolver::twoPart_checkSolutionExists(aMax,v0,delta,stepTime))
+					double v0_new = 0;
+					if (!KinematicSolver::twoPart_attemptSolution(aMax,v0,delta,stepTime,v0_new))
 					{
-						double newInitialVelocity = 0;// KinematicSolver::twoPart_optimalInitialSpeed();
-						stepPlans[c].at(i-1).setFinalVelocity(newInitialVelocity);
+						stepPlans[c].at(i-1).setFinalVelocity(v0_new);
 					}
 				}
 			}
