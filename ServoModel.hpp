@@ -143,7 +143,7 @@ public:
 	//These functions are here because they incorporate both gearbox and motor parameters
 	double getNoLoadSpeedForVoltage(double voltage) 
 	{
-		double sign = MathUtils::sgn<double>(voltage);
+		double sign = sgn(voltage);
 		double speed = (voltage - sign*motor.noLoadCurrent*motor.armatureResistance)/motor.backEmfConstant;
 		
 		if (sign > 0)
@@ -160,7 +160,7 @@ public:
 
 	double getTorqueForVoltageSpeed(double voltage, double speed)
 	{
-		double sign = MathUtils::sgn<double>(speed);
+		double sign = sgn(speed);
 
 		double torqueSpeedSlope = getTorqueSpeedSlope();
 		return ((speed - getNoLoadSpeedForVoltage(voltage))/torqueSpeedSlope) + (sign*motor.noLoadTorque);
@@ -168,7 +168,7 @@ public:
 
 	double getVoltageForTorqueSpeed(double torque, double speed)
 	{
-		double sign = 0;//MathUtils::sgn<double>(speed);
+		double sign = 0;//sgn(speed);
 
 		double torqueSpeedSlope = getTorqueSpeedSlope();
 		return (speed - ((torque-(sign*motor.noLoadTorque))*torqueSpeedSlope))*motor.backEmfConstant;
@@ -176,7 +176,7 @@ public:
 
 	double getSpeedForTorqueVoltage(double torque, double voltage)
 	{		
-		double sign = MathUtils::sgn<double>(torque);
+		double sign = sgn(torque);
 
 		double torqueSpeedSlope = getTorqueSpeedSlope();
 		return getNoLoadSpeedForVoltage(voltage) + torqueSpeedSlope*(torque-(sign*motor.noLoadTorque));

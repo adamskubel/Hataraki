@@ -17,6 +17,12 @@
 struct StepMotionPlan
 {
 	std::vector<MotionInterval> intervals;
+	
+	StepMotionPlan()
+	{
+		this->isFinalVelocityEnforced = false;
+		this->finalVelocity = 0;
+	}
 		
 	StepMotionPlan(std::vector<MotionInterval> intervals)
 	{
@@ -34,6 +40,12 @@ public:
 	{
 		this->finalVelocity = finalVelocity;
 		isFinalVelocityEnforced = true;
+	}
+	
+	double getMotionPlanFinalVelocity()
+	{
+		if (intervals.empty()) return 0;
+		else return intervals.back().endSpeed;
 	}
 };
 

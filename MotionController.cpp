@@ -158,22 +158,16 @@ void MotionController::moveToPosition(Vector3d targetPosition, Matrix3d targetRo
 {
 	motionPlanner->setPathDivisions(pathDivisionCount);
 	vector<Step> steps = motionPlanner->buildMotionSteps( getJointAnglesRadians(), targetPosition, targetRotation);
-
-	if (false)
-	{
-		cout << "Built " << steps.size() << " steps" << endl;
-		vector<Step> updated = motionPlanner->realizeSteps(steps);
-
-		currentPlan.clear();
-		currentPlan = motionPlanner->convertStepsToPlans(updated, getJointAnglesSteps());
-	}
-	else
-	{
-		currentPlan.clear();
-		currentPlan = motionPlanner->createClosedSolutionMotionPlanFromSteps(steps);
-	}
-
+	
 	bool executePlan = false;
+
+	currentPlan.clear();
+
+	if (pathDivisionCount > 1)
+		currentPlan = motionPlanner->buildPlan(steps);	
+	else
+		currentPlan = motionPlanner->createClosedSolutionMotionPlanFromSteps(steps);
+
 
 	if (interactive)
 	{
@@ -188,7 +182,6 @@ void MotionController::moveToPosition(Vector3d targetPosition, Matrix3d targetRo
 		{
 			double time = (*it)->getPlanDuration();
 			cout << std::round(time/0.01)*0.01 << "  ";
-			//cout << setprecision(2) << std::round(AS5048::stepsToDegrees((*it)->getSpeedAtTime(time/2.0))/0.01)*0.01 << "   ";
 		}
 		cout << endl;
 		cout << std::fixed;
@@ -197,9 +190,7 @@ void MotionController::moveToPosition(Vector3d targetPosition, Matrix3d targetRo
 		getline(cin,strIn);
 
 		if (strIn.compare("y") != 0)
-		{				
 			currentPlan.clear();
-		}
 		else
 			executePlan = true;
 	}

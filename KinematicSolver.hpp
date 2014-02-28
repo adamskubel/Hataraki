@@ -2,6 +2,7 @@
 #define HATARAKI_BASICMOTION_KINEMATIC_PLANNING_HPP_
 
 #include "MathUtils.hpp"
+#include <stdexcept>
 #include <cmath>
 
 #define MathDebug true
@@ -36,12 +37,32 @@ struct PlanSolution {
 	Adjusted adjusted;
 
 public:
+	
+	void assertValidResult()
+	{
+		if (isnan(v1) || isnan(t0) || isnan(t1) || isnan(t2) || isnan(t3))
+		{
+			throw std::logic_error("Complex result");
+		}
+		else if (t0 < 0 || t1 < 0 || t2 < 0 || t3 < 0)
+		{
+			throw std::logic_error("Negative time");
+		}
+		else if (abs(v1) > 3000)
+		{
+			throw std::logic_error("Speed too high");
+		}
+	}
+	
 	void setResult(double v1, double t0, double t1, double t2)
 	{
 		this->v1 = v1;
 		this->t0 = t0;
 		this->t1 = t1;
 		this->t2 = t2;
+		this->t3 = 0;
+		
+		assertValidResult();
 	}
 
 	void setResult(double v1, double t0, double t1, double t2, double t3)
@@ -51,10 +72,16 @@ public:
 		this->t1 = t1;
 		this->t2 = t2;
 		this->t3 = t3;
+		
+		assertValidResult();
 	}
+	
 };
 
 class KinematicSolver {
+	
+private:
+	static void threePartEval(double a0, double a1, double dTotal, double tTotal, double v0, double v2, double & v1, double & t0, double & t1, double & t2);
 	
 public:
 	static double	fourPart_minimumTime(const double a0, const double d3, const double d, const double v0, const double v2, const double maxSpeed, double & speed);

@@ -25,7 +25,7 @@ void TimeMultiplexedVoltageConverter::reset()
 
 double TimeMultiplexedVoltageConverter::nextVoltage(double targetVoltage)
 {
-	double sign = MathUtils::sgn<double>(targetVoltage);
+	double sign = sgn(targetVoltage);
 	double steps = std::abs(DRV8830::voltageToFractionalSteps(targetVoltage));
 	
 	double appliedVoltage = 0;

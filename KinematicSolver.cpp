@@ -90,10 +90,11 @@ void KinematicSolver::twoPart_calculate(double aMax,double v0, double d, double 
 		double v0_max = d/tTotal + a0*0.5*tTotal;
 		sol.adjusted.v0_max = v0_max;
 		sol.status = PlanSolution::AdjustedSolution;
+		return;
 	}
-	else if (t0_sign < 0)
+	
+	if (a0 < 0)
 	{
-		a0 = -a0;
 		v1 = v0+sqrt(a0*(d*-2.0+tTotal*v0*2.0+a0*(tTotal*tTotal)))+a0*tTotal;
 		t0 = (sqrt(a0*(d*-2.0+tTotal*v0*2.0+a0*(tTotal*tTotal)))+a0*tTotal)/a0;
 		t1 = -sqrt(a0*(d*-2.0+tTotal*v0*2.0+a0*(tTotal*tTotal)))/a0;
@@ -129,16 +130,20 @@ double KinematicSolver::threePart_minimumTime(const double aMax, const double vM
 {
 	double a0 = aMax * sgn(d);
 
-	double v1 = sqrt(2.0)*sqrt(a0*dTotal*2.0+v0*v0+v2*v2)*(1.0/2.0);
-	double minTime = (a0*dTotal-v0*v1-v1*v2+(v0*v0)*(1.0/2.0)+v1*v1+(v2*v2)*(1.0/2.0))/(a0*v1);
+	double v1 = sgn(d)*sqrt(2.0)*sqrt(a0*d*2.0+v0*v0+v2*v2)*(1.0/2.0);
+	
+	if (abs(v1) > vMax)
+		v1 = sgn(v1)*vMax;
+	
+	double minTime = (a0*d-v0*v1-v1*v2+(v0*v0)*(1.0/2.0)+v1*v1+(v2*v2)*(1.0/2.0))/(a0*v1);
 
 	return minTime;
 }
 
-bool KinematicSolver::threePart_attemptSolution(const double aMax, const double d, const double v0, const double vF, const double t, double & v0_new)
+bool KinematicSolver::threePart_attemptSolution(const double aMax, const double v0, const double vF, const double d,  const double t, double & v0_new)
 {
 	PlanSolution sol;
-	threePart_calculate(aMax,d,v0,vF,t,sol);
+	threePart_calculate(aMax,v0,vF,d,t,sol);
 
 	if (sol.status == PlanSolution::SolutionStatus::NoSolution)
 	{
@@ -158,7 +163,7 @@ bool KinematicSolver::threePart_attemptSolution(const double aMax, const double 
 	return true;
 }
 
-void KinematicSolver::threePart_calculate(double aMax, double d, double v0, double vF, double t, PlanSolution & sol)
+void KinematicSolver::threePart_calculate(double aMax, double v0, double vF, double d, double t, PlanSolution & sol)
 {
 	double v1,t0,t1,t2;
 
@@ -170,6 +175,7 @@ void KinematicSolver::threePart_calculate(double aMax, double d, double v0, doub
 	// U shape (decel - travel - accel) AKA CONCAVE
 	// test: a0 negative, a1 positive, if v1 is negative then test fails and no valid solution exists 
 	// If V1 is complex, then the time interval is too short for this solution. (go to 2)
+	// If T2 is negative, S3 might work?
 	// If t2 and t1 are zero, then the solution is a straight line
 
 	if (form == 1)
@@ -178,7 +184,11 @@ void KinematicSolver::threePart_calculate(double aMax, double d, double v0, doub
 
 		threePartEval(a0,a1,d,t,v0,vF,v1,t0,t1,t2);
 	
-		if (std::isnan(v1))
+		if (std::isnan(v1) || (t0 < 0 || t2 < 0))
+		{
+			form = 2;
+		}
+		else if (t2 < 0 && abs(v1) > abs(vF) && sgn(v1) == sgn(vF))
 		{
 			form = 2;
 		}
@@ -188,11 +198,19 @@ void KinematicSolver::threePart_calculate(double aMax, double d, double v0, doub
 			double concave_v0_max = sqrt(a0*d*-2.0-vF*vF);
 			sol.adjusted.v0_max = concave_v0_max;
 			sol.adjusted.v0_min = 0;
+			
+			if (isnan(concave_v0_max))
+			{
+				throw logic_error("NAAN");
+			}
+			
+			sol.setResult(v1,t0,t1,t2);
 		}
 		else
 		{
 			sol.status = PlanSolution::SolutionStatus::OriginalSolution;
 			sol.setResult(v1,t0,t1,t2);
+			sol.assertValidResult();
 		}
 	}
 	
@@ -214,7 +232,12 @@ void KinematicSolver::threePart_calculate(double aMax, double d, double v0, doub
 			double convex_v0_max_2= vF-sqrt(a0*(d*-2.0+t*vF*2.0+a0*(t*t)))+a0*t;
 			
 			sol.adjusted.v0_min = convex_v0_min;
-			sol.adjusted.v0_max = convax_v0_max_2;
+			sol.adjusted.v0_max = convex_v0_max_2;
+			
+			if (isnan(convex_v0_max_2) || isnan(convex_v0_min))
+			{
+				throw logic_error("NAAN-2");
+			}
 		}
 		else if (t0 < 0 || t2 < 0)
 		{
@@ -224,6 +247,7 @@ void KinematicSolver::threePart_calculate(double aMax, double d, double v0, doub
 		{
 			sol.status = PlanSolution::SolutionStatus::OriginalSolution;
 			sol.setResult(v1,t0,t1,t2);
+			sol.assertValidResult();
 		}
 	}
 
@@ -244,11 +268,13 @@ void KinematicSolver::threePart_calculate(double aMax, double d, double v0, doub
 		threePartEval(a0,a1,d,t,v0,vF,v1,t0,t1,t2);
 		//done unless I fucked up
 		sol.setResult(v1,t0,t1,t2);
+		
+		sol.assertValidResult();
 		sol.status = PlanSolution::SolutionStatus::OriginalSolution;
 	}
 }
 
-PlanSolution threePartEval(double a0, double a1, double dTotal, double tTotal, double v0, double v2, double & v1, double & t0, double & t1, double & t2)
+void KinematicSolver::threePartEval(double a0, double a1, double dTotal, double tTotal, double v0, double v2, double & v1, double & t0, double & t1, double & t2)
 {
 	if (a0 == a1)
 	{

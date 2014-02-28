@@ -157,14 +157,14 @@ void PredictiveJointController::doPositionHoldControl()
 	//if (servoModel->controllerConfig.externalDisturbanceFlipTriggerEnabled && std::abs(cTargetAngleDistance) > MaxSetpointError)
 	//{
 	//	//Moving away from rotational stop
-	//	if ((int)MathUtils::sgn<double>(cTargetAngleDistance) == -expectedRotationalStopDirection)
+	//	if ((int)sgn(cTargetAngleDistance) == -expectedRotationalStopDirection)
 	//	{
 	//		//double averageVelocity = getAverageSpeedForWindow(3);
 
-	//		//if ((int)MathUtils::sgn<double>(averageVelocity) == expectedRotationalStopDirection && std::abs(averageVelocity) > MinFlipTriggerVelocity)
+	//		//if ((int)sgn(averageVelocity) == expectedRotationalStopDirection && std::abs(averageVelocity) > MinFlipTriggerVelocity)
 	//		{
 	//			vector<double> flipPattern;
-	//			double direction = MathUtils::sgn<double>(cTargetAngleDistance);
+	//			double direction = sgn(cTargetAngleDistance);
 
 	//			for (auto it=servoModel->controllerConfig.externalDisturbanceFlipVoltagePattern.begin(); it!= servoModel->controllerConfig.externalDisturbanceFlipVoltagePattern.end();it++)
 	//			{
@@ -338,7 +338,7 @@ bool PredictiveJointController::doStepControl(double targetAngle)
 	switch (steppingState)
 	{
 	//case SteppingState::New:
-	//	double stepVoltage = servoModel->getVoltageForTorqueSpeed(stableTorqueEstimate,MathUtils::sgn<double>(distanceToTarget)*BaseStepSpeed);
+	//	double stepVoltage = servoModel->getVoltageForTorqueSpeed(stableTorqueEstimate,sgn(distanceToTarget)*BaseStepSpeed);
 	//	executeStep(stepVoltage,1,1);
 	//	isTorqueEstimateValid = false;
 	//	break;
@@ -362,7 +362,7 @@ bool PredictiveJointController::doStepControl(double targetAngle)
 	case SteppingState::Reading:
 		if (TimeUtil::timeSince(readDelayStart) > SteppingModeReadDelay) 
 		{
-			int stepDirection = MathUtils::sgn<double>(distanceToTarget);
+			int stepDirection = sgn(distanceToTarget);
 
 			//Reached target, brake and return true to indicate position has been reached
 			if (std::abs(distanceToTarget) <= MaxSetpointError) 
@@ -371,7 +371,7 @@ bool PredictiveJointController::doStepControl(double targetAngle)
 				return true;
 			}
 			//Overshoot, reverse direction and step again.
-			else if (MathUtils::sgn<double>(cTargetAngleDistance) != MathUtils::sgn<double>(stepInitialTargetDistance))
+			else if (sgn(cTargetAngleDistance) != sgn(stepInitialTargetDistance))
 			{						
 				double stepVoltage = servoModel->getVoltageForTorqueSpeed(stableTorqueEstimate,stepDirection*BaseStepSpeed);
 				executeStep(stepVoltage,1,1);
@@ -420,7 +420,7 @@ void PredictiveJointController::executeStep(double voltage, int energizeLength, 
 	stepVoltageIntegral = std::accumulate(stepVoltages.begin(), stepVoltages.end(), 0.0);
 
 	stepStartPosition = cSensorAngle;
-	stepExpectedDirection = MathUtils::sgn<double>(voltage); //Assuming direction is the same sign as voltage
+	stepExpectedDirection = sgn(voltage); //Assuming direction is the same sign as voltage
 	
 	stepVoltageIndex = 0;
 	commandDriver(stepVoltages.at(stepVoltageIndex++),DriverMode::ConstantVoltage);
@@ -437,7 +437,7 @@ void PredictiveJointController::executeStep(vector<double> & voltagePattern)
 	stepVoltages = voltagePattern;
 	
 	stepVoltageIntegral = std::accumulate(stepVoltages.begin(), stepVoltages.end(), 0.0);
-	stepExpectedDirection = MathUtils::sgn<double>(stepVoltageIntegral); 
+	stepExpectedDirection = sgn(stepVoltageIntegral); 
 	stepInitialTargetDistance = cTargetAngleDistance; 
 	stepStartPosition = cSensorAngle;
 

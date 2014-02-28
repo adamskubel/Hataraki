@@ -58,8 +58,9 @@ void MotionPlanner::setPathDivisions(int _pathDivisionCount)
  */
 void MotionPlanner::calculateStep(vector<StepMotionPlan> * stepPlans, std::vector<Step> & steps, int i)
 {
-	if (i < 0) throw std::logic_error("It's all ogre now");
-	
+	if (i <= 0) throw std::logic_error("It's all ogre now");
+
+	cout << "Calculating step " << i << endl;
 
 	Step * s0 = &(steps[i]);
 	Step * s1 = &(steps[i-1]);
@@ -69,18 +70,24 @@ void MotionPlanner::calculateStep(vector<StepMotionPlan> * stepPlans, std::vecto
 	for (int c=0;c<6 && phase < 4;c++)
 	{
 		PredictiveJointController * joint = joints.at(c);
-		double v0 = (i>1) ? stepPlans[c].at(i-1).intervals.back().endSpeed : 0;
+		double v0 = stepPlans[c].at(i-1).getMotionPlanFinalVelocity();
 		double delta = s0->Positions[c] - s1->Positions[c];
 		double aMax = joint->getMaxAcceleration();
 		double vMax = joint->getMaxVelocity();
 
-		double vF = stepPlans[c].at(i).finalVelocity;
-		bool enforce = stepPlans[c].back().isFinalVelocityEnforced;
+		double vF = 0;
+		bool enforce = false;
+		
+		if (stepPlans[c].size() > i)
+		{
+			vF = stepPlans[c].at(i).finalVelocity;
+			enforce = stepPlans[c].at(i).isFinalVelocityEnforced;
+		}
 
 		// *** TEMPORAL ANALYSIS PHASE ***
 		if (phase == 0)
 		{
-			double jointTime;
+			double jointTime = 0;
 			if (enforce)
 			{
 				if (!KinematicSolver::threePart_checkTimeInvariantSolutionExists(aMax,v0,vF,delta))
@@ -89,24 +96,50 @@ void MotionPlanner::calculateStep(vector<StepMotionPlan> * stepPlans, std::vecto
 					// d = vF*t + a/2 * t^2
 					// solve for t
 
-					//jointTime = -(v0+sqrt(a0*dTotal*2.0+v0*v0))/a0;
 					double a0 = aMax * sgn(delta);
-					jointTime = -(vF-sqrt(a0*dTotal*2.0+vF*vF))/a0;					
+					
+					if (sgn(delta) < 0)
+						jointTime = -(vF+sqrt(a0*delta*2.0+vF*vF))/a0;
+					else
+						jointTime = -(vF-sqrt(a0*delta*2.0+vF*vF))/a0;
+					
+					if (jointTime > 10 || jointTime < 0)
+					{
+						stringstream ss;
+						ss << "Invalid time 1: " << jointTime;
+						throw std::logic_error(ss.str());
+					}
 				}
 				else
 				{
-					jointTime = KinematicSolver::threePart_minimumTime(aMax,vMax, delta, v0, vF);
+					jointTime = KinematicSolver::threePart_minimumTime(aMax,vMax, v0, vF, delta);
+					
+					if (jointTime > 10 || jointTime < 0)
+					{
+						stringstream ss;
+						ss << "Invalid time 2: " << jointTime;
+						throw std::logic_error(ss.str());
+					}
 				}
 			}
 			else
 			{
 				//A time invariant solution always exists in this case
 				jointTime = KinematicSolver::twoPart_minimumTime(aMax, vMax, delta, v0);
+				
+				if (jointTime > 10 || jointTime < 0)
+				{
+					stringstream ss;
+					ss << "Invalid time 3: " << jointTime;
+					throw std::logic_error(ss.str());
+				}
 			}
 
 			jointTime += 0.0001; //Ensure no non-real results due to imprecision errors. Better done with complex math calls.
+			
+		
+			
 			stepTime = std::max(stepTime,jointTime);
-
 		}
 		// *** VELOCITY ANALYSIS PHASE ***
 		else if (phase == 1)
@@ -122,10 +155,13 @@ void MotionPlanner::calculateStep(vector<StepMotionPlan> * stepPlans, std::vecto
 				if (enforce)
 				{
 					double v0_new = 0;
-					if (!KinematicSolver::threePart_attemptSolution(aMax,delta,v0,vF,stepTime,v0_new))
+					if (!KinematicSolver::threePart_attemptSolution(aMax,v0,vF,delta,stepTime,v0_new))
 					{						
 						stepPlans[c].at(i-1).setFinalVelocity(v0_new);
 					}
+					else if (stepPlans[c].at(i-1).isFinalVelocityEnforced)
+						stepPlans[c].at(i-1).setFinalVelocity(v0);
+					
 				}
 				else
 				{
@@ -134,6 +170,8 @@ void MotionPlanner::calculateStep(vector<StepMotionPlan> * stepPlans, std::vecto
 					{
 						stepPlans[c].at(i-1).setFinalVelocity(v0_new);
 					}
+					else if (stepPlans[c].at(i-1).isFinalVelocityEnforced)
+						stepPlans[c].at(i-1).setFinalVelocity(v0);
 				}
 			}
 		}
@@ -144,16 +182,33 @@ void MotionPlanner::calculateStep(vector<StepMotionPlan> * stepPlans, std::vecto
 			//This is a short phase that just calls the historical velocity adjustment
 
 			bool enforcementNeeded = false;
-			for (int x=0;x<6;x++) 
-				enforcementNeeded |= (stepPlans[x].at(i-1).isFinalVelocityEnforced && 
-				stepPlans[x].at(i-1).intervals.back().endSpeed != stepPlans[x].at(i-1).finalVelocity); 
+			for (int x=0;x<6;x++)
+			{
+				enforcementNeeded |= (
+									  i > 1 && 
+									  stepPlans[x].at(i-1).isFinalVelocityEnforced &&
+									  stepPlans[x].at(i-1).getMotionPlanFinalVelocity() != stepPlans[x].at(i-1).finalVelocity);
+			}
 
 			if (enforcementNeeded)
 			{
+				cout << "V0-A = ";
+				for (int x=0;x<6;x++)	cout << stepPlans[x].at(i-1).getMotionPlanFinalVelocity() << " ";
+				cout << endl;
+				
+				cout << "V0-B = ";
+				for (int x=0;x<6;x++)	cout << ((stepPlans[x].at(i-1).isFinalVelocityEnforced) ? stepPlans[x].at(i-1).finalVelocity : 0.1) << " ";
+				cout << endl;
+				
 				c = -1; phase = 0;
 				calculateStep(stepPlans, steps, i-1);
 				//After this call, final velocities will meet specifications (they fucking better)
 				//Recalculate this step to ensure ALL non-updated channels still have valid solutions
+				
+				
+				cout << "V0-B2 = ";
+				for (int x=0;x<6;x++)	cout << stepPlans[x].at(i-1).getMotionPlanFinalVelocity() << " ";
+				cout << endl;
 			}
 			else
 			{
@@ -168,7 +223,7 @@ void MotionPlanner::calculateStep(vector<StepMotionPlan> * stepPlans, std::vecto
 
 			if (enforce)
 			{
-				KinematicSolver::threePart_calculate(aMax, delta, v0, vF, stepTime, sol);
+				KinematicSolver::threePart_calculate(aMax, v0, vF, delta, stepTime, sol);
 
 				if (sol.t0 >= samplePeriod) stepIntervals.push_back(MotionInterval(v0,sol.v1,sol.t0));
 				if (sol.t1 >= samplePeriod) stepIntervals.push_back(MotionInterval(sol.v1,sol.t1));
@@ -176,13 +231,17 @@ void MotionPlanner::calculateStep(vector<StepMotionPlan> * stepPlans, std::vecto
 			}
 			else
 			{
-				KinematicSolver::twoPart_calculate(aMax, delta, v0, stepTime, sol);
+				KinematicSolver::twoPart_calculate(aMax, v0, delta, stepTime, sol);
 
 				if (sol.t0 >= samplePeriod) stepIntervals.push_back(MotionInterval(v0,sol.v1,sol.t0));
 				if (sol.t1 >= samplePeriod) stepIntervals.push_back(MotionInterval(sol.v1,sol.t1));
 			}
-
-			stepPlans[c].push_back(StepMotionPlan(stepIntervals));
+			
+			if (stepPlans[c].size() > i)
+				stepPlans[c].at(i).intervals = stepIntervals;
+			else
+				stepPlans[c].push_back(StepMotionPlan(stepIntervals));
+			
 		}
 
 		if (c == 5)
@@ -201,13 +260,11 @@ vector<shared_ptr<MotionPlan> > MotionPlanner::compileStepMotionPlans(vector<Ste
 	{
 		motionPlan.push_back(shared_ptr<MotionPlan>(new MotionPlan()));
 
-		auto mi = stepPlans[c].intervals;
+		auto mi = stepPlans[c];
 		for (auto it=mi.begin();it!=mi.end();it++)
-			for (auto it2=it->begin(); it2 != it->end(); it2++)
+			for (auto it2=it->intervals.begin(); it2 != it->intervals.end(); it2++)
 				motionPlan.back()->motionIntervals.push_back(*it2);
 
-		motionPlan.back()->startAngle = steps.front().Positions[c];
-		motionPlan.back()->finalAngle = steps.back().Positions[c];
 	}
 
 
@@ -216,14 +273,33 @@ vector<shared_ptr<MotionPlan> > MotionPlanner::compileStepMotionPlans(vector<Ste
 
 vector<shared_ptr<MotionPlan> > MotionPlanner::buildPlan(vector<Step> & steps)
 {
-	auto stepPlans = new vector<StepMotionPlan>[6];
+	auto stepMotionPlans = new vector<StepMotionPlan>[6];
 	
-	for (int i=1;i<steps.size();i++)	
+	for (int c=0;c<6;c++)
 	{
-		calculateStep(stepPlans,steps,i);
+		stepMotionPlans[c].push_back(StepMotionPlan());
 	}
 	
-	return stepPlans;
+	try
+	{
+		for (int i=1;i<steps.size();i++)	
+		{
+			calculateStep(stepMotionPlans,steps,i);
+		}
+	
+		auto motionPlan = compileStepMotionPlans(stepMotionPlans);
+	
+		for (int c=0; c<6; c++)
+		{
+			motionPlan.at(c)->startAngle = steps.front().Positions[c];
+			motionPlan.at(c)->finalAngle = steps.back().Positions[c];
+		}
+		return motionPlan;
+	}
+	catch (std::logic_error & le)
+	{
+		throw runtime_error("Cannot build plan. Error = " + le.what());
+	}
 }
 
 
@@ -301,9 +377,9 @@ shared_ptr<MotionPlan> MotionPlanner::buildMotionPlan(const double startAngle,co
 	
 	PlanSolution sol;
 	
-	KinematicSolver::calculatePlan(accel, coastDistance,targetTime,(targetAngle-startAngle),startVelocity,endVelocity,sol);
+	KinematicSolver::fourPart_calculate(accel, coastDistance,targetTime,(targetAngle-startAngle),startVelocity,endVelocity,sol);
 	
-	if (!sol.valid)
+	if (sol.status != PlanSolution::SolutionStatus::OriginalSolution)
 	{
 		stringstream ss;
 		ss << "No valid solution found.";
@@ -410,7 +486,7 @@ vector<shared_ptr<MotionPlan> > MotionPlanner::createClosedSolutionMotionPlanFro
 		double coastVelocity = joints.at(i)->getJointModel()->servoModel.controllerConfig.approachVelocity*direction;
 
 		double v1,jointTime;
-		jointTime = KinematicSolver::optimalSpeed(maxAccel,CoastDistance * direction,delta,lastVelocity,coastVelocity,maxSpeed,v1);							
+		jointTime = KinematicSolver::fourPart_minimumTime(maxAccel,CoastDistance * direction,delta,lastVelocity,coastVelocity,maxSpeed,v1);
 		jointTime += 0.0001; //Ensure no non-real results due to imprecision errors
 
 		stepTime = std::max(stepTime,jointTime);
@@ -426,7 +502,7 @@ vector<shared_ptr<MotionPlan> > MotionPlanner::createClosedSolutionMotionPlanFro
 		double maxAccel = joints.at(i)->getMaxAcceleration();
 
 		PlanSolution sol;
-		KinematicSolver::calculatePlan(maxAccel,CoastDistance*direction,stepTime,delta,lastVelocity,coastVelocity,sol);
+		KinematicSolver::fourPart_calculate(maxAccel,CoastDistance*direction,stepTime,delta,lastVelocity,coastVelocity,sol);
 		
 		motionPlan.at(i)->motionIntervals.push_back(MotionInterval(lastVelocity,sol.v1,sol.t0));
 

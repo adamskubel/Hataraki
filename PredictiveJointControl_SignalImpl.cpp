@@ -55,7 +55,7 @@ int PredictiveJointController::getSensorAngleRegisterValue()
 
 void PredictiveJointController::setCurrentTorqueStates()
 {
-	double direction = MathUtils::sgn<double>(cPlanTargetVelocity);
+	double direction = sgn(cPlanTargetVelocity);
 	//Need to invert this for some reason
 	cStaticModelTorque = -PoseDynamics::getInstance().computeJointTorque(jointModel->index);
 	cStaticModelRotatum = (cStaticModelTorque - lStaticModelTorque)/(cTime-lTime);
@@ -88,11 +88,11 @@ void PredictiveJointController::setCurrentTorqueStates()
 	cMotorTorque = servoModel->getTorqueForVoltageSpeed(cAverageVoltage, cVelocity);
 
 	
-	expectedRotationalStopDirection = (int)MathUtils::sgn<double>(-cStaticModelTorque);
+	expectedRotationalStopDirection = (int)sgn(-cStaticModelTorque);
 
 	//if (std::abs(cAverageVoltage) > MinAverageVoltageForCertainMovement)
 	//{
-	//	expectedRotationalStopDirection = MathUtils::sgn<double>(cAverageVoltage);
+	//	expectedRotationalStopDirection = sgn(cAverageVoltage);
 	//}
 }
 
