@@ -15,6 +15,7 @@ MotionPlanner::MotionPlanner(vector<PredictiveJointController*> joints)
 	this->firstStepTime = 0.1;
 	this->lastStepTime = 0.1;
 	this->pathDivisionCount = 20;
+	this->samplePeriod = 0.01;
 	
 	vector<double> velocityLimits, accelLimits, jerkLimits;
 	
@@ -92,7 +93,7 @@ void MotionPlanner::calculateStep(vector<StepMotionPlan> * stepPlans, std::vecto
 			{
 				if (!KinematicSolver::threePart_checkTimeInvariantSolutionExists(aMax,v0,vF,delta))
 				{
-					//No solution exists. Determine the minimum time needed to traverse the distance at max accel (implies adjusted initial speed)
+					// No solution exists. Determine the minimum time needed to traverse the distance at max accel (implies adjusted initial speed)
 					// d = vF*t + a/2 * t^2
 					// solve for t
 
@@ -220,21 +221,22 @@ void MotionPlanner::calculateStep(vector<StepMotionPlan> * stepPlans, std::vecto
 		{
 			PlanSolution sol;
 			vector<MotionInterval> stepIntervals;			
-
+			double minTime = -1;
+			
 			if (enforce)
 			{
 				KinematicSolver::threePart_calculate(aMax, v0, vF, delta, stepTime, sol);
 
-				if (sol.t0 >= samplePeriod) stepIntervals.push_back(MotionInterval(v0,sol.v1,sol.t0));
-				if (sol.t1 >= samplePeriod) stepIntervals.push_back(MotionInterval(sol.v1,sol.t1));
-				if (sol.t2 >= samplePeriod) stepIntervals.push_back(MotionInterval(sol.v1,vF,sol.t2));
+				if (sol.t0 >= minTime) stepIntervals.push_back(MotionInterval(v0,sol.v1,sol.t0));
+				if (sol.t1 >= minTime) stepIntervals.push_back(MotionInterval(sol.v1,sol.t1));
+				if (sol.t2 >= minTime) stepIntervals.push_back(MotionInterval(sol.v1,vF,sol.t2));
 			}
 			else
 			{
 				KinematicSolver::twoPart_calculate(aMax, v0, delta, stepTime, sol);
 
-				if (sol.t0 >= samplePeriod) stepIntervals.push_back(MotionInterval(v0,sol.v1,sol.t0));
-				if (sol.t1 >= samplePeriod) stepIntervals.push_back(MotionInterval(sol.v1,sol.t1));
+				if (sol.t0 >= minTime) stepIntervals.push_back(MotionInterval(v0,sol.v1,sol.t0));
+				if (sol.t1 >= minTime) stepIntervals.push_back(MotionInterval(sol.v1,sol.t1));
 			}
 			
 			if (stepPlans[c].size() > i)
@@ -265,8 +267,10 @@ vector<shared_ptr<MotionPlan> > MotionPlanner::compileStepMotionPlans(vector<Ste
 			for (auto it2=it->intervals.begin(); it2 != it->intervals.end(); it2++)
 				motionPlan.back()->motionIntervals.push_back(*it2);
 
+		if (motionPlan.back()->motionIntervals.empty())
+			throw std::logic_error("WTF");
+		
 	}
-
 
 	return motionPlan;
 }
@@ -288,17 +292,21 @@ vector<shared_ptr<MotionPlan> > MotionPlanner::buildPlan(vector<Step> & steps)
 		}
 	
 		auto motionPlan = compileStepMotionPlans(stepMotionPlans);
+		delete [] stepMotionPlans;
 	
 		for (int c=0; c<6; c++)
 		{
 			motionPlan.at(c)->startAngle = steps.front().Positions[c];
 			motionPlan.at(c)->finalAngle = steps.back().Positions[c];
 		}
+		
 		return motionPlan;
 	}
 	catch (std::logic_error & le)
 	{
-		throw runtime_error("Cannot build plan. Error = " + le.what());
+		stringstream ss;
+		ss << "Cannot build plan. Error = " << le.what();
+		throw runtime_error(ss.str());
 	}
 }
 

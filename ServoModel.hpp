@@ -85,10 +85,16 @@ public:
 
 	double maxAcceleration;
 
-	ControllerConfig(cJSON * rawConfig) 
+	int positionHistorySize;
+
+	cJSON * rawConfig;
+
+	ControllerConfig(cJSON * _rawConfig) 
 	{
-		speedControlProportionalGain = cJSON_GetObjectItem(rawConfig,"SpeedControlProportionalGain")->valuedouble;
-		speedControlIntegralGain = cJSON_GetObjectItem(rawConfig,"SpeedControlIntegralGain")->valuedouble;
+		this->rawConfig = _rawConfig;
+
+		speedControlProportionalGain = Configuration::getInstance().getObject(rawConfig,"SpeedControl.ProportionalGain")->valuedouble;
+		speedControlIntegralGain = Configuration::getInstance().getObject(rawConfig,"SpeedControl.IntegralGain")->valuedouble;
 
 		gravityFlipVoltagePattern = Configuration::getVoltagePatternFromJSON(cJSON_GetObjectItem(rawConfig,"GravityFlipPattern"));
 
@@ -107,7 +113,16 @@ public:
 		velocityCorrectionDerivativeGain = Configuration::getInstance().getObject(rawConfig,"DynamicController.VelocityKDForPositionCorrection")->valuedouble;
 		approachVelocity = AS5048::degreesToSteps(Configuration::getInstance().getObject(rawConfig,"DynamicController.SetpointApproachVelocity")->valuedouble);
 		approachDistanceThreshold = AS5048::degreesToSteps(Configuration::getInstance().getObject(rawConfig,"DynamicController.SetpointApproachDistanceThreshold")->valuedouble);
+		
+		positionHistorySize = Configuration::getInstance().getObject(rawConfig,"SpeedControl.HistoryLength")->valueint;
 	}
+
+	double get(std::string key)
+	{
+		return Configuration::getInstance().getObject(rawConfig,key)->valuedouble;
+	}
+
+
 };
 
 class ServoModel {

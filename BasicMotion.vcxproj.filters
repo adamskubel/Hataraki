@@ -126,6 +126,9 @@
     <ClCompile Include="KinematicSolver.cpp">
       <Filter>Source Files\Math</Filter>
     </ClCompile>
+    <ClCompile Include="QuadraticRegression.cpp">
+      <Filter>Source Files\Math</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="I2CBus.hpp">
@@ -210,6 +213,9 @@
       <Filter>Header Files\Predictive</Filter>
     </ClInclude>
     <ClInclude Include="KinematicSolver.hpp">
+      <Filter>Header Files\Math</Filter>
+    </ClInclude>
+    <ClInclude Include="QuadraticRegression.hpp">
       <Filter>Header Files\Math</Filter>
     </ClInclude>
   </ItemGroup>

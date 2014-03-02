@@ -109,6 +109,12 @@ void PredictiveJointController::setTargetState()
 		{
 			cTargetAngle = motionPlan->getPositionAtTime(TimeUtil::timeSince(motionPlan->startTime));
 			cTargetVelocity = motionPlan->getSpeedAtTime(TimeUtil::timeSince(motionPlan->startTime));
+			
+			//if (!isControlTorqueValid)
+			//{
+			//	cControlTorque = cPredictedTorque;
+			//	isControlTorqueValid = true;
+			//}
 		}
 		else
 		{
@@ -297,39 +303,6 @@ void PredictiveJointController::doSpeedControl()
 	velocityErrorIntegral *= 0.95;
 }
 
-void PredictiveJointController::doPositionControl()
-{	
-	emergencyHalt("doPositionControl() is not allowed");
-	//if (setpointApproachData.state == SetpointApproachState::Approaching) 
-	//{
-	//	double stopIn = estimateTimeToPosition(motionPlan->finalAngle) - servoModel->driverDelay;
-
-	//	if (stopIn < MaximumStopTime)
-	//	{
-	//		setpointApproachData.state = SetpointApproachState::Stopping;
-	//		commandDriver(0,DriverMode::Coast);
-	//	}
-	//	else 
-	//	{				
-	//		commandDriver(setpointApproachData.approachVoltage,DriverMode::TMVoltage);			
-	//	}
-	//}
-	//else if (setpointApproachData.state == SetpointApproachState::Stopping)
-	//{
-	//	commandDriver(0,DriverMode::Brake);	
-
-	//	//Termination of dynamic control
-	//	if (std::abs(cVelocity) < MinNonZeroVelocity)
-	//	{
-	//		if (std::abs(cTargetAngleDistance) < MaxSetpointError)
-	//			staticControlMode = StaticControlMode::Holding;
-	//		else
-	//			staticControlMode = StaticControlMode::Stepping;
-
-	//		motionPlanComplete = true; 
-	//	}
-	//}
-}
 
 bool PredictiveJointController::doStepControl(double targetAngle)
 {	

@@ -28,6 +28,7 @@
 #include "AsyncLogger.hpp"
 #include "SavitzkyGolaySmooth.hpp"
 #include "MotionPlan.hpp"
+#include "QuadraticRegression.hpp"
 
 
 enum JointStatus {
@@ -98,9 +99,11 @@ private:
 	//Historical states	
 	LowpassFilter * filter_lowpass_for_motorTorque;	
 	SimpleMovingAverage * filter_sma_for_speedController_motorTorque;
-	SimpleMovingAverage * filter_sma_angle_for_position;
-	SimpleMovingAverage * filter_sma_angle_for_speed;	
+	LowpassFilter * filter_lowpass_position;
+	SimpleMovingAverage * filter_sma_angle_for_speed;
 	LowpassFilter * filter_lowpass_speed;
+
+	QuadraticRegression * quadraticRegressionFilter;
 
 	double lFilteredAngleForSpeed;
 	double lTime;
@@ -127,6 +130,10 @@ private:
 		
 		double cVelocity;
 		double cVelocityApproximationError;
+
+		double cQuadRegVelocity;
+		double cQuadRegAcceleration;
+		double cQuadRegErrorValue;
 		
 		double cSGFilterAngle;
 		double cSGFilterVelocity;
@@ -230,12 +237,12 @@ private:
 	int getSensorAngleRegisterValue();
 	double correctAngleForDiscreteErrors(double rawAngle);
 	void doSavitzkyGolayFiltering();
+	void doQuadraticRegression();
 
 	void performSafetyChecks();
 
 	void doPositionHoldControl();
 	void doSpeedControl();
-	void doPositionControl();
 	bool doStepControl(double targetAngle);
 	void runExternalController();
 

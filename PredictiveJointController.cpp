@@ -7,18 +7,19 @@ using namespace std;
 void PredictiveJointController::init()
 {
 	const double TorqueFilterTimeConstant = 0.05;
-	const double PositionMovingAverageWindowSize = 4;
 	const double SpeedMovingAverageWindowSize = 4;
 	const double SpeedFilterTimeConstant = 0.05;
 	const double TorqueSMAFilterWindowSize = 10;
 	
 	filter_lowpass_for_motorTorque =	new LowpassFilter(TorqueFilterTimeConstant);
-	filter_sma_angle_for_position =		new SimpleMovingAverage(PositionMovingAverageWindowSize);
+	filter_lowpass_position	=			new LowpassFilter(config->get("SensorFilters.LowpassPositionFilter.TimeConstant"));
 	filter_sma_angle_for_speed =		new SimpleMovingAverage(SpeedMovingAverageWindowSize);
 	filter_lowpass_speed =				new LowpassFilter(SpeedFilterTimeConstant);
 	filter_sma_for_speedController_motorTorque =		new SimpleMovingAverage(TorqueSMAFilterWindowSize);
 
 	voltageConverter = new TimeMultiplexedVoltageConverter(2,servoModel->maxDriverVoltage);
+
+	quadraticRegressionFilter = new QuadraticRegression((int)config->get("SensorFilters.VelocityApproximation.WindowSize"));
 
 	steppingState = SteppingState::Braking;
 	speedControlState = SpeedControlState::Measuring;		
@@ -210,7 +211,7 @@ void PredictiveJointController::writeLogHeader()
 		"VelocityR2"		<< Configuration::CsvSeparator << 
 		"TargetVelocity"	<< Configuration::CsvSeparator <<
 		"PredictedTorque"	<< Configuration::CsvSeparator <<
-		"MotorTorque"		<< Configuration::CsvSeparator <<
+		"ControlTorque"		<< Configuration::CsvSeparator <<
 		"EffectiveVoltage"	<< Configuration::CsvSeparator <<
 		"AverageVoltaged"	<< Configuration::CsvSeparator <<
 		"AppliedVoltage"	<< Configuration::CsvSeparator <<
@@ -222,9 +223,9 @@ void PredictiveJointController::writeLogHeader()
 		"StableTorque"		<< Configuration::CsvSeparator << 
 		"BusSelectTime"		<< Configuration::CsvSeparator << 
 		"FileWriteTime"		<< Configuration::CsvSeparator << 
-		"RotationalStopDirection" << Configuration::CsvSeparator << 
-		"SGSensorAngle"		<< Configuration::CsvSeparator << 
-		"SGVelocity"		<< Configuration::CsvSeparator <<
+		"QuadRegError"		<< Configuration::CsvSeparator << 
+		"QuadRegAccel"		<< Configuration::CsvSeparator << 
+		"QuadRegVelocity"	<< Configuration::CsvSeparator <<
 		"PlanVelocity"		<< Configuration::CsvSeparator << endl;
 
 	AsyncLogger::getInstance().postLogTask(logfileName,ss.str());
@@ -253,7 +254,6 @@ void PredictiveJointController::logState()
 		<< cTargetVelocity	<< Configuration::CsvSeparator
 		<< cPredictedTorque*torqueScale << Configuration::CsvSeparator
 		<< cControlTorque*torqueScale << Configuration::CsvSeparator
-		//<< cMotorTorque*((cVelocityApproximationError > 0.9) ? torqueScale : 1.0) << Configuration::CsvSeparator
 		<< cVoltage			<< Configuration::CsvSeparator
 		<< nTargetVoltage	<< Configuration::CsvSeparator
 		<< cAppliedVoltage	<< Configuration::CsvSeparator;
@@ -295,9 +295,9 @@ void PredictiveJointController::logState()
 		<< stableTorqueEstimate*100.0 << Configuration::CsvSeparator
 		<< cBusSelectTime		<< Configuration::CsvSeparator
 		<< writeTime			<< Configuration::CsvSeparator
-		<< expectedRotationalStopDirection << Configuration::CsvSeparator
-		<< cSGFilterAngle		<< Configuration::CsvSeparator
-		<< cSGFilterVelocity	<< Configuration::CsvSeparator
+		<< cQuadRegErrorValue	<< Configuration::CsvSeparator
+		<< cQuadRegAcceleration	<< Configuration::CsvSeparator
+		<< cQuadRegVelocity		<< Configuration::CsvSeparator
 		<< cPlanTargetVelocity;
 
 	ss << endl;

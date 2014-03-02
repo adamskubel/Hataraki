@@ -82,6 +82,7 @@
     <ClCompile Include="PredictiveJointController.cpp" />
     <ClCompile Include="PredictiveJointControl_ControllerImpl.cpp" />
     <ClCompile Include="PredictiveJointControl_SignalImpl.cpp" />
+    <ClCompile Include="QuadraticRegression.cpp" />
     <ClCompile Include="ServoUtil.cpp" />
     <ClCompile Include="SavitzkyGolaySmooth.cpp" />
     <ClCompile Include="StepController.cpp" />
@@ -110,6 +111,7 @@
     <ClInclude Include="PathPlanner.hpp" />
     <ClInclude Include="PoseDynamics.hpp" />
     <ClInclude Include="PredictiveJointController.hpp" />
+    <ClInclude Include="QuadraticRegression.hpp" />
     <ClInclude Include="SegmentModel.hpp" />
     <ClInclude Include="ServoModel.hpp" />
     <ClInclude Include="ServoUtil.hpp" />

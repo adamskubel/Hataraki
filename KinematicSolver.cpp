@@ -6,7 +6,7 @@ using namespace std;
 void KinematicSolver::validateSolution(PlanSolution & sol)
 {
 	////if (!sol.valid) cout << "Solution is invalid" << endl;
-	//if ((sol.t0 < 0 || std::isnan(sol.t0)) || (sol.t1 < 0 || std::isnan(sol.t1)) || (sol.t2 < 0 || std::isnan(sol.t2)) || (sol.t3 < 0 || std::isnan(sol.t3)) || std::isnan(sol.v1))
+	//if ((sol.t0 < 0 || isnan(sol.t0)) || (sol.t1 < 0 || isnan(sol.t1)) || (sol.t2 < 0 || isnan(sol.t2)) || (sol.t3 < 0 || isnan(sol.t3)) || isnan(sol.v1))
 	//{
 	//	cout << "Sol.T0 = " << sol.t0 << "\t";
 	//	cout << "Sol.T1 = " << sol.t1 << "\t";
@@ -37,7 +37,7 @@ double KinematicSolver::twoPart_minimumTime(const double aMax, const double vMax
 	
 	double v1 = sgn(d)*sqrt(a0*d*2.0+v0*v0);
 	
-	if (std::isnan(v1))
+	if (isnan(v1))
 	{
 		throw std::runtime_error("Complex result in two-part minimization");
 		//a0 = -a0;
@@ -84,7 +84,7 @@ void KinematicSolver::twoPart_calculate(double aMax,double v0, double d, double 
 	
 	double t0_sign = -(sqrt(a0*(d*-2.0+tTotal*v0*2.0+a0*(tTotal*tTotal)))-a0*tTotal)/a0;
 	
-	if (std::isnan(t0_sign))
+	if (isnan(t0_sign))
 	{
 		a0 = -std::abs(aMax)*sgn(d);
 		double v0_max = d/tTotal + a0*0.5*tTotal;
@@ -184,7 +184,7 @@ void KinematicSolver::threePart_calculate(double aMax, double v0, double vF, dou
 
 		threePartEval(a0,a1,d,t,v0,vF,v1,t0,t1,t2);
 	
-		if (std::isnan(v1) || (t0 < 0 || t2 < 0))
+		if (isnan(v1) || (t0 < 0 || t2 < 0))
 		{
 			form = 2;
 		}
@@ -308,7 +308,7 @@ double KinematicSolver::fourPart_minimumTime(const double accel, const double d3
 	
 	v1 = direction*sqrt(2.0)*sqrt(a0*d3*-2.0+a0*d*2.0+v0*v0+v2*v2)*(1.0/2.0);
 	
-	if (std::isnan(v1))
+	if (isnan(v1))
 	{
 		a0 = -a0;
 		v1 = direction*sqrt(2.0)*sqrt(a0*d3*-2.0+a0*d*2.0+v0*v0+v2*v2)*(1.0/2.0);
@@ -377,7 +377,7 @@ void KinematicSolver::fourPart_calculate(double absAccel, double d3, double tTot
 	//Case 5: Either T0 or T2 have non-real components (NaN). Return invalid result.
 	
 	
-	if (std::isnan(t0_sign) || std::isnan(t2_sign)) return;
+	if (isnan(t0_sign) || isnan(t2_sign)) return;
 	if (t0_sign < 0) a0 = -a0;
 	if (t2_sign < 0) a1 = -a1;
 	

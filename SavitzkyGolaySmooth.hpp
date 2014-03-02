@@ -4,7 +4,7 @@
 
 #include <stdio.h>
 #include <stddef.h>             // for size_t
-#include <math.h>               // for fabs  
+#include <cmath>               // for fabs  
 #include <vector>
 
 #include "AsyncLogger.hpp"

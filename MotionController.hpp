@@ -4,11 +4,12 @@
 #define IKFAST_NO_MAIN
 #define IKFAST_HAS_LIBRARY
 #define IKFAST_NAMESPACE ikfast2
-
-#define InvertPitchJoints false
+#include "ikfast.h"
 
 #include <unistd.h>
 
+#include <iomanip>
+#include <cmath>
 #include <vector>
 #include <mutex>
 #include <functional>
@@ -19,13 +20,13 @@
 #define VMATH_NAMESPACE vmath
 #include "vmath.h"
 
-#include "ikfast.h"
 #include "MathUtils.hpp"
 #include "PredictiveJointController.hpp"
 #include "MathUtils.hpp"
 #include "AS5048.hpp"
 #include "PathPlanner.hpp"
 #include "MotionPlanner.hpp"
+#include "TimeUtil.hpp"
 
 
 

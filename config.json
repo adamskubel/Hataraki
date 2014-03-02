@@ -122,9 +122,13 @@
 	"Controllers" : [		
 		{
 			"Name" : "Default",
-			"MaxAcceleration" : 100,
-			"SpeedControlProportionalGain" : 0.1,
-			"SpeedControlIntegralGain" : 0.0,
+			"MaxAcceleration" : 100,			
+			"SpeedControl" : 
+			{ 
+				"ProportionalGain" : 0.1,
+				"IntegralGain" : 0.0,
+				"HistoryLength" : 12
+			},
 			"GravityFlipTriggerEnabled" : 0,
 			"ExternalDisturbanceFlipTriggerEnabled" : 0,
 			"GravityFlipPattern" : [				
@@ -149,6 +153,17 @@
 				"WindowSize" : 3,
 				"PolynomialDegree" : 2
 			},
+			"SensorFilters" : 
+			{
+				"LowpassPositionFilter" : 
+				{
+					"TimeConstant" : 0.01				
+				},
+				"VelocityApproximation" : 
+				{
+					"WindowSize" : 15
+				}
+			},
 			"DynamicController" :
 			{
 				"VelocityKPForPositionCorrection" : 0.05,
@@ -161,7 +176,7 @@
 	"JointDefinitions" : [
 		{
 			"Name" : "Roll_0",
-			"ZeroPosition" : 230, 
+			"ZeroPosition" : 223, 
 			"MinAngle" : -175,
 			"MaxAngle" : 175,
 			"AxisOfRotation" : [1,0,0],
@@ -199,7 +214,7 @@
 		},
 		{
 			"Name" : "Roll_1",
-			"ZeroPosition" : 93, 
+			"ZeroPosition" : 101, 
 			"MinAngle" : -120,
 			"MaxAngle" : 120,
 			"AxisOfRotation" : [1,0,0],

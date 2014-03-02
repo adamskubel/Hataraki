@@ -2,8 +2,6 @@
 #define HATARAKI_BASICMOTION_MATH_UTILS_HPP_
 
 
-#include <math.h>
-
 #include <cmath>
 #include <limits>
 #include <vector>

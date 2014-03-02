@@ -60,7 +60,10 @@ void PredictiveJointController::setCurrentTorqueStates()
 	cStaticModelTorque = -PoseDynamics::getInstance().computeJointTorque(jointModel->index);
 	cStaticModelRotatum = (cStaticModelTorque - lStaticModelTorque)/(cTime-lTime);
 		
-	cPredictedTorque = cStaticModelTorque + (servoModel->frictionTorque * -direction);
+
+	double frictionTorque = (servoModel->frictionTorque * -direction);
+
+	cPredictedTorque = cStaticModelTorque + frictionTorque;
 	
 	//Then flip back around to get motor torque. 
 	cPredictedTorque = -cPredictedTorque;
@@ -99,8 +102,8 @@ void PredictiveJointController::setCurrentTorqueStates()
 
 void PredictiveJointController::setCurrentState()
 {
-	const int HistorySize = 12;
-	const int VoltageHistorySize = 12;
+	int HistorySize = config->positionHistorySize;
+	int VoltageHistorySize = config->positionHistorySize;
 
 	timespec start;
 	TimeUtil::setNow(start);
@@ -131,9 +134,10 @@ void PredictiveJointController::setCurrentState()
 	rawSensorAngleHistory.push_back(make_pair(cTime,cSensorAngle));
 	if (rawSensorAngleHistory.size() > HistorySize) rawSensorAngleHistory.pop_front();
 		
-	setApproximateSpeed(rawSensorAngleHistory);
+	//setApproximateSpeed(rawSensorAngleHistory);
 
-	doSavitzkyGolayFiltering();
+	//doSavitzkyGolayFiltering();
+	doQuadraticRegression();
 
 	TimeUtil::assertTime(start,jointModel->name + ".setCurrentState()");
 }
@@ -181,6 +185,42 @@ void PredictiveJointController::doSavitzkyGolayFiltering()
 	TimeUtil::assertTime(start,jointModel->name + ".doSavitzkyGolayFiltering()");
 }
 
+void PredictiveJointController::doQuadraticRegression()
+{
+	quadraticRegressionFilter->addPoint(cTime,cRawSensorAngle);
+		
+	if (quadraticRegressionFilter->getSize() > 3)
+	{
+		cQuadRegAcceleration = quadraticRegressionFilter->aTerm();
+		cVelocity = quadraticRegressionFilter->dy(cTime);
+		cVelocityApproximationError = quadraticRegressionFilter->rSquare();
+
+		//Very low speeds will be noisy and have a low R value
+		if (cVelocityApproximationError < 0.8 && std::abs(cVelocity) < MaxPossibleZeroVelocity)
+		{
+			double avgSpeed = 0;
+			auto it=rawSensorAngleHistory.begin();
+			auto last = (*it);
+			it++;
+			for (;it != rawSensorAngleHistory.end(); it++)
+			{
+				avgSpeed += (it->second - last.second); ///(it->first - last.first);
+			}
+			avgSpeed /= rawSensorAngleHistory.size();
+
+			if (std::abs(avgSpeed) < MinAverageOffsetForNonZeroVelocity)
+			{
+				cVelocity = 0;
+				cVelocityApproximationError = 1.0;
+			}
+		}
+	}
+	else
+	{
+		cVelocity = 0; // (cRawSensorAngle - lRawSensorAngle)/(cTime - lTime);
+	}
+}
+
 void PredictiveJointController::setApproximateSpeed(std::list<std::pair<double, double> > history)
 {
 	//double guess = computeSpeed(history.back().second);
@@ -199,7 +239,7 @@ void PredictiveJointController::setApproximateSpeed(std::list<std::pair<double, 
 			it++;
 			for (;it != history.end(); it++)
 			{
-				avgSpeed += (it->second - last.second); ///(it->first - last.first);
+				avgSpeed += (it->second - last.second);
 			}
 			avgSpeed /= history.size();
 
@@ -269,6 +309,6 @@ double PredictiveJointController::computeSpeed(double rawSensorAngle)
 
 double PredictiveJointController::filterAngle(int rawSensorAngle)
 {
-	filter_sma_angle_for_position->add(rawSensorAngle);
-	return filter_sma_angle_for_position->avg();
+	return rawSensorAngle;
+	//return filter_lowpass_position->next((double)rawSensorAngle);
 }

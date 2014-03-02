@@ -17,6 +17,7 @@
 #include <fstream>
 #include <string>
 #include <stdexcept>
+#include <cmath>
 
 #include "cJSON.h"
 
@@ -26,13 +27,14 @@
 #include "MotionController.hpp"
 #include "MathUtils.hpp"
 #include "MotionPlanner.hpp"
+#include "TimeUtil.hpp"
 
 #define VMATH_NAMESPACE vmath
 #include "vmath.h"
 
 #include "PoseDynamics.hpp"
 #include "MotionPlan.hpp"
-
+#include "QuadraticRegression.hpp"
 
 using namespace std;
 using namespace ikfast2;
@@ -49,27 +51,29 @@ double fmt(double d)
 
 
 
-void handle(int sig) {
-	void *array[30];
-	size_t size;
-
-	// get void*'s for all entries on the stack
-	size = backtrace(array, 30);
-
-	// print out all the frames to stderr
-	fprintf(stderr, "Error: signal %d:\n", sig);
-	backtrace_symbols_fd(array, (int)size, STDERR_FILENO);
-	exit(1);
-}
+//void handle(int sig) {
+//	void *array[30];
+//	size_t size;
+//
+//	// get void*'s for all entries on the stack
+//	size = backtrace(array, 30);
+//
+//	// print out all the frames to stderr
+//	fprintf(stderr, "Error: signal %d:\n", sig);
+//	backtrace_symbols_fd(array, (int)size, STDERR_FILENO);
+//	exit(1);
+//}
 
 void testMotionPlanning();
+void testQuadRegression();
+void testQuadRegressionWithData();
 
 
 int main(int argc, char *argv[])
 {
 	double samplePeriod = 0.01;
 
-	signal(SIGSEGV, handle);
+	//signal(SIGSEGV, handle);
 	
 	//signal(SIGINT, signal_callback_handler);
 
@@ -97,22 +101,100 @@ int main(int argc, char *argv[])
 	
 	motionController = new MotionController(controllers,samplePeriod,5);
 	
+	testQuadRegressionWithData();
+
+	cout << endl << endl << " --- MotionPlanning --- " << endl;
 	testMotionPlanning();
 }
 
+void testQuadRegression()
+{
+	QuadraticRegression * qr = new QuadraticRegression(15);
+	
+	for (int i=0;i<15;i++)
+	{
+		qr->addPoint(i, 5);
+	}
 
+	timespec time;
+	TimeUtil::setNow(time);
+	double a=0,b=9,c=0;
+	a = qr->aTerm(); b = qr->bTerm(); c = qr->cTerm();
+	double elapsed = TimeUtil::timeSince(time);
+	
+	cout << "A=" << a << " B=" << b << " C=" << c << " R= " << qr->rSquare() << endl;
+	cout << "Took " << elapsed*1000.0 << " ms" << endl;
+	
+	delete qr;
+	
+}
+
+void testQuadRegressionWithData()
+{
+	std::ifstream inFile;
+	inFile.open("SampleAngleData.csv", std::ifstream::in);
+	if (inFile.fail()) throw std::runtime_error("Failed to open in file.");
+	
+	
+	std::ofstream outFile;
+	outFile.open("/users/adamskubel/Desktop/test_out.csv",std::ofstream::out);
+	
+	if (outFile.fail()) throw std::runtime_error("Failed to open out file.");
+	
+	int length = 10;
+	QuadraticRegression * qr = new QuadraticRegression(length);
+	
+	list<pair<double,double> > data;
+	
+	pair<double,double> last;
+	outFile << "Time,Position,Accel,R2,LinSpeed,DerivSpeed,Delta" << endl;
+	std::string v0,v1;
+	while (getline(inFile,v0,',')) {
+		getline(inFile,v1,'\n');
+		double num1,num2;
+		stringstream input(v0);
+		input >> num1;
+		stringstream input2(v1);
+		input2 >> num2;
+		
+		
+		if (input.fail() || input2.fail())
+		{
+			throw std::runtime_error("Error parsing input file.");
+		}
+		
+		last = data.back();
+		data.push_back(make_pair(num1,num2));
+		
+		if (data.size() > length) data.pop_front();
+		
+		qr->addPoint(num1, num2);
+		
+		if (qr->getSize() >= length)
+		{
+			double delta = (data.back().second - last.second)/(data.back().first - last.first);
+			double slope, intercept,r2;
+			MathUtil::linearRegression(data, slope, intercept, r2);
+			outFile << num1 << "," << num2 << "," << qr->ddy(num1) << "," << qr->rSquare()
+			<< "," << slope << "," << qr->dy(num1) << "," << delta << endl;
+		}
+	}
+	
+	outFile.close();
+}
 
 void testMotionPlanning()
 {
 	MotionPlanner * mp = new MotionPlanner(controllers);
 	
-	double  initialAngles_deg[] = {0.1,-6.4,0,34,63,0}; //11 0 -6
+//	double  initialAngles_deg[] = {0.1,-6.4,0,34,63,0}; //11 0 -6
+	double  initialAngles_deg[] = {0,0,0,0,0,0}; //11 0 -6
 	vector<double> intialAngles_rad, initialAngles_step;
 	
 	for (int i=0;i<6;i++) intialAngles_rad.push_back(MathUtil::degreesToRadians(initialAngles_deg[i]));
 	for (int i=0;i<6;i++) initialAngles_step.push_back(AS5048::degreesToSteps(initialAngles_deg[i]));
 	
-	int divisionCount = 20;
+	int divisionCount = 1;
 	mp->setPathDivisions(divisionCount);
 	auto steps = mp->buildMotionSteps(intialAngles_rad, Vector3d(10,0,-6)/100.0, Matrix3d::createRotationAroundAxis(0, -90, 0));
 	
@@ -138,7 +220,11 @@ void testMotionPlanning()
 	
 	for (int c = 0; c < numChannels; c++)
 	{
-		cout << "Final = " << motionPlan[c]->finalAngle << ", Final(t) = " << motionPlan[c]->getPositionAtTime(1000) << endl;
+		double f0 = motionPlan[c]->finalAngle;
+		double f1 =motionPlan[c]->getPositionAtTime(10);
+		
+		if (std::abs(f0 - f1) > 1.0)
+			cout << "Final = " << f0 << ", Final(t) = " <<  f1 << endl;
 	}
 	
 	for (double t = 0; t < motionPlan.front()->getPlanDuration(); t += 0.01)

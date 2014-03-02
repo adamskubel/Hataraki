@@ -3,23 +3,6 @@
 using namespace std;
 
 
-I2CBus::I2CBus(const char * busname)
-{
-	
-}
-
-void I2CBus::writeToBus(unsigned char * buf, int length)
-{
-}
-
-void I2CBus::readFromBus(unsigned char * buffer, int length)
-{
-}
-
-void I2CBus::selectAddress(int addr)
-{
-	
-}
 
 #ifdef I2C_SUPPORTED
 
@@ -76,5 +59,23 @@ double I2CBus::getAverageDataRate()
 {
 	return sma->avg();
 }
+#else
 
+I2CBus::I2CBus(const char * busname)
+{
+	
+}
+
+void I2CBus::writeToBus(unsigned char * buf, int length)
+{
+}
+
+void I2CBus::readFromBus(unsigned char * buffer, int length)
+{
+}
+
+void I2CBus::selectAddress(int addr)
+{
+	
+}
 #endif

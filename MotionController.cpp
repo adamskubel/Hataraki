@@ -1,10 +1,5 @@
 #include "MotionController.hpp"
 
-#include "TimeUtil.hpp"
-
-#include <iomanip>
-#include <cmath>
-
 using namespace std;
 using namespace ikfast2;
 using namespace ikfast;
@@ -172,6 +167,13 @@ void MotionController::moveToPosition(Vector3d targetPosition, Matrix3d targetRo
 	if (interactive)
 	{
 		cout << "Angles    = ";
+		for (auto it = currentPlan.begin(); it != currentPlan.end(); it++)
+		{
+			//cout << setprecision(2) << std::round(AS5048::stepsToDegrees((*it)->finalAngle)/0.01)*0.01 << "  ";
+			cout << setprecision(2) << std::round(AS5048::stepsToDegrees((*it)->getPositionAtTime(1000))/0.01)*0.01 << "  ";
+		}
+		cout << endl;
+		cout << "Angles2    = ";
 		for (auto it = currentPlan.begin(); it != currentPlan.end(); it++)
 		{
 			cout << setprecision(2) << std::round(AS5048::stepsToDegrees((*it)->finalAngle)/0.01)*0.01 << "  ";

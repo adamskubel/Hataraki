@@ -7,7 +7,7 @@
 
 #define MathDebug true
 
-
+#define isnan(x) std::isnan(x)
 
 struct PlanSolution {
 

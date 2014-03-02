@@ -260,8 +260,8 @@ int main(int argc, char *argv[])
 					} else {
 						
 						int pathDivisionCount = 1;
-						//input >> pathDivisionCount;
-						//if (input.fail()) pathDivisionCount = 1;
+						input >> pathDivisionCount;
+						if (input.fail()) pathDivisionCount = 1;
 
 						double rX,rY,rZ;
 						input >> rX; input >> rY; input >> rZ;
