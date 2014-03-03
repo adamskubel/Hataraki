@@ -77,7 +77,6 @@
     <ClCompile Include="MotionController.cpp" />
     <ClCompile Include="MotionPlan.cpp" />
     <ClCompile Include="MotionPlanner.cpp" />
-    <ClCompile Include="PathPlanner.cpp" />
     <ClCompile Include="PoseDynamics.cpp" />
     <ClCompile Include="PredictiveJointController.cpp" />
     <ClCompile Include="PredictiveJointControl_ControllerImpl.cpp" />
@@ -108,11 +107,9 @@
     <ClInclude Include="MotionController.hpp" />
     <ClInclude Include="MotionPlan.hpp" />
     <ClInclude Include="MotionPlanner.hpp" />
-    <ClInclude Include="PathPlanner.hpp" />
     <ClInclude Include="PoseDynamics.hpp" />
     <ClInclude Include="PredictiveJointController.hpp" />
     <ClInclude Include="QuadraticRegression.hpp" />
-    <ClInclude Include="SegmentModel.hpp" />
     <ClInclude Include="ServoModel.hpp" />
     <ClInclude Include="ServoUtil.hpp" />
     <ClInclude Include="SavitzkyGolaySmooth.hpp" />

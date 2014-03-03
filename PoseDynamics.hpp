@@ -22,6 +22,10 @@ class PoseDynamics {
 		vmath::Vector3d Translation;
 		vmath::Matrix3d Rotation;
 		
+		vmath::Vector3d PointMassPosition;
+		double PointMassValue;
+		double MomentOfInertia;
+		
 		SegmentTransform(vmath::Vector3d _Translation, vmath::Matrix3d _Rotation) :
 			Translation(_Translation), Rotation(_Rotation)
 		{
@@ -33,6 +37,7 @@ class PoseDynamics {
 			return output + Translation;
 		}
 	};
+
 
 public:
 	static PoseDynamics& getInstance()
@@ -72,6 +77,8 @@ public:
 	void setJointAngles(std::vector<double> angles);
 	void setJointVelocities(std::vector<double> velocities);
 	
+	double getTorqueForAcceleration(int jointIndex, double accel);
+
 	void update();
 
 	double computeJointTorque(int targetJoint);

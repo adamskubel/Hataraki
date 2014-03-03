@@ -166,10 +166,18 @@ bool KinematicSolver::threePart_attemptSolution(const double aMax, const double 
 void KinematicSolver::threePart_calculate(double aMax, double v0, double vF, double d, double t, PlanSolution & sol)
 {
 	double v1,t0,t1,t2;
-
-	sol.status = PlanSolution::SolutionStatus::NoSolution;
 	int form = 1;
 	int dir = sgn(d);
+
+	sol.status = PlanSolution::SolutionStatus::NoSolution;
+	
+	//Solution 0 - Nothing is happening, just stay still for requested time period.	
+	if (v0 == 0 && vF == 0 && d == 0)
+	{
+		form = 0;
+		sol.setResult(0, 0, t, 0);
+		sol.status = PlanSolution::SolutionStatus::OriginalSolution;
+	}
 
 	//Solution 1 
 	// U shape (decel - travel - accel) AKA CONCAVE
@@ -228,7 +236,7 @@ void KinematicSolver::threePart_calculate(double aMax, double v0, double vF, dou
 		{
 			sol.status = PlanSolution::AdjustedSolution;
 			double convex_v0_min = vF+a0*t+sqrt(2.0)*sqrt(a0*(d*-2.0+t*vF*2.0+a0*(t*t)));
-			double convex_v0_max = vF+sqrt(a0*(d*-2.0+t*vF*2.0+a0*(t*t)))+a0*t;
+			//double convex_v0_max = vF+sqrt(a0*(d*-2.0+t*vF*2.0+a0*(t*t)))+a0*t;
 			double convex_v0_max_2= vF-sqrt(a0*(d*-2.0+t*vF*2.0+a0*(t*t)))+a0*t;
 			
 			sol.adjusted.v0_min = convex_v0_min;

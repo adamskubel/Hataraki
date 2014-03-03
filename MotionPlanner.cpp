@@ -5,6 +5,7 @@ using namespace vmath;
 using namespace ikfast2;
 using namespace ikfast;
 
+#define MotionPlanDebug false
 
 const double DynamicMovementThreshold = AS5048::degreesToSteps(1.5);
 
@@ -25,8 +26,6 @@ MotionPlanner::MotionPlanner(vector<PredictiveJointController*> joints)
 		accelLimits.push_back((*it)->getMaxAcceleration());
 		jerkLimits.push_back(0);
 	}
-		
-	this->pathPlanner = new PathPlanner(6,velocityLimits,accelLimits,jerkLimits);
 }
 
 //TODO: Move this to IK planner
@@ -61,7 +60,8 @@ void MotionPlanner::calculateStep(vector<StepMotionPlan> * stepPlans, std::vecto
 {
 	if (i <= 0) throw std::logic_error("It's all ogre now");
 
-	cout << "Calculating step " << i << endl;
+	if (MotionPlanDebug)
+		cout << "Calculating step " << i << endl;
 
 	Step * s0 = &(steps[i]);
 	Step * s1 = &(steps[i-1]);
@@ -75,6 +75,9 @@ void MotionPlanner::calculateStep(vector<StepMotionPlan> * stepPlans, std::vecto
 		double delta = s0->Positions[c] - s1->Positions[c];
 		double aMax = joint->getMaxAcceleration();
 		double vMax = joint->getMaxVelocity();
+
+		if (abs(delta) < 0.001) delta = 0;
+		if (abs(v0) < 0.001) v0 = 0;
 
 		double vF = 0;
 		bool enforce = false;
@@ -126,7 +129,10 @@ void MotionPlanner::calculateStep(vector<StepMotionPlan> * stepPlans, std::vecto
 			else
 			{
 				//A time invariant solution always exists in this case
-				jointTime = KinematicSolver::twoPart_minimumTime(aMax, vMax, delta, v0);
+				if (delta == 0 && v0 != 0)
+					jointTime = 0;
+				else
+					jointTime = KinematicSolver::twoPart_minimumTime(aMax, vMax, delta, v0);
 				
 				if (jointTime > 10 || jointTime < 0)
 				{
@@ -193,23 +199,28 @@ void MotionPlanner::calculateStep(vector<StepMotionPlan> * stepPlans, std::vecto
 
 			if (enforcementNeeded)
 			{
-				cout << "V0-A = ";
-				for (int x=0;x<6;x++)	cout << stepPlans[x].at(i-1).getMotionPlanFinalVelocity() << " ";
-				cout << endl;
-				
-				cout << "V0-B = ";
-				for (int x=0;x<6;x++)	cout << ((stepPlans[x].at(i-1).isFinalVelocityEnforced) ? stepPlans[x].at(i-1).finalVelocity : 0.1) << " ";
-				cout << endl;
+				if (MotionPlanDebug)
+				{
+					cout << "V0-A = ";
+					for (int x=0;x<6;x++)	cout << stepPlans[x].at(i-1).getMotionPlanFinalVelocity() << " ";
+					cout << endl;
+					
+					cout << "V0-B = ";
+					for (int x=0;x<6;x++)	cout << ((stepPlans[x].at(i-1).isFinalVelocityEnforced) ? stepPlans[x].at(i-1).finalVelocity : 0.1) << " ";
+					cout << endl;
+				}
 				
 				c = -1; phase = 0;
 				calculateStep(stepPlans, steps, i-1);
 				//After this call, final velocities will meet specifications (they fucking better)
 				//Recalculate this step to ensure ALL non-updated channels still have valid solutions
 				
-				
-				cout << "V0-B2 = ";
-				for (int x=0;x<6;x++)	cout << stepPlans[x].at(i-1).getMotionPlanFinalVelocity() << " ";
-				cout << endl;
+				if (MotionPlanDebug)
+				{
+					cout << "V0-B2 = ";
+					for (int x=0;x<6;x++)	cout << stepPlans[x].at(i-1).getMotionPlanFinalVelocity() << " ";
+					cout << endl;
+				}
 			}
 			else
 			{
@@ -254,22 +265,31 @@ void MotionPlanner::calculateStep(vector<StepMotionPlan> * stepPlans, std::vecto
 	}
 }
 
-vector<shared_ptr<MotionPlan> > MotionPlanner::compileStepMotionPlans(vector<StepMotionPlan> * stepPlans)
+vector<shared_ptr<MotionPlan> > MotionPlanner::compileStepMotionPlans(vector<StepMotionPlan> * stepPlans, vector<Step> & steps)
 {
 	vector<shared_ptr<MotionPlan> > motionPlan;
 
 	for (int c=0;c<6;c++)
 	{
-		motionPlan.push_back(shared_ptr<MotionPlan>(new MotionPlan()));
+		MotionPlan * plan = new MotionPlan();		
+		
+		plan->startAngle = steps.front().Positions[c];
+		plan->finalAngle = steps.back().Positions[c];
 
+		int s= 0;
 		auto mi = stepPlans[c];
-		for (auto it=mi.begin();it!=mi.end();it++)
+		for (auto it=mi.begin();it!=mi.end();it++,s++)
+		{
 			for (auto it2=it->intervals.begin(); it2 != it->intervals.end(); it2++)
-				motionPlan.back()->motionIntervals.push_back(*it2);
-
-		if (motionPlan.back()->motionIntervals.empty())
+				plan->motionIntervals.push_back(*it2);
+			
+			plan->markKeyframe(steps[s].Positions[c]);
+		}
+		
+		if (plan->motionIntervals.empty())
 			throw std::logic_error("WTF");
 		
+		motionPlan.push_back(shared_ptr<MotionPlan>(plan));
 	}
 
 	return motionPlan;
@@ -277,6 +297,7 @@ vector<shared_ptr<MotionPlan> > MotionPlanner::compileStepMotionPlans(vector<Ste
 
 vector<shared_ptr<MotionPlan> > MotionPlanner::buildPlan(vector<Step> & steps)
 {
+	const bool startIntervalEnabled = !true;
 	auto stepMotionPlans = new vector<StepMotionPlan>[6];
 	
 	for (int c=0;c<6;c++)
@@ -286,19 +307,27 @@ vector<shared_ptr<MotionPlan> > MotionPlanner::buildPlan(vector<Step> & steps)
 	
 	try
 	{
-		for (int i=1;i<steps.size();i++)	
+		for (int i=1;i<steps.size();i++)
 		{
 			calculateStep(stepMotionPlans,steps,i);
 		}
 	
-		auto motionPlan = compileStepMotionPlans(stepMotionPlans);
+		auto motionPlan = compileStepMotionPlans(stepMotionPlans,steps);
 		delete [] stepMotionPlans;
 	
 		for (int c=0; c<6; c++)
 		{
-			motionPlan.at(c)->startAngle = steps.front().Positions[c];
-			motionPlan.at(c)->finalAngle = steps.back().Positions[c];
-		}
+			if (startIntervalEnabled)
+			{
+				double startSpeed = motionPlan.at(c)->motionIntervals.front().endSpeed;
+				double startTime = 0.04; //yay hardcoding
+			
+				MotionInterval mi(startSpeed,startTime);
+				mi.action = MotionInterval::Action::Start;
+			
+				motionPlan.at(c)->motionIntervals.insert(motionPlan.at(c)->motionIntervals.begin(),mi);
+			}
+		} 
 		
 		return motionPlan;
 	}
@@ -327,8 +356,7 @@ double MotionPlanner::calculateMotionEffort(const double * currentSolution, cons
 		}
 		
 		return maxDiff - totalDiff;
-	}
-	
+	}	
 	return 0;
 }
 
@@ -406,7 +434,7 @@ shared_ptr<MotionPlan> MotionPlanner::buildMotionPlan(const double startAngle,co
 	plan->finalAngle = targetAngle;
 	
 	cout << "V0=" << sol.v1 << " T0=" << sol.t0 << " T1=" << sol.t1 << " T2=" << sol.t2 << " T3=" << sol.t3 <<endl;
-	cout << "FinalAngle=" << AS5048::stepsToDegrees(plan->getPositionAtTime(1000)) << endl;
+	cout << "FinalAngle=" << AS5048::stepsToDegrees(plan->x(1000)) << endl;
 	
 	return plan;
 }

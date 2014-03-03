@@ -45,6 +45,7 @@ enum StaticControlMode {
 };
 
 enum DynamicControlMode {
+	Starting,
 	Travelling,
 	Approaching,
 	Stopping
@@ -143,6 +144,7 @@ private:
 	double cTargetAngle;
 	double cTargetVelocity;
 	double cPlanTargetVelocity;
+	double cTargetAcceleration;
 	
 	DynamicControlMode dynamicControlMode;
 	bool dynamicControl;
@@ -156,6 +158,7 @@ private:
 	double cPredictedTorque;
 	double cMotorTorque;
 	double cControlTorque;
+	double cDynamicTorque;
 	//};
 
 	
@@ -197,14 +200,7 @@ private:
 	double velocityErrorIntegral;
 	double speedControlIntegralGain;
 	double speedControlProportionalGain;
-	
-	//struct SetpointApproachData {
-
-	//	SetpointApproachState state;
-	//	double approachVoltage;
-
-	//};
-	//SetpointApproachData setpointApproachData;
+	int startModeIndex;
 
 	//Stepping states
 	//struct StepControlData {

@@ -117,9 +117,6 @@
     <ClCompile Include="IKPlanner.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="PathPlanner.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="MotionPlanner.cpp">
       <Filter>Source Files\Predictive</Filter>
     </ClCompile>
@@ -156,9 +153,6 @@
       <Filter>Header Files\Predictive</Filter>
     </ClInclude>
     <ClInclude Include="ServoModel.hpp">
-      <Filter>Header Files\Model</Filter>
-    </ClInclude>
-    <ClInclude Include="SegmentModel.hpp">
       <Filter>Header Files\Model</Filter>
     </ClInclude>
     <ClInclude Include="Exceptions.hpp">
@@ -204,9 +198,6 @@
       <Filter>Header Files\Predictive</Filter>
     </ClInclude>
     <ClInclude Include="IKPlanner.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="PathPlanner.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="MotionPlanner.hpp">

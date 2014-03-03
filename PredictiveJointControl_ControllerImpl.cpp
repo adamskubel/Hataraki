@@ -21,8 +21,8 @@ namespace ControllerConfiguration
 	const double MinFlipTriggerVelocity = 500;
 	
 	//Speed Control
-	const double MinSpeedControlMeasureDelay = 0.03; //seconds
-	const double MaxSpeedControlMeasureDelay = 0.09; //seconds
+	const double MinSpeedControlMeasureDelay = 0.05; //seconds
+	const double MaxSpeedControlMeasureDelay = 0.10; //seconds
 	const double MinVelocityRValue = 0.95;
 	const double BaseSpeedControlMeasureTorque = 0.01;
 	const double MaxVelocitySetpointError = 20; //steps/second
@@ -107,14 +107,11 @@ void PredictiveJointController::setTargetState()
 				
 		if (dynamicControl)
 		{
-			cTargetAngle = motionPlan->getPositionAtTime(TimeUtil::timeSince(motionPlan->startTime));
-			cTargetVelocity = motionPlan->getSpeedAtTime(TimeUtil::timeSince(motionPlan->startTime));
-			
-			//if (!isControlTorqueValid)
-			//{
-			//	cControlTorque = cPredictedTorque;
-			//	isControlTorqueValid = true;
-			//}
+			double t = TimeUtil::timeSince(motionPlan->startTime);
+			cTargetAngle = motionPlan->x(t);
+			cTargetVelocity = motionPlan->dx(t);
+			cTargetAcceleration = motionPlan->ddx(t);
+			cDynamicTorque = 0;// PoseDynamics::getInstance().getTorqueForAcceleration(jointModel->index,AS5048::stepsToRadians(cTargetAcceleration));
 		}
 		else
 		{
@@ -208,6 +205,18 @@ double PredictiveJointController::estimateTimeToPosition(double position)
 
 void PredictiveJointController::doDynamicControl()
 {		
+	
+	if (dynamicControlMode == DynamicControlMode::Starting)
+	{
+		//if (!config->motionStartEnabled || startModeIndex >= config->startVoltagePattern.size())
+		dynamicControlMode = DynamicControlMode::Travelling;
+		//else
+		//{
+		//	commandDriver(config->startVoltagePattern.at(startModeIndex)*sgn(cPlanTargetVelocity),DriverMode::ConstantVoltage);
+		//	startModeIndex++;
+		//}
+	}
+	
 	if (dynamicControlMode == DynamicControlMode::Travelling)
 	{
 		double dynamicAngleError = cTargetAngle - cSensorAngle;
@@ -226,7 +235,6 @@ void PredictiveJointController::doDynamicControl()
 			dynamicControlMode = DynamicControlMode::Approaching;
 		}
 	}
-	
 	
 	if (dynamicControlMode == DynamicControlMode::Approaching)
 	{
@@ -273,12 +281,14 @@ void PredictiveJointController::doStaticControl()
 
 void PredictiveJointController::doSpeedControl()
 {
-	double cVelocityError = cTargetVelocity - cVelocity;
+	double expectedVelocity = servoModel->getSpeedForTorqueVoltage(cControlTorque,cVoltage);
+
+	double cVelocityError = expectedVelocity - cVelocity;
 	velocityErrorIntegral += cVelocityError * (cTime - lTime);
 
 	if (speedControlState == SpeedControlState::Measuring)
 	{
-		if (TimeUtil::timeSince(speedControlMeasureStart) > MinSpeedControlMeasureDelay && cVelocityApproximationError < MinVelocityRValue)
+		if (TimeUtil::timeSince(speedControlMeasureStart) > MinSpeedControlMeasureDelay && cVelocityApproximationError < 0.7) //MinVelocityRValue)
 		{
 			speedControlState = SpeedControlState::Adjusting;
 		}
@@ -294,7 +304,10 @@ void PredictiveJointController::doSpeedControl()
 
 	if (!cDriverCommanded && speedControlState == SpeedControlState::Adjusting)
 	{
-		cControlTorque += ((cVelocityError * speedControlProportionalGain) + (velocityErrorIntegral * speedControlIntegralGain))/-servoModel->getTorqueSpeedSlope();
+		double velocityError = ((cVelocityError * speedControlProportionalGain) + (velocityErrorIntegral * speedControlIntegralGain));
+		
+		cControlTorque -= velocityError/servoModel->getTorqueSpeedSlope();
+
 		commandDriver(servoModel->getVoltageForTorqueSpeed(cControlTorque,cTargetVelocity),DriverMode::TMVoltage);	
 		speedControlState = SpeedControlState::Measuring;
 		TimeUtil::setNow(speedControlMeasureStart);

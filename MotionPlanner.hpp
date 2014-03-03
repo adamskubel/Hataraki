@@ -6,7 +6,6 @@
 #include <iostream>
 
 #include "MotionPlan.hpp"
-#include "PathPlanner.hpp"
 #include "PredictiveJointController.hpp"
 #include "KinematicSolver.hpp"
 
@@ -14,6 +13,41 @@
 #include "vmath.h"
 #include "ikfast.h"
 	
+
+struct Step {
+	
+	std::vector<double> Positions, Velocities, Accelerations, Jerks;
+	
+	
+	double Time;
+	double TimeOffset; //Offset from previous interval
+
+	Step(int numChannels) {
+
+		this->TimeOffset = 0.0;
+		this->Time = -1;
+		for (int i=0;i<numChannels;i++)
+		{
+			Positions.push_back(0);
+			Accelerations.push_back(0);
+			Velocities.push_back(0);
+			Jerks.push_back(0);
+		}
+	}
+		
+	Step(std::vector<double>  _Positions) {
+		this->Positions = _Positions;
+		this->TimeOffset = 0.0;
+		this->Time = -1;
+		for (int i=0;i<Positions.size();i++)
+		{
+			Accelerations.push_back(0);
+			Velocities.push_back(0);
+			Jerks.push_back(0);
+		}
+	}
+};
+
 struct StepMotionPlan
 {
 	std::vector<MotionInterval> intervals;
@@ -52,14 +86,13 @@ public:
 class MotionPlanner {
 	
 private:
-	PathPlanner * pathPlanner;
 	std::vector<PredictiveJointController*> joints;
 	
 	double interpolationDistance;
 	int pathDivisionCount;
 	double firstStepTime, lastStepTime, samplePeriod;
 	
-	std::vector<std::shared_ptr<MotionPlan> > compileStepMotionPlans(std::vector<StepMotionPlan> * stepPlans);
+	std::vector<std::shared_ptr<MotionPlan> > compileStepMotionPlans(std::vector<StepMotionPlan> * stepPlans, std::vector<Step> & steps);
 
 	//IK stuff
 	bool getEasiestSolution(const double * currentAngles, vmath::Vector3d targetPosition, vmath::Matrix3d targetRotation, double * result);

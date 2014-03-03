@@ -159,13 +159,13 @@ int main(int argc, char *argv[])
 
 	running = true;
 	std::thread jointUpdate(updateController);
-	
+
 	try
 	{
 
 		while (running) 
 		{
-			cout << "->>";
+			cout << std::ios::dec << "->>";
 
 			string inputString;
 			getline(cin,inputString);
@@ -256,12 +256,9 @@ int main(int argc, char *argv[])
 
 
 					if (input.fail()) {
-						cout << "Usage: <setpos|goto> <x>cm <y>cm <z>cm [rX rY rZ]" << endl;
+						cout << "Usage: <setpos|goto> <x>cm <y>cm <z>cm [rX rY rZ] [divs]" << endl;
 					} else {
 						
-						int pathDivisionCount = 1;
-						input >> pathDivisionCount;
-						if (input.fail()) pathDivisionCount = 1;
 
 						double rX,rY,rZ;
 						input >> rX; input >> rY; input >> rZ;
@@ -269,6 +266,10 @@ int main(int argc, char *argv[])
 						{
 							rY = -90; rX = 0; rZ = 0;
 						}
+						
+						int pathDivisionCount = 10;
+						input >> pathDivisionCount;
+						if (input.fail()) pathDivisionCount = 10;
 						
 						motionController->moveToPosition(targetPosition,Matrix3d::createRotationAroundAxis(rX,rY,rZ),pathDivisionCount,interactive);
 					}

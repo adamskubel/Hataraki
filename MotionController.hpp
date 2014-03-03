@@ -24,7 +24,6 @@
 #include "PredictiveJointController.hpp"
 #include "MathUtils.hpp"
 #include "AS5048.hpp"
-#include "PathPlanner.hpp"
 #include "MotionPlanner.hpp"
 #include "TimeUtil.hpp"
 

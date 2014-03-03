@@ -70,10 +70,11 @@ public:
 	double speedControlProportionalGain;
 	double speedControlIntegralGain;
 
-	std::vector<double> gravityFlipVoltagePattern, externalDisturbanceFlipVoltagePattern;
+	std::vector<double> gravityFlipVoltagePattern, externalDisturbanceFlipVoltagePattern, startVoltagePattern;
 
 	bool externalDisturbanceFlipTriggerEnabled;
 	bool gravityFlipTriggerEnabled;
+	bool motionStartEnabled;
 
 	bool savitzyGolayFilteringEnabled;
 	int savitzyGolayWindowSize;
@@ -88,6 +89,12 @@ public:
 	int positionHistorySize;
 
 	cJSON * rawConfig;
+	
+	double get(std::string key)
+	{
+		return Configuration::getInstance().getObject(rawConfig,key)->valuedouble;
+	}
+
 
 	ControllerConfig(cJSON * _rawConfig) 
 	{
@@ -97,6 +104,9 @@ public:
 		speedControlIntegralGain = Configuration::getInstance().getObject(rawConfig,"SpeedControl.IntegralGain")->valuedouble;
 
 		gravityFlipVoltagePattern = Configuration::getVoltagePatternFromJSON(cJSON_GetObjectItem(rawConfig,"GravityFlipPattern"));
+		
+		startVoltagePattern = Configuration::getVoltagePatternFromJSON(Configuration::getInstance().getObject(rawConfig,"MotionStart.VoltagePattern"));
+		motionStartEnabled = get("MotionStart.Enabled") != 0.0;
 
 		externalDisturbanceFlipVoltagePattern = Configuration::getVoltagePatternFromJSON(cJSON_GetObjectItem(rawConfig,"ExternalDisturbanceFlipPattern"));
 
@@ -115,11 +125,6 @@ public:
 		approachDistanceThreshold = AS5048::degreesToSteps(Configuration::getInstance().getObject(rawConfig,"DynamicController.SetpointApproachDistanceThreshold")->valuedouble);
 		
 		positionHistorySize = Configuration::getInstance().getObject(rawConfig,"SpeedControl.HistoryLength")->valueint;
-	}
-
-	double get(std::string key)
-	{
-		return Configuration::getInstance().getObject(rawConfig,key)->valuedouble;
 	}
 
 

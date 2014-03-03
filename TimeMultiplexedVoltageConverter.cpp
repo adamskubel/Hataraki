@@ -33,17 +33,26 @@ double TimeMultiplexedVoltageConverter::nextVoltage(double targetVoltage)
 
 	double maxStep = std::min((double)DRV8830::MaxVoltageStep,DRV8830::getNearestVoltage(maxVoltage));
 	
-	if (steps > 5.0 && std::abs(stepError) > 0.25 && steps < maxStep) 
+	const double cutoffStep = 5.0;	
+	const double pulseVoltage = 0.48;
+	const double offVoltage = 0.24;
+
+	if (steps > cutoffStep && std::abs(stepError) > 0.25 && steps < maxStep) 
 	{		
 		double upper = DRV8830::fractionalStepsToVoltage(std::ceil(steps*sign));
 		double lower = DRV8830::fractionalStepsToVoltage(std::floor(steps*sign));
 
 		if (voltageHistory.size() > 0)
 		{			
-			double v0 = (voltageHistory.back() + upper) / 2.0;
-			double v1 = (voltageHistory.back() + lower) / 2.0;
-			
-			appliedVoltage = (std::abs(v0-targetVoltage) < std::abs(v1-targetVoltage)) ? v0 : v1;
+			double vSum = 0, size = voltageHistory.size();
+			for (auto it = voltageHistory.begin(); it != voltageHistory.end(); it++) vSum += *it;
+
+			double vMean_upper = (vSum + upper) / (size+1);
+			double vMean_lower = (vSum + lower) / (size+1);
+
+			//Choose whatever voltage results in the closest average voltage to the setpoint
+
+			appliedVoltage = (std::abs(vMean_upper-targetVoltage) < std::abs(vMean_lower-targetVoltage)) ? vMean_upper : vMean_lower;
 		}
 		else
 		{
@@ -51,13 +60,21 @@ double TimeMultiplexedVoltageConverter::nextVoltage(double targetVoltage)
 			appliedVoltage = (stepError > 0) ? lower : upper;
 		}
 	}
+	//else if (steps <= cutoffStep)	
+	//{		
+	//	if (voltageHistory.size() > 0 && abs(voltageHistory.back()) >= pulseVoltage)
+	//		appliedVoltage = DRV8830::getNearestVoltage(targetVoltage);
+	//	else
+	//		appliedVoltage = pulseVoltage * sign;
+	//}
 	else
 	{
 		appliedVoltage = DRV8830::getNearestVoltage(targetVoltage);
-		if (appliedVoltage > maxVoltage) appliedVoltage = maxVoltage;
-		if (appliedVoltage < -maxVoltage) appliedVoltage = -maxVoltage;
 	}
 
+	
+	if (appliedVoltage > maxVoltage) appliedVoltage = maxVoltage;
+	if (appliedVoltage < -maxVoltage) appliedVoltage = -maxVoltage;
 	voltageHistory.push_back(appliedVoltage);
 
 	if (voltageHistory.size() > maxMultiplexPeriods)

@@ -38,7 +38,7 @@ void PredictiveJointController::init()
 	cRawSensorAngle = 0;
 	cVelocity = 0;
 	cMotorTorque = 0;
-
+	cDynamicTorque = 0;
 	cTargetAngle = 0;
 	cTargetAngleDistance =0;
 	cTargetVelocity = 0;
@@ -134,7 +134,8 @@ void PredictiveJointController::executeMotionPlan(std::shared_ptr<MotionPlan> re
 	motionPlanComplete = false;	
 	isTorqueEstimateValid = false;
 	isControlTorqueValid = false;
-	dynamicControlMode = DynamicControlMode::Travelling;
+	dynamicControlMode = DynamicControlMode::Starting;
+	startModeIndex = 0;
 
 	//Make sure speed controller starts off in adjusting state
 	speedControlState = SpeedControlState::Adjusting;
@@ -223,10 +224,10 @@ void PredictiveJointController::writeLogHeader()
 		"StableTorque"		<< Configuration::CsvSeparator << 
 		"BusSelectTime"		<< Configuration::CsvSeparator << 
 		"FileWriteTime"		<< Configuration::CsvSeparator << 
-		"QuadRegError"		<< Configuration::CsvSeparator << 
 		"QuadRegAccel"		<< Configuration::CsvSeparator << 
-		"QuadRegVelocity"	<< Configuration::CsvSeparator <<
-		"PlanVelocity"		<< Configuration::CsvSeparator << endl;
+		"PlanAccel"			<< Configuration::CsvSeparator <<
+		"PlanVelocity"		<< Configuration::CsvSeparator << 
+		"ExpectedVelocity"	<< Configuration::CsvSeparator << endl;
 
 	AsyncLogger::getInstance().postLogTask(logfileName,ss.str());
 }
@@ -295,10 +296,10 @@ void PredictiveJointController::logState()
 		<< stableTorqueEstimate*100.0 << Configuration::CsvSeparator
 		<< cBusSelectTime		<< Configuration::CsvSeparator
 		<< writeTime			<< Configuration::CsvSeparator
-		<< cQuadRegErrorValue	<< Configuration::CsvSeparator
 		<< cQuadRegAcceleration	<< Configuration::CsvSeparator
-		<< cQuadRegVelocity		<< Configuration::CsvSeparator
-		<< cPlanTargetVelocity;
+		<< cTargetAcceleration	<< Configuration::CsvSeparator
+		<< cPlanTargetVelocity	<< Configuration::CsvSeparator 
+		<< servoModel->getSpeedForTorqueVoltage(cControlTorque,cVoltage);
 
 	ss << endl;
 
@@ -307,45 +308,6 @@ void PredictiveJointController::logState()
 	TimeUtil::assertTime(logStart,jointModel->name + ".logState()");
 
 }
-
-void PredictiveJointController::printState()
-{
-	//cout 
-	//	<< jointModel->name << ":  " 
-	//	<< "RawSensor=" << AS5048::stepsToDegrees(cRawSensorAngle) << "deg, "
-	//	<< "Sensor=" << AS5048::stepsToDegrees(cSensorAngle) << "deg, "
-	//	<< "TargetAngle=" << AS5048::stepsToDegrees(cTargetAngle) << "deg, "
-	//	<< "Velocity=" << AS5048::stepsToDegrees(cVelocity) << "deg/s, "
-	//	<< "TargetVelocity=" << AS5048::stepsToDegrees(cTargetVelocity) << "deg/s"  
-	//	<< endl
-	//	<< "DisturbanceTorque=" << cDisturbanceTorque << "Nm, " 
-	//	<< "MotorTorque=" << cMotorTorque << "Nm, "
-	//	<< "MotorVoltage=" << cVoltage << " V, "
-	//	<< "ControlMode=" << controlMode 
-	//	<< endl;
-
-	//switch (controlMode) {
-	//case ControlMode::PositionControl:
-	//	cout << "PosContMode=" << positionControlState << ", " << endl;
-	//	break;
-	//case ControlMode::StepControl:
-	//	cout 
-	//		<< "SteppingState=" << steppingState << ", "
-	//		<< "StepStartPosition=" << stepStartPosition << ", " 
-	//		<< "StepVoltages=[ ";
-	//	for (auto it=stepVoltages.begin(); it != stepVoltages.end(); it++) 
-	//	{
-	//		cout << (*it) << " ";
-	//	}
-	//	cout << "]" << endl;
-	//	break;
-	//case ControlMode::SpeedControl:
-	//default:
-	//	break;
-	//}
-
-}
-
 
 double PredictiveJointController::getMaxVelocity()
 {

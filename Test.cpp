@@ -67,6 +67,7 @@ double fmt(double d)
 void testMotionPlanning();
 void testQuadRegression();
 void testQuadRegressionWithData();
+void testDynamicTorque();
 
 
 int main(int argc, char *argv[])
@@ -91,20 +92,36 @@ int main(int argc, char *argv[])
 //	cJSON * jointArray = cJSON_GetObjectItem(Configuration::getInstance().getRoot(),"JointDefinitions");
 	
 	ArmModel * armModel = new ArmModel(cJSON_GetObjectItem(Configuration::getInstance().getRoot(),"ArmModel"));
-
+	PoseDynamics::getInstance().setArmModel(armModel);
 
 	for (int i=0;i<armModel->joints.size();i++)
 	{
 		PredictiveJointController * pjc = new PredictiveJointController(&(armModel->joints.at(i)),NULL, 0.01);	
 		controllers.push_back(pjc);
 	}
-	
 	motionController = new MotionController(controllers,samplePeriod,5);
 	
-	testQuadRegressionWithData();
+	cout << std::ios_base::dec << endl;
+//	testQuadRegressionWithData();
+//	testDynamicTorque();
 
-	cout << endl << endl << " --- MotionPlanning --- " << endl;
+//	cout << endl << endl << " --- MotionPlanning --- " << endl;
 	testMotionPlanning();
+}
+
+void testDynamicTorque()
+{
+	PoseDynamics::getInstance().setJointAngles({0,0,0,0,0,0});
+//	PoseDynamics::getInstance().setJointAngles({100,-640,0,3400,6300,0});
+	PoseDynamics::getInstance().update();
+	
+	cout << "-- Dynamic Torques -- " << endl;
+	for (int i =0;i<6;i++)
+	{
+		double torque = PoseDynamics::getInstance().getTorqueForAcceleration(i, AS5048::stepsToRadians(5000));
+		cout << torque << "  ";
+	}
+	cout << endl;
 }
 
 void testQuadRegression()
@@ -187,29 +204,34 @@ void testMotionPlanning()
 {
 	MotionPlanner * mp = new MotionPlanner(controllers);
 	
-//	double  initialAngles_deg[] = {0.1,-6.4,0,34,63,0}; //11 0 -6
-	double  initialAngles_deg[] = {0,0,0,0,0,0}; //11 0 -6
+	//	double  initialAngles_deg[] = {0.1,-6.4,0,34,63,0}; //11 0 -6
+	
+	double  initialAngles_deg[] = {0,-17,0,53,34,0}; //12 0 -5.5, 0 -70 0
+	
+	//double  initialAngles_deg[] = {0,-22,0,60,41,0}; //11 0 -5.5, 0 -70 0
+	
+	//double  initialAngles_deg[] = {0,0,0,0,0,0}; //11 0 -6
 	vector<double> intialAngles_rad, initialAngles_step;
 	
 	for (int i=0;i<6;i++) intialAngles_rad.push_back(MathUtil::degreesToRadians(initialAngles_deg[i]));
 	for (int i=0;i<6;i++) initialAngles_step.push_back(AS5048::degreesToSteps(initialAngles_deg[i]));
 	
-	int divisionCount = 1;
+	int divisionCount = 25;
 	mp->setPathDivisions(divisionCount);
-	auto steps = mp->buildMotionSteps(intialAngles_rad, Vector3d(10,0,-6)/100.0, Matrix3d::createRotationAroundAxis(0, -90, 0));
+	auto steps = mp->buildMotionSteps(intialAngles_rad, Vector3d(11,0,-5.5)/100.0, Matrix3d::createRotationAroundAxis(0, -75, 0));
 	
 	//if (divisionCount != steps.size()) cout << "Division count is " << steps.size() << ", expected " << divisionCount << endl;
 	
-	std::ofstream outFile("test_motionplanning.csv");
+	std::ofstream outFile("/users/adamskubel/desktop/test_motionplanning.csv");
 	int numChannels = 6;
 	outFile << "Time,";
+	
+	std::string names[] = {"Roll0","Pitch0","Roll1","Pitch1","Pitch2","Roll2"};
+	
 	for (int c=0;c<numChannels;c++)
 	{
-		outFile <<
-		"X" << c <<
-		",dX" << c <<
-//		",ddX" << c <<
-		",";
+		std::string name = names[c];
+		outFile << name << ".x," << name << ".dx," << name << ".k" << ",";
 	}
 	outFile << endl;
 	
@@ -221,20 +243,40 @@ void testMotionPlanning()
 	for (int c = 0; c < numChannels; c++)
 	{
 		double f0 = motionPlan[c]->finalAngle;
-		double f1 =motionPlan[c]->getPositionAtTime(10);
+		double f1 =motionPlan[c]->x(10);
 		
 		if (std::abs(f0 - f1) > 1.0)
 			cout << "Final = " << f0 << ", Final(t) = " <<  f1 << endl;
 	}
 	
-	for (double t = 0; t < motionPlan.front()->getPlanDuration(); t += 0.01)
+	for (double t2 = 0.0; t2 < motionPlan.front()->getPlanDuration(); t2 += 0.01)
 	{
+		double t = t2;
+//		auto kFt = motionPlan[1]->keyframes.lower_bound(t);
+//		
+//		if (kFt != motionPlan[1]->keyframes.begin())
+//		{
+//			kFt--;
+//			if (kFt->first < t && abs(kFt->first - t) < 0.01)
+//				t = kFt->first;
+//		}
+		
 		outFile << t << ",";
 		for (int c=0;c<numChannels;c++)
 		{
+			auto kF= motionPlan[c]->keyframes.lower_bound(t);
+			
+			//cout << "UPPER = " << kF->first << " LOWER = " << motionPlan[c]->keyframes.lower_bound(t)->first << endl;
+			
+			
+			if (kF == motionPlan[c]->keyframes.end())
+				kF--;
+						
 			outFile
-			<< fmt(motionPlan[c]->getPositionAtTime(t)) << ","
-			<< fmt(motionPlan[c]->getSpeedAtTime(t)) << ",";
+			<< fmt(motionPlan[c]->x(t)) << ","
+			<< fmt(motionPlan[c]->dx(t)) << ","
+			<< fmt(kF->second) << ",";
+			//<< fmt(motionPlan[c]->ddx(t)) << ",";
 		}
 		outFile << endl;
 	}

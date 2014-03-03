@@ -170,7 +170,7 @@ void MotionController::moveToPosition(Vector3d targetPosition, Matrix3d targetRo
 		for (auto it = currentPlan.begin(); it != currentPlan.end(); it++)
 		{
 			//cout << setprecision(2) << std::round(AS5048::stepsToDegrees((*it)->finalAngle)/0.01)*0.01 << "  ";
-			cout << setprecision(2) << std::round(AS5048::stepsToDegrees((*it)->getPositionAtTime(1000))/0.01)*0.01 << "  ";
+			cout << setprecision(2) << std::round(AS5048::stepsToDegrees((*it)->x(1000))/0.01)*0.01 << "  ";
 		}
 		cout << endl;
 		cout << "Angles2    = ";

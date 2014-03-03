@@ -48,24 +48,51 @@ void PoseDynamics::computeSegmentTransform(int targetJoint, Vector3d & segmentPo
 	segmentRotationMatrix = rotationMatrix;
 }
 
+double pointLineDistanceSq(Vector3d x1, Vector3d x2, Vector3d x0)
+{
+	return ((x2-x1).crossProduct(x1-x0).lengthSq())/(x2-x1).lengthSq();
+}
+
+double pointAxisDistanceSq(Vector3d axisPoint, Vector3d direction, Vector3d x0)
+{
+	double scale = (x0 - axisPoint).length(); //just to keep magnitudes close
+	
+	return pointLineDistanceSq(axisPoint,axisPoint + (direction*scale),x0);
+}
+
+
 void PoseDynamics::computeChildPointMass(int targetJoint, Vector3d & pointMassPosition, double & pointMassValue)
 {
+	double momentOfInteria = 0;
 	pointMassValue = 0;
 	for (int i=targetJoint;i<JointCount;i++)
 	{
 		pointMassValue += armModel->segments.at(i).mass;
 	}
+	
+	Vector3d jointAxis = armModel->joints.at(targetJoint).axisOfRotation;	
+	jointAxis.normalize();
+	jointAxis = segmentTransforms[targetJoint].transformVector(jointAxis);
+	Vector3d jointPosition = segmentTransforms[targetJoint].Translation;
 
 	pointMassPosition = Vector3d(0,0,0);
 	for (int i=targetJoint;i<JointCount;i++)
 	{
 		Matrix3d segmentRotation = segmentTransforms[i].Rotation;
 		Vector3d segmentPosition = segmentTransforms[i].Translation;
-		
-		Vector3d segmentCoG = (segmentRotation * armModel->segments.at(i).centerOfMass) + segmentPosition;
+		double segmentMass = armModel->segments.at(i).mass;
 
-		pointMassPosition += segmentCoG * (armModel->segments.at(i).mass/pointMassValue);
+		Vector3d segmentCoG = (segmentRotation * armModel->segments.at(i).centerOfMass) + segmentPosition; 		
+
+		Vector3d segmentPointMass = segmentCoG * (segmentMass/pointMassValue);
+		pointMassPosition += segmentPointMass;
+
+		momentOfInteria += pointAxisDistanceSq(jointPosition,jointAxis,segmentCoG)*segmentMass;
 	}
+
+	segmentTransforms[targetJoint].PointMassPosition = pointMassPosition;
+	segmentTransforms[targetJoint].PointMassValue = pointMassValue;
+	segmentTransforms[targetJoint].MomentOfInertia = momentOfInteria;
 }
 
 
@@ -84,29 +111,29 @@ void PoseDynamics::computeChildPointMass(int targetJoint, Vector3d & pointMassPo
 //Step 2: Determine angular momentum using velocities
 //Step 3: Determine torque due to forces
 
-Vector3d PoseDynamics::computeTorqueFromAngularAcceleration(int targetJoint)
-{
-	//torque = dL/dt
-	//L = r x p
-	//L = I*dP
-	//p0 = inertia * angularVelocity0
-	//p1 = inertia * angularVelocity1
-	
-//	SegmentModel * segment = &(armModel->segments[targetJoint]);
-	JointModel * joint = &(armModel->joints[targetJoint]);
-		
-	Matrix3d segmentRotation = segmentTransforms[targetJoint].Rotation;
-	Vector3d segmentPosition = segmentTransforms[targetJoint].Translation;
-	double momentOfIntertia =  0;//[targetJoint];
-
-	double dT = nTime - cTime;
-	
-	Vector3d angularAcceleration = joint->axisOfRotation * (nJointVelocities.at(targetJoint) - cJointVelocities.at(targetJoint))/dT;
-	
-	Vector3d dL =  angularAcceleration * momentOfIntertia;
-	
-	return dL;
-}
+//Vector3d PoseDynamics::computeTorqueFromAngularAcceleration(int targetJoint)
+//{
+//	//torque = dL/dt
+//	//L = r x p
+//	//L = I*dP
+//	//p0 = inertia * angularVelocity0
+//	//p1 = inertia * angularVelocity1
+//	
+////	SegmentModel * segment = &(armModel->segments[targetJoint]);
+//	JointModel * joint = &(armModel->joints[targetJoint]);
+//		
+//	Matrix3d segmentRotation = segmentTransforms[targetJoint].Rotation;
+//	Vector3d segmentPosition = segmentTransforms[targetJoint].Translation;
+//	double momentOfIntertia =  segmentTransforms[targetJoint].MomentOfInertia;
+//
+//	double dT = nTime - cTime;
+//	
+//	Vector3d angularAcceleration = joint->axisOfRotation * (nJointVelocities.at(targetJoint) - cJointVelocities.at(targetJoint))/dT;
+//	
+//	Vector3d dL =  angularAcceleration * momentOfIntertia;
+//	
+//	return dL;
+//}
 
 Vector3d PoseDynamics::computeTorqueFromForces(int targetJoint)
 {
@@ -127,16 +154,26 @@ Vector3d PoseDynamics::computeTorqueFromForces(int targetJoint)
 	return torque;
 }
 
+double PoseDynamics::getTorqueForAcceleration(int targetJoint, double accelRadians)
+{
+	if (!(targetJoint >= 0 && targetJoint < armModel->joints.size())) throw std::runtime_error("Joint index out of range");
+
+	double momentOfInertia = segmentTransforms[targetJoint].MomentOfInertia;
+
+	return accelRadians * momentOfInertia;
+}
+
 double PoseDynamics::computeJointTorque(int targetJoint)
 {
-	Vector3d tAccel = Vector3d(0,0,0);//computeTorqueFromAngularAcceleration(targetJoint);
+	if (!(targetJoint >= 0 && targetJoint < armModel->joints.size())) throw std::runtime_error("Joint index out of range");
+	
 	Vector3d tGravity = computeTorqueFromForces(targetJoint);
 
 	Vector3d jointAxis = armModel->joints.at(targetJoint).axisOfRotation;
 	
 	jointAxis = segmentTransforms[targetJoint].transformVector(jointAxis);
 
-	return jointAxis.dotProduct(tAccel+tGravity);
+	return jointAxis.dotProduct(tGravity);
 }
 
 void PoseDynamics::update()

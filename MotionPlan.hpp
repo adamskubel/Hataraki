@@ -4,19 +4,30 @@
 #include <vector>
 #include <cmath>
 #include <stdexcept>
+#include <map>
 
 #include "TimeUtil.hpp"
 
 class MotionInterval {
 	
+
 public:
+	
+	enum Action {
+		Travel,
+		Start
+	};
+
 	double startSpeed, endSpeed, duration;
+
+	Action action;
 	
 	MotionInterval(double constantSpeed, double _duration);	
 	MotionInterval(double _startSpeed, double _endSpeed, double _duration);
 	
-	double getSpeedAtTime(double time);
-	double getPositionAtTime(double time);
+	double x(double t);
+	double dx(double t);
+	double ddx(double t);
 	
 };
 
@@ -25,11 +36,17 @@ class MotionPlan {
 public:
 	double finalAngle, startAngle;
 	timespec startTime, endTime;
+	std::map<double,double> keyframes;
+	
 	std::vector<MotionInterval> motionIntervals;
 		
-	double getSpeedAtTime(double planTime);
-	double getPositionAtTime(double planTime);
 	double getPlanDuration();
+	
+	double x(double t);
+	double dx(double t);
+	double ddx(double t);
+
+	
 	
 	MotionPlan()
 	{
@@ -43,16 +60,19 @@ public:
 		motionIntervals.push_back(MotionInterval(0,0));
 	}
 	
-	MotionPlan(std::vector<MotionInterval> motionIntervals, double startAngle, timespec startTime) {
-		this->motionIntervals = motionIntervals;
-		this->startAngle = startAngle;
-		this->startTime = startTime;
-		this->finalAngle = getPositionAtTime(1000.0); //infinity 
-
-		TimeUtil::addTime(startTime,getPlanDuration(),endTime);
-	}
+//	MotionPlan(std::vector<MotionInterval> motionIntervals, double startAngle, timespec startTime) {
+//		this->motionIntervals = motionIntervals;
+//		this->startAngle = startAngle;
+//		this->startTime = startTime;
+//		this->finalAngle = x(1000.0); //infinity 
+//
+//		TimeUtil::addTime(startTime,getPlanDuration(),endTime);
+//	}
 
 	void startNow();
+	
+	void markKeyframe();
+	void markKeyframe(double x);
 	
 	
 };
