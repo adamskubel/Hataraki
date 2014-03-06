@@ -1,14 +1,14 @@
 {
 	"Version" : "2.0",
 	"DataRecording" : {
-		"Enabled" : 1,
+		"Enabled" : 0,
 		"FilePrefix" : "JointData_"
 	},
 	"GlobalSettings" : {
 		"MaxVoltage" : 2.2,
 		"MotionPlanSteps" : 4,
 		"UpdateFrequency" : 100,
-		"DefaultAccel" 	: 5000
+		"DefaultAccel" 	: 2000
 	},
 	"ArmModel" : 
 	{

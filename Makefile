@@ -1,7 +1,7 @@
 CXX=g++
 CXXFLAGS=-g -std=c++0x 
 	
-LIB=rt
+LIB=rt ncurses tinfo
 LIB_PARAMS=$(foreach d,$(LIB),-l$d)
 
 LIBDIR=
@@ -13,9 +13,9 @@ INC_PARAMS=$(foreach d, $(INC),-I$d)
 MAINFILE=Main.cpp
 TESTFILE=Test.cpp
 
-CLEAN=Main.cpp DRV8830.cpp AS5048.cpp I2CBus.cpp PredictiveJointController.cpp Configuration.cpp MotionController.cpp TimeMultiplexedVoltageConverter.cpp MathUtils.cpp ServoUtil.cpp PoseDynamics.cpp TimeUtil.cpp AsyncLogger.cpp FlipIdentifier.cpp PredictiveJointControl_ControllerImpl.cpp PredictiveJointControl_SignalImpl.cpp SavitzkyGolaySmooth.cpp MotionPlan.cpp MotionPlanner.cpp KinematicSolver.cpp PathPlanner.cpp QuadraticRegression.cpp
+CLEAN=Main.cpp DRV8830.cpp AS5048.cpp I2CBus.cpp PredictiveJointController.cpp Configuration.cpp MotionController.cpp TimeMultiplexedVoltageConverter.cpp MathUtils.cpp ServoUtil.cpp PoseDynamics.cpp TimeUtil.cpp AsyncLogger.cpp FlipIdentifier.cpp PredictiveJointControl_ControllerImpl.cpp PredictiveJointControl_SignalImpl.cpp SavitzkyGolaySmooth.cpp MotionPlan.cpp MotionPlanner.cpp KinematicSolver.cpp PathPlanner.cpp QuadraticRegression.cpp IKControlUI.cpp UIElement.cpp NumberSpinner.cpp
 
-SOURCES=DRV8830.cpp AS5048.cpp I2CBus.cpp PredictiveJointController.cpp Configuration.cpp MotionController.cpp TimeMultiplexedVoltageConverter.cpp MathUtils.cpp ServoUtil.cpp PoseDynamics.cpp TimeUtil.cpp AsyncLogger.cpp FlipIdentifier.cpp PredictiveJointControl_ControllerImpl.cpp PredictiveJointControl_SignalImpl.cpp SavitzkyGolaySmooth.cpp vmath.cpp ikfastsolution.cpp cJSON.cpp MotionPlan.cpp MotionPlanner.cpp KinematicSolver.cpp QuadraticRegression.cpp
+SOURCES=DRV8830.cpp AS5048.cpp I2CBus.cpp PredictiveJointController.cpp Configuration.cpp MotionController.cpp TimeMultiplexedVoltageConverter.cpp MathUtils.cpp ServoUtil.cpp PoseDynamics.cpp TimeUtil.cpp AsyncLogger.cpp FlipIdentifier.cpp PredictiveJointControl_ControllerImpl.cpp PredictiveJointControl_SignalImpl.cpp SavitzkyGolaySmooth.cpp vmath.cpp ikfastsolution.cpp cJSON.cpp MotionPlan.cpp MotionPlanner.cpp KinematicSolver.cpp QuadraticRegression.cpp IKControlUI.cpp UIElement.cpp NumberSpinner.cpp 
 
 OBJECTS=$(SOURCES:.cpp=.o)
 CLEANOBJ=$(CLEAN:.cpp=.o)

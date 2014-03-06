@@ -39,7 +39,7 @@ double KinematicSolver::twoPart_minimumTime(const double aMax, const double vMax
 	
 	if (isnan(v1))
 	{
-		throw std::runtime_error("Complex result in two-part minimization");
+		throw std::logic_error("Complex result in two-part minimization");
 		//a0 = -a0;
 		//v1 = sgn(d)*sqrt(a0*d*2.0+v0*v0);
 	}

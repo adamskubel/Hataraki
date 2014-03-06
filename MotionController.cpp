@@ -90,19 +90,21 @@ double getAccelDistFromSpeed(double initialSpeed, double endSpeed, double accel)
 
 
 
-void MotionController::setJointPosition(int jointIndex, double targetAngle, double travelTime, double accel)
+void MotionController::setJointPosition(int jointIndex, double targetAngle)
 {
 	if (jointIndex >= 0 && jointIndex < joints.size()){		
 			
-		auto pjc = joints.at(jointIndex);
-		auto plan = motionPlanner->buildMotionPlan(pjc->getCurrentAngle(),targetAngle,travelTime,pjc->getJointModel()->servoModel.controllerConfig.approachVelocity, accel);
+		//
+		//if (accel == 0)
+		//	 accel = pjc->getMaxAcceleration();
+		//auto plan = motionPlanner->buildMotionPlan(pjc->getCurrentAngle(),targetAngle,travelTime,pjc->getJointModel()->servoModel.controllerConfig.approachVelocity,accel);
+
+		auto joint = joints.at(jointIndex);
+		auto plan = motionPlanner->buildOptimalMotionPlan(jointIndex,targetAngle);
 		
-		pjc->validateMotionPlan(plan);
-		
+		joint->validateMotionPlan(plan);		
 		plan->startNow();		
-		cout << "Time until complete=" << TimeUtil::timeUntil(plan->endTime) << endl;
-		plan->startNow();
-		pjc->executeMotionPlan(plan);
+		joint->executeMotionPlan(plan);
 	}
 	else {
 		throw std::runtime_error("Error! Joint index is not valid.");
@@ -128,7 +130,7 @@ void MotionController::zeroAllJoints()
 {
 	for (int i=0;i<joints.size();i++)
 	{
-		setJointPosition(i,0,3,AS5048::degreesToSteps(80));
+		setJointPosition(i,0);
 	}
 }
 
@@ -148,85 +150,121 @@ void MotionController::enableAllJoints()
 	}
 }
 
+void MotionController::executeMotionPlan(vector<shared_ptr<MotionPlan> > newPlan)
+{
+	this->postTask([this,newPlan](){
+		
+		this->currentPlan.clear();
+		this->currentPlan = newPlan;
+		for (int i=0;i<6;i++)
+		{
+			joints.at(i)->validateMotionPlan(currentPlan.at(i));
+		}
+		
+		//Simultaneous start
+		for (int i=0;i<6;i++)
+		{
+			currentPlan.at(i)->startNow();
+		}
+		
+		for (int i=0;i<6;i++)
+		{
+			joints.at(i)->executeMotionPlan(currentPlan.at(i));
+		}
+	});
+}
+
+bool MotionController::confirmMotionPlan(vector<shared_ptr<MotionPlan> > & newPlan)
+{
+	cout << "Angles    = ";
+	for (auto it = newPlan.begin(); it != newPlan.end(); it++)
+	{
+		//cout << setprecision(2) << std::round(AS5048::stepsToDegrees((*it)->finalAngle)/0.01)*0.01 << "  ";
+		cout << setprecision(2) << std::round(AS5048::stepsToDegrees((*it)->x(1000))/0.01)*0.01 << "  ";
+	}
+	cout << endl;
+	cout << "Angles2    = ";
+	for (auto it = newPlan.begin(); it != newPlan.end(); it++)
+	{
+		cout << setprecision(2) << std::round(AS5048::stepsToDegrees((*it)->finalAngle)/0.01)*0.01 << "  ";
+	}
+	cout << endl;
+	cout << "Times = ";
+	for (auto it = newPlan.begin(); it != newPlan.end(); it++)
+	{
+		double time = (*it)->getPlanDuration();
+		cout << std::round(time/0.01)*0.01 << "  ";
+	}
+	cout << endl;
+	cout << std::fixed;
+	cout << "Commence motion? [y]es/[a]bort :" << endl;
+	string strIn;
+	getline(cin,strIn);
+	
+	if (strIn.compare("y") != 0)
+	{
+		newPlan.clear();
+		return false;
+	}
+	else
+	{
+		return true;
+	}
+}
 
 void MotionController::moveToPosition(Vector3d targetPosition, Matrix3d targetRotation, int pathDivisionCount, bool interactive)
 {
 	motionPlanner->setPathDivisions(pathDivisionCount);
 	vector<Step> steps = motionPlanner->buildMotionSteps( getJointAnglesRadians(), targetPosition, targetRotation);
 	
-	bool executePlan = false;
-
-	currentPlan.clear();
-
+	vector<shared_ptr<MotionPlan> > newPlan;
 	if (pathDivisionCount > 1)
-		currentPlan = motionPlanner->buildPlan(steps);	
+		newPlan = motionPlanner->buildPlan(steps);
 	else
-		currentPlan = motionPlanner->createClosedSolutionMotionPlanFromSteps(steps);
-
-
-	if (interactive)
+		newPlan = motionPlanner->createClosedSolutionMotionPlanFromSteps(steps);
+	
+	if (!interactive || confirmMotionPlan(newPlan))
 	{
-		cout << "Angles    = ";
-		for (auto it = currentPlan.begin(); it != currentPlan.end(); it++)
-		{
-			//cout << setprecision(2) << std::round(AS5048::stepsToDegrees((*it)->finalAngle)/0.01)*0.01 << "  ";
-			cout << setprecision(2) << std::round(AS5048::stepsToDegrees((*it)->x(1000))/0.01)*0.01 << "  ";
-		}
-		cout << endl;
-		cout << "Angles2    = ";
-		for (auto it = currentPlan.begin(); it != currentPlan.end(); it++)
-		{
-			cout << setprecision(2) << std::round(AS5048::stepsToDegrees((*it)->finalAngle)/0.01)*0.01 << "  ";
-		}
-		cout << endl;
-		cout << "Times = ";
-		for (auto it = currentPlan.begin(); it != currentPlan.end(); it++)
-		{
-			double time = (*it)->getPlanDuration();
-			cout << std::round(time/0.01)*0.01 << "  ";
-		}
-		cout << endl;
-		cout << std::fixed;
-		cout << "Commence motion? [y]es/[a]bort :" << endl;
-		string strIn;
-		getline(cin,strIn);
-
-		if (strIn.compare("y") != 0)
-			currentPlan.clear();
-		else
-			executePlan = true;
-	}
-	else
-		executePlan = true;
-
-	if (executePlan)
-	{
-		this->postTask([this](){
-
-			for (int i=0;i<6;i++)
-			{
-				joints.at(i)->validateMotionPlan(currentPlan.at(i));
-			}
-
-			//Simultaneous start
-			for (int i=0;i<6;i++)
-			{					
-				currentPlan.at(i)->startNow();
-			}
-
-			for (int i=0;i<6;i++)
-			{
-				joints.at(i)->executeMotionPlan(currentPlan.at(i));
-			}
-		});
+		executeMotionPlan(newPlan);
 	}
 }
+
+vector<shared_ptr<MotionPlan> > MotionController::planForPosition(Vector3d targetPosition, Matrix3d targetRotation, int pathDivisionCount)
+{
+	motionPlanner->setPathDivisions(pathDivisionCount);
+	vector<Step> steps = motionPlanner->buildMotionSteps( getJointAnglesRadians(), targetPosition, targetRotation);
+	
+	vector<shared_ptr<MotionPlan> > newPlan;
+	if (pathDivisionCount > 1)
+		newPlan = motionPlanner->buildPlan(steps);
+	else
+		newPlan = motionPlanner->createClosedSolutionMotionPlanFromSteps(steps);
+	
+	return newPlan;
+}
+
 
 
 void MotionController::postTask(std::function<void()> task)
 {
 	std::lock_guard<std::mutex> locks(taskQueueMutex);
 	taskQueue.push(task);
+}
+
+void MotionController::getTransform(std::vector<double> & anglesDegrees, vmath::Vector3d & translation, vmath::Matrix3d & rotation)
+{
+	int i =0;
+	double anglesRad[6];
+	for (auto it = joints.begin(); it != joints.end(); it++)
+	{
+		double angleSteps = (*it)->getCurrentAngle();
+		anglesRad[i++] = AS5048::stepsToRadians(angleSteps);
+		anglesDegrees.push_back(AS5048::stepsToDegrees(angleSteps));
+	}
+	
+	double r[9];
+	ikfast2::ComputeFk(anglesRad,translation,r);
+	rotation = Matrix3d::fromRowMajorArray(r);	
 }
 
 vector<double> MotionController::getJointAnglesRadians()

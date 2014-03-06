@@ -128,6 +128,8 @@ public:
 	static vmath::Vector4d constructPlane(vmath::Vector3d normal, vmath::Vector3d point);
 
 	static void getRowMajorData(vmath::Matrix3d matrix, double * result);
+	
+	static void extractEulerAngles(vmath::Matrix3d matrix, double & xR, double & yR, double & zR);
 
 };
 

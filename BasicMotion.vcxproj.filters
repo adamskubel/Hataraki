@@ -43,6 +43,12 @@
     <Filter Include="Source Files\Math">
       <UniqueIdentifier>{569d1e8f-268c-40c7-a1da-191b4b4fa3ab}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\UI">
+      <UniqueIdentifier>{f7ef69f0-f2da-45a0-a5d9-e3f0041d86f5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\UI">
+      <UniqueIdentifier>{69690a44-411a-4284-8dd7-3807cdb42e34}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="I2CBus.cpp">
@@ -126,6 +132,12 @@
     <ClCompile Include="QuadraticRegression.cpp">
       <Filter>Source Files\Math</Filter>
     </ClCompile>
+    <ClCompile Include="IKControlUI.cpp">
+      <Filter>Source Files\UI</Filter>
+    </ClCompile>
+    <ClCompile Include="UIElement.cpp">
+      <Filter>Source Files\UI</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="I2CBus.hpp">
@@ -208,6 +220,12 @@
     </ClInclude>
     <ClInclude Include="QuadraticRegression.hpp">
       <Filter>Header Files\Math</Filter>
+    </ClInclude>
+    <ClInclude Include="IKControlUI.hpp">
+      <Filter>Header Files\UI</Filter>
+    </ClInclude>
+    <ClInclude Include="UIElement.hpp">
+      <Filter>Header Files\UI</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

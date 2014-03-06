@@ -111,6 +111,7 @@ public:
 	
 	std::vector<std::shared_ptr<MotionPlan> > buildPlan(std::vector<Step> & steps);
 	void calculateStep(std::vector<StepMotionPlan> * stepPlans, std::vector<Step> & steps, int stepNumber);
+	std::shared_ptr<MotionPlan> buildOptimalMotionPlan(int jointIndex, const double targetAngle);
 };
 
 

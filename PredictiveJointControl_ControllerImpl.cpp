@@ -74,7 +74,12 @@ void PredictiveJointController::run()
 	}
 
 	commitCommands();
-	logState();
+	
+	
+	if (Configuration::CsvLoggingEnabled)
+	{	
+		logState();
+	}
 
 	TimeUtil::assertTime(start,jointModel->name + ".run()");
 }

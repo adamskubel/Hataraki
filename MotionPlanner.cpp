@@ -287,7 +287,7 @@ vector<shared_ptr<MotionPlan> > MotionPlanner::compileStepMotionPlans(vector<Ste
 		}
 		
 		if (plan->motionIntervals.empty())
-			throw std::logic_error("WTF");
+			throw std::logic_error("Empty plan created");
 		
 		motionPlan.push_back(shared_ptr<MotionPlan>(plan));
 	}
@@ -331,10 +331,10 @@ vector<shared_ptr<MotionPlan> > MotionPlanner::buildPlan(vector<Step> & steps)
 		
 		return motionPlan;
 	}
-	catch (std::logic_error & le)
+	catch (std::runtime_error & e)
 	{
 		stringstream ss;
-		ss << "Cannot build plan. Error = " << le.what();
+		ss << "Cannot build plan. Error = " << e.what();
 		throw runtime_error(ss.str());
 	}
 }
@@ -352,7 +352,9 @@ double MotionPlanner::calculateMotionEffort(const double * currentSolution, cons
 		}
 		
 		if (totalDiff > maxDiff) {
-			cout << "Unexpected value for total effort: " << totalDiff << "rad . Max effort = " << maxDiff << " rad" << endl;
+			stringstream ss;
+			ss << "Unexpected value for total effort: " << totalDiff << "rad . Max effort = " << maxDiff << " rad";
+			throw std::logic_error(ss.str());
 		}
 		
 		return maxDiff - totalDiff;
@@ -396,7 +398,48 @@ bool MotionPlanner::getEasiestSolution(const double * currentAngles, Vector3d ta
 	return false;
 }
 
+shared_ptr<MotionPlan> MotionPlanner::buildOptimalMotionPlan(int jointIndex, const double targetAngle)
+{
+	if (jointIndex < 0 || jointIndex >= joints.size()) throw std::runtime_error("Invalid joint index");
 
+	auto joint = joints.at(jointIndex);	
+
+	double v0 = 0;
+	double startAngle = joint->getCurrentAngle();
+	double delta = targetAngle - startAngle;
+	double dir = sgn(delta);
+	double vF = 0; //joint->getJointModel()->servoModel.controllerConfig.approachVelocity * dir;
+	
+	double minTime = KinematicSolver::threePart_minimumTime(joint->getMaxAcceleration(),joint->getMaxVelocity(),v0,vF,delta);
+	minTime += 0.0001;
+
+	if (isnan(minTime) || minTime < 0)
+		throw std::runtime_error("Cannot set joint position (negative/complex minimum time)");
+	
+	PlanSolution sol;
+	//KinematicSolver::twoPart_calculate(joint->getMaxAcceleration(),v0,delta,minTime,sol);
+	KinematicSolver::threePart_calculate(joint->getMaxAcceleration(),v0,vF,delta,minTime,sol);
+
+	if (sol.status != PlanSolution::SolutionStatus::OriginalSolution)
+	{
+		stringstream ss;
+		ss << "No valid solution found.";
+		throw std::runtime_error(ss.str());
+	}
+	
+	//Add to plan
+	
+	auto plan = shared_ptr<MotionPlan>(new MotionPlan());
+
+	if (sol.t0 > 0) plan->motionIntervals.push_back(MotionInterval(v0,sol.v1,sol.t0));	
+	if (sol.t1 > 0) plan->motionIntervals.push_back(MotionInterval(sol.v1,sol.t1));	
+	if (sol.t2 > 0) plan->motionIntervals.push_back(MotionInterval(sol.v1,vF,sol.t2));
+
+	plan->startAngle = startAngle;
+	plan->finalAngle = targetAngle;
+		
+	return plan;
+}
 
 shared_ptr<MotionPlan> MotionPlanner::buildMotionPlan(const double startAngle,const  double targetAngle, const double targetTime, const  double approachVelocity, const double maxAccel)
 {
@@ -433,8 +476,8 @@ shared_ptr<MotionPlan> MotionPlanner::buildMotionPlan(const double startAngle,co
 	plan->startAngle = startAngle;
 	plan->finalAngle = targetAngle;
 	
-	cout << "V0=" << sol.v1 << " T0=" << sol.t0 << " T1=" << sol.t1 << " T2=" << sol.t2 << " T3=" << sol.t3 <<endl;
-	cout << "FinalAngle=" << AS5048::stepsToDegrees(plan->x(1000)) << endl;
+	//cout << "V0=" << sol.v1 << " T0=" << sol.t0 << " T1=" << sol.t1 << " T2=" << sol.t2 << " T3=" << sol.t3 <<endl;
+	//cout << "FinalAngle=" << AS5048::stepsToDegrees(plan->x(1000)) << endl;
 	
 	return plan;
 }
@@ -462,7 +505,7 @@ vector<Step> MotionPlanner::buildMotionSteps(vector<double> jointAngles, Vector3
 	}
 	steps.push_back(Step(initialAnglesConv));
 	
-	cout << "Moving from " << (currentPosition*100.0).toString() << " to " << (targetPosition*100.0).toString() << " in " << pathDivisionCount << " divisions. " << endl;
+	//cout << "Moving from " << (currentPosition*100.0).toString() << " to " << (targetPosition*100.0).toString() << " in " << pathDivisionCount << " divisions. " << endl;
 	for (int i=1;i<=pathDivisionCount;i++)
 	{
 		Vector3d stepPosition = currentPosition + delta*((double)i/pathDivisionCount);
@@ -514,7 +557,7 @@ vector<shared_ptr<MotionPlan> > MotionPlanner::createClosedSolutionMotionPlanFro
 		double lastVelocity = 0;
 
 		double delta = step->Positions[i] - s1->Positions[i];
-		cout << delta << " ";
+		//cout << delta << " ";
 
 		double direction = sgn(delta);
 		double maxSpeed = joints.at(i)->getMaxVelocity() * direction;
@@ -527,7 +570,7 @@ vector<shared_ptr<MotionPlan> > MotionPlanner::createClosedSolutionMotionPlanFro
 
 		stepTime = std::max(stepTime,jointTime);
 	}
-	cout << endl;
+	//cout << endl;
 
 	for (int i=0;i<6;i++) 
 	{	
@@ -550,9 +593,9 @@ vector<shared_ptr<MotionPlan> > MotionPlanner::createClosedSolutionMotionPlanFro
 		motionPlan.at(i)->motionIntervals.push_back(MotionInterval(sol.v1,coastVelocity,sol.t2));
 		motionPlan.at(i)->motionIntervals.push_back(MotionInterval(coastVelocity,sol.t3));
 
-		cout << sol.v1 << " ;";
+		//cout << sol.v1 << " ;";
 	}
-	cout << endl;
+	//cout << endl;
 
 	for (int i=0;i<6;i++)
 	{

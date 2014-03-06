@@ -336,6 +336,29 @@ double PredictiveJointController::getMaxVoltageSteps()
 	return std::min<double>(DRV8830::MaxVoltageStep,DRV8830::voltageToSteps(servoModel->maxDriverVoltage));
 }
 
+string PredictiveJointController::getJointStatusText()
+{
+	switch (jointStatus)
+	{
+	case JointStatus::Active:
+		return "Active";
+	case JointStatus::Error:
+		return "Error";
+	case JointStatus::New:
+		return "New";
+	case JointStatus::Ready:
+		return "Ready";
+	case JointStatus::Paused:
+		return "Paused";
+	default:
+		return "UNKNOWN STATUS";
+	}
+}
+
+JointStatus PredictiveJointController::getJointStatus()
+{
+	return this->jointStatus;
+}
 
 bool PredictiveJointController::jointReadyForCommand()
 {

@@ -36,6 +36,9 @@
 #include "MotionPlan.hpp"
 #include "QuadraticRegression.hpp"
 
+#include "MathUtilTests.hpp"
+#include "IKControlUI.hpp"
+
 using namespace std;
 using namespace ikfast2;
 using namespace vmath;
@@ -68,7 +71,7 @@ void testMotionPlanning();
 void testQuadRegression();
 void testQuadRegressionWithData();
 void testDynamicTorque();
-
+void testUI();
 
 int main(int argc, char *argv[])
 {
@@ -100,13 +103,24 @@ int main(int argc, char *argv[])
 		controllers.push_back(pjc);
 	}
 	motionController = new MotionController(controllers,samplePeriod,5);
+
+	//testUI();
 	
-	cout << std::ios_base::dec << endl;
+//	cout << std::ios_base::dec << endl;
 //	testQuadRegressionWithData();
 //	testDynamicTorque();
 
 //	cout << endl << endl << " --- MotionPlanning --- " << endl;
-	testMotionPlanning();
+//	testMotionPlanning();
+	
+	HatarakiTest::testEulerAngleExtraction();
+	HatarakiTest::testAngleExtractionIK();
+}
+
+void testUI()
+{
+	IKControlUI ui(motionController);
+	ui.start();
 }
 
 void testDynamicTorque()
@@ -218,7 +232,7 @@ void testMotionPlanning()
 	
 	int divisionCount = 25;
 	mp->setPathDivisions(divisionCount);
-	auto steps = mp->buildMotionSteps(intialAngles_rad, Vector3d(11,0,-5.5)/100.0, Matrix3d::createRotationAroundAxis(0, -75, 0));
+	auto steps = mp->buildMotionSteps(intialAngles_rad, Vector3d(11,0,-5.5)/100.0, Matrix3d::createRotationAroundAxis(0, -70, 0));
 	
 	//if (divisionCount != steps.size()) cout << "Division count is " << steps.size() << ", expected " << divisionCount << endl;
 	
@@ -231,7 +245,7 @@ void testMotionPlanning()
 	for (int c=0;c<numChannels;c++)
 	{
 		std::string name = names[c];
-		outFile << name << ".x," << name << ".dx," << name << ".k" << ",";
+		outFile << name << ".x," << name << ".dx," << name << ".k," << name << ".ddx" << ",";
 	}
 	outFile << endl;
 	
@@ -249,34 +263,27 @@ void testMotionPlanning()
 			cout << "Final = " << f0 << ", Final(t) = " <<  f1 << endl;
 	}
 	
-	for (double t2 = 0.0; t2 < motionPlan.front()->getPlanDuration(); t2 += 0.01)
+	for (double t = 0.0; t < motionPlan.front()->getPlanDuration(); t += 0.01)
 	{
-		double t = t2;
-//		auto kFt = motionPlan[1]->keyframes.lower_bound(t);
-//		
-//		if (kFt != motionPlan[1]->keyframes.begin())
-//		{
-//			kFt--;
-//			if (kFt->first < t && abs(kFt->first - t) < 0.01)
-//				t = kFt->first;
-//		}
+		Vector3d actualPosition,expectedPosition;
 		
-		outFile << t << ",";
+		
+		outFile
+		<< t
+		<< "," << actualPosition.x << "," << actualPosition.y << "," << actualPosition.z
+		<< "," << expectedPosition.x << "," << expectedPosition.y << "," << expectedPosition.z << ",";
 		for (int c=0;c<numChannels;c++)
 		{
 			auto kF= motionPlan[c]->keyframes.lower_bound(t);
+			if (kF == motionPlan[c]->keyframes.end()) kF--;
 			
-			//cout << "UPPER = " << kF->first << " LOWER = " << motionPlan[c]->keyframes.lower_bound(t)->first << endl;
+			double offset = 0; //c*2000.0 - motionPlan[c]->startAngle;
 			
-			
-			if (kF == motionPlan[c]->keyframes.end())
-				kF--;
-						
 			outFile
-			<< fmt(motionPlan[c]->x(t)) << ","
-			<< fmt(motionPlan[c]->dx(t)) << ","
-			<< fmt(kF->second) << ",";
-			//<< fmt(motionPlan[c]->ddx(t)) << ",";
+			<< fmt(motionPlan[c]->x(t)+offset) << ","
+			<< fmt(motionPlan[c]->dx(t)+offset) << ","
+			<< fmt(kF->second+offset) << ","
+			<< fmt((motionPlan[c]->ddx(t)*0.1)) << ",";
 		}
 		outFile << endl;
 	}

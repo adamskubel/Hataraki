@@ -4,6 +4,7 @@
 #include "MathUtils.hpp"
 #include <stdexcept>
 #include <cmath>
+#include <sstream>
 
 #define MathDebug true
 
@@ -48,9 +49,11 @@ public:
 		{
 			throw std::logic_error("Negative time");
 		}
-		else if (abs(v1) > 3000)
+		else if (abs(v1) > 10000)
 		{
-			throw std::logic_error("Speed too high");
+			std::stringstream ss;
+			ss << "Speed too high. V1 = " << v1;
+			throw std::logic_error(ss.str());
 		}
 	}
 	
@@ -99,7 +102,7 @@ public:
 	static double	threePart_minimumTime(const double aMax, const double vMax, const double v0, const double vF, const double d);
 	static double	threePart_maxTimeInvariantInitialVelocity(const double aMax, const double vF, const double d);
 	static bool		threePart_attemptSolution(const double aMax, const double d, const double v0, const double vF, const double t, double & v0_new);
-	static void		threePart_calculate(const double aMax, const double d, const double v0, const double vF, const double tTotal, PlanSolution & result);
+	static void		threePart_calculate(const double aMax, const double v0, const double vF, const double d, const double tTotal, PlanSolution & result);
 	
 	static void validateSolution(PlanSolution & sol);
 	

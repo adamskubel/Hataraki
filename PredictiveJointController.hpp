@@ -301,8 +301,13 @@ public:
 	double getMaxVelocity();
 	double getCurrentAngle();
 	double getMaxAcceleration();
-	
+		
 	JointModel * getJointModel();	
+
+	std::string getJointStatusText();
+	JointStatus getJointStatus();
+
+
 };
 
 

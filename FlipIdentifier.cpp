@@ -66,7 +66,7 @@ void FlipIdentifier::execute()
 			motionController->postTask([this](){
 				const double TestAngle = AS5048::degreesToSteps(10);
 				const double TestAngleSpeed = AS5048::degreesToSteps(20);	
-				motionController->setJointPosition(jointIndex,TestAngle,TestAngleSpeed,0);
+				motionController->setJointPosition(jointIndex,TestAngle);
 			});		
 
 			cout << "Waiting for joint to reach target..." << endl;

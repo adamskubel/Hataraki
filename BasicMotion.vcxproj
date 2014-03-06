@@ -69,6 +69,7 @@
     <ClCompile Include="FlipIdentifier.cpp" />
     <ClCompile Include="I2CBus.cpp" />
     <ClCompile Include="IJointControl.hpp" />
+    <ClCompile Include="IKControlUI.cpp" />
     <ClCompile Include="ikfastsolution.cpp" />
     <ClCompile Include="IKPlanner.cpp" />
     <ClCompile Include="KinematicSolver.cpp" />
@@ -88,6 +89,7 @@
     <ClCompile Include="Test.cpp" />
     <ClCompile Include="TimeMultiplexedVoltageConverter.cpp" />
     <ClCompile Include="TimeUtil.cpp" />
+    <ClCompile Include="UIElement.cpp" />
     <ClCompile Include="vmath.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -99,6 +101,7 @@
     <ClInclude Include="Exceptions.hpp" />
     <ClInclude Include="FlipIdentifier.hpp" />
     <ClInclude Include="I2CBus.hpp" />
+    <ClInclude Include="IKControlUI.hpp" />
     <ClInclude Include="ikfast.h" />
     <ClInclude Include="IKPlanner.hpp" />
     <ClInclude Include="KinematicSolver.hpp" />
@@ -117,6 +120,7 @@
     <ClInclude Include="StepController.hpp" />
     <ClInclude Include="TimeMultiplexedVoltageConverter.hpp" />
     <ClInclude Include="TimeUtil.hpp" />
+    <ClInclude Include="UIElement.hpp" />
     <ClInclude Include="vmath.h" />
   </ItemGroup>
   <ItemGroup>

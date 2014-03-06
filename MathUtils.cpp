@@ -7,6 +7,53 @@ double MathUtil::PI_STEPS = 8192;
 
 using namespace vmath;
 
+void MathUtil::extractEulerAngles(vmath::Matrix3d m1, double &xR, double &yR, double &zR)
+{
+	vmath::Matrix3d matrix = m1.transpose();
+	
+	double m02 = matrix.at(0,2);
+	if (abs(1.0 - abs(m02)) < 0.05)
+		matrix.at(0, 2) = sgn(m02)*1.0;
+	
+	if (abs(matrix.at(0,2)) != 1)
+	{
+		
+		double y1 = -asin(matrix.at(0, 2));
+		double y2 = PI - y1;
+		
+		double x1 = atan2(matrix.at(1,2)/cos(y1),matrix.at(2,2)/cos(y1));
+		double x2 = atan2(matrix.at(1,2)/cos(y2),matrix.at(2,2)/cos(y2));
+		
+		double z1 = atan2(matrix.at(0,1)/cos(y1),matrix.at(0,0)/cos(y1));
+		double z2 = atan2(matrix.at(0,1)/cos(y2),matrix.at(0,0)/cos(y2));
+		
+		if (abs(y1) < abs(y2))
+		{
+			xR = x1; yR = y1; zR = z1;
+		}
+		else
+		{
+			xR = x2; yR = y2; zR = z2;
+		}
+	}
+	else
+	{
+		zR = 0;
+		if (matrix.at(0,2) < 0)
+		{
+			yR = PI/2.0;
+			xR = zR + atan2(matrix.at(1,0),matrix.at(2,0));
+		} else
+		{
+			yR = -PI/2.0;
+			xR = -zR + atan2(-matrix.at(1,0),-matrix.at(2,0));
+		}
+	}
+	
+	xR = MathUtil::radiansToDegrees(xR);
+	yR = MathUtil::radiansToDegrees(yR);
+	zR = MathUtil::radiansToDegrees(zR);
+}
 
 //int linreg(int n, const REAL x[], const REAL y[], REAL* m, REAL* b, REAL* r)
 bool MathUtil::linearRegression(std::list<std::pair<double, double> > data, double & slope, double & intercept, double & rValue)

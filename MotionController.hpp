@@ -46,17 +46,21 @@ public:
 
 	std::vector<double> getJointAnglesRadians();
 	std::vector<double> getJointAnglesSteps();
-	void executeMotionPlan(std::vector<MotionPlan*> & newPlan);
-
-public:
-
+	void getTransform(std::vector<double> & angles, vmath::Vector3d & translation, vmath::Matrix3d & rotation);
+	
+	void executeMotionPlan(std::vector<std::shared_ptr<MotionPlan> > newPlan);
+	
 	MotionController(std::vector<PredictiveJointController*> & joints, double samplePeriod, int planStepCount);
 
 	PredictiveJointController * getJointByIndex(int jointIndex);
 		
-	void moveToPosition(vmath::Vector3d position, vmath::Matrix3d rotation, int pathDivisionCount, bool interactive);	
-	void setJointPosition(int jointIndex, double angle, double velocity, double accel);
+	void moveToPosition(vmath::Vector3d position, vmath::Matrix3d rotation, int pathDivisionCount, bool interactive);
 	
+	std::vector<std::shared_ptr<MotionPlan> >  planForPosition(vmath::Vector3d position, vmath::Matrix3d rotation, int pathDivisionCount);
+	
+	
+	void setJointPosition(int jointIndex, double angle);
+	bool confirmMotionPlan(std::vector<std::shared_ptr<MotionPlan> > & newPlan);
 
 	void updateController();
 

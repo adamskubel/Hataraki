@@ -7,11 +7,10 @@
 #define IKFAST_NO_MAIN
 #define IKFAST_HAS_LIBRARY
 #define IKFAST_NAMESPACE ikfast2
-
 #include "ikfast.h"
 
-#include <errno.h>
-#include <string.h>
+//#include <errno.h>
+//#include <string.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <sys/ioctl.h>
@@ -41,6 +40,7 @@
 #include "MotionController.hpp"
 #include "MathUtils.hpp"
 #include "AsyncLogger.hpp"
+#include "IKControlUI.hpp"
 
 #include "FlipIdentifier.hpp"
 
@@ -66,6 +66,12 @@ void updateController()
 }
 
 
+double fmt(double d)
+{
+	return std::round(d/0.01)*0.01;
+}
+
+
 
 void printPositionForAngles(IkReal * jointAngles) {
 	
@@ -76,10 +82,13 @@ void printPositionForAngles(IkReal * jointAngles) {
 		
 	Matrix3d rotationMatrix = Matrix3d::fromRowMajorArray(r);	
 	Vector3d tipPos = Vector3d(t[0],t[1],t[2])*100.0;
-	Vector3d tip = rotationMatrix * Vector3d(1,0,0);
+	//Vector3d tip = rotationMatrix * Vector3d(1,0,0);
 
-	cout << "Endpoint position is: " << tipPos.toString() << endl;
-	cout << "Endpoint direction vector: " << tip.toString() << endl;
+	double xR,yR,zR;
+	MathUtil::extractEulerAngles(rotationMatrix,xR,yR,zR);
+
+	cout << "Tip position: " << tipPos.toString() << endl;
+	cout << "Tip angles: " << fmt(xR) << " " << fmt(yR) << " " << fmt(zR) << endl;
 	cout << endl;
 }
 
@@ -94,6 +103,12 @@ void handle(int sig) {
 	cout << "Error: signal " << sig << endl;
 	backtrace_symbols_fd(symbolArray, size, STDERR_FILENO);
 	exit(1);
+}
+
+void ikControl()
+{
+	IKControlUI ui(motionController);
+	ui.start();	
 }
 
 int main(int argc, char *argv[])
@@ -160,12 +175,14 @@ int main(int argc, char *argv[])
 	running = true;
 	std::thread jointUpdate(updateController);
 
+	cout << std::setbase(10) << 1.0 << endl;
+
 	try
 	{
 
 		while (running) 
 		{
-			cout << std::ios::dec << "->>";
+			cout << "->>";
 
 			string inputString;
 			getline(cin,inputString);
@@ -211,23 +228,17 @@ int main(int argc, char *argv[])
 				else if (command.compare("set") == 0) {
 
 					int jointIndex;
-					double angle, travelTime;
+					double angle;
 
 					input >> jointIndex;
-					input >> angle;
-					input >> travelTime;
 					
 					if (input.fail()) {
-						cout << "Invalid input. Usage: set <index> <angle> <time(sec)> [|accel|]" << endl;
+						cout << "Invalid input. Usage: set <index> <angle>" << endl;
 					}
 					else
 					{
-						double accel;
-						input >> accel;
-						if (input.fail()) accel = 0;
-
-						motionController->postTask([jointIndex,angle,travelTime,accel](){
-							motionController->setJointPosition(jointIndex, AS5048::degreesToSteps(angle),travelTime,AS5048::degreesToSteps(accel));
+						motionController->postTask([jointIndex,angle](){
+							motionController->setJointPosition(jointIndex, AS5048::degreesToSteps(angle));
 						});
 					}
 					
@@ -336,6 +347,10 @@ int main(int argc, char *argv[])
 						}
 					}
 				}
+				else if (command.compare("ik") == 0)
+				{
+					ikControl();
+				}
 				else
 				{
 					cout << "Invalid entry. Valid commands are: enable, enable_, exit, k, home, set, list, getpos, setpos, pause, flip" << endl;
@@ -364,74 +379,3 @@ int main(int argc, char *argv[])
 		
 	AsyncLogger::getInstance().joinThread();
 }
-
-/*
- 
- Primary application architecture
- 
- Currently, I use a two threads. The IO+Control thread, and the input thread.
- 
- Coupling the IO thread to the control thread may seem stupid, but it's actually kind of logical. 
- Because control is completely dependent on IO, there's no point in doing control unless IO has completed.
- 
- However, there are some calculations involved in the control algorithms that can be run async.
- 
- Aside from that, the IO --> Control relationship cannot be (and need not be?) broken IF I continue using I2C. SPI has different implications.
- 
- So, the system will run on: 
-	- A UI thread
-	- A collection of IO-Control threads
-	- Some thread to coordinate everything
-	- One or more threads to perform intense computations in the background
-
- Right now I have no coordination between IO threads (because there's only one), and the UI thread is driving everything.
- 
- The coordination thread manages the IO/Control threads. 
-	1. Starts threads for each IO bus 
-	2. Distributes commands to the appropriate thread (one message/task queue per thread)
-	3. Cleans up, etc
- 
- ************
- 
- How will wheel control work?
- 
- The wheel controller should actually be *very* similar to the joint controller. There are a few key differences in requirements:
-	- Rotation can go past 360 degrees
-	- The motion plan could be deterministic, or it could be realtime. 
-	-- For instance, as we drive along some path, the velocity of each wheel will be constantly adjusted to steer/correct. 
-	
- In terms of controller design, the general architecture should be largely the same. Differences will be limited to the planning component
- and to the calculations of angle, which are no longer bounded to +- PI. 
- 
- ***********
- 
- At this point it is wise to consider the executive control infrastructure. For the "blind" prototype, I have no intention of building in any meaningful
- amount of intelligence. Thus, the sole means of control will be user input. A textual interface is far from ideal - I would prefer direct USB control 
- using a gamepad/mouse/keyboard, but network control using similar peripherals is ok too. Just not over ssh. 
- 
- From an architectural perspective, all the control logic is isolated to the UI thread (and possibly some networking threads). 
- Input events can be discrete and continuous. The UI logic should be as light as possible, especially for continuous/analog type inputs. 
- The reasoning is that the interpretation of the input is highly subject on the current state of the system.
- 
- ***********
- 
- In conclusion, my current architecture is more or less on track. I need to isolate the UI thread from the ex-control logic,
- and I need to isolate the ex-control logic from the device control logic. This should be fairly straightforward, but issues
- may (but will probably not) arise with concurrency if joints aren't executed in a deterministic order.
- 
- Wheel are independent of everything, and wheel (lol) likely be on the same bus as each other. 
- 
- Next steps:
-	- Complete the motion planning
-	- Optimize the joint speed controllers to track better
-		- Tune speed controller parameters, filters, and logic
-		- Some mechanical changes may be needed, particularly with the roll joints.
-		- Switching joint #0 to use the timing belt would improve its performance considerably
-		- Redesigning joints #4 and #5 to use the planetary mini-motors would give them less backlash and lighter weight
-	- Define the controller component, and isolate it from the UI thread
-	- Implement the wheel drive controllers, as well as a controller component that controls angles, velocities, etc
-	- Build a better UI. Keyboard based is a good start, feedback can be via network or screen, but if a GUI is used it must be ensured there is no performance penalty
- 
- 
- 
- */
