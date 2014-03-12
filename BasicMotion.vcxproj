@@ -107,6 +107,7 @@
     <ClInclude Include="KinematicSolver.hpp" />
     <ClInclude Include="LowpassFilter.hpp" />
     <ClInclude Include="MathUtils.hpp" />
+    <ClInclude Include="MathUtilTests.hpp" />
     <ClInclude Include="MotionController.hpp" />
     <ClInclude Include="MotionPlan.hpp" />
     <ClInclude Include="MotionPlanner.hpp" />

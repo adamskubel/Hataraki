@@ -49,6 +49,9 @@
     <Filter Include="Header Files\UI">
       <UniqueIdentifier>{69690a44-411a-4284-8dd7-3807cdb42e34}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Header Files\Test">
+      <UniqueIdentifier>{a1d85f3c-5a69-4a6c-b33e-1ec2782ea4a8}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="I2CBus.cpp">
@@ -226,6 +229,9 @@
     </ClInclude>
     <ClInclude Include="UIElement.hpp">
       <Filter>Header Files\UI</Filter>
+    </ClInclude>
+    <ClInclude Include="MathUtilTests.hpp">
+      <Filter>Header Files\Test</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

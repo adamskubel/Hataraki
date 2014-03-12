@@ -14,6 +14,8 @@
 #define IKFAST_NAMESPACE ikfast2
 #include "ikfast.h"
 
+#include "TestUtil.hpp"
+
 
 using namespace ikfast;
 using namespace ikfast2;
@@ -22,15 +24,6 @@ using namespace std;
 
 namespace HatarakiTest
 {
-	static void assertEquals(double expected, double actual, double precision = 0.001)
-	{
-		if (round(expected/precision)*precision != round(actual/precision)*precision)
-		{
-			stringstream ss;
-			ss << "Expected [" << expected << "] but got [" << actual << "]";
-			throw std::logic_error(ss.str());
-		}
-	}
 	
 	//-.8 -11.3 0.9 36.8 64.6 0.1
 	//  -0.9    -11.3   +0.9    +36.8   +64.7   +0.1    
@@ -48,11 +41,11 @@ namespace HatarakiTest
 	void testAngleExtractionIK()
 	{
 		vector<double> angleDeg({-0.9,-11.3,0.9,36.8,64.7,0.1});
-		vector<double> angleDeg2({-0.8,-11.3,0.9,36.8,64.6,0.1});
+		vector<double> angleDeg2({-0.8,-11.3,0.9,36.8,64.6,60.1});
 		
 		double angleRad[6];
 		
-		for (int i=0;i<6;i++) angleRad[i] = MathUtil::degreesToRadians(angleDeg[i]);
+		for (int i=0;i<6;i++) angleRad[i] = MathUtil::degreesToRadians(angleDeg2[i]);
 		
 		double r[9];
 		double translation[3];
@@ -60,12 +53,77 @@ namespace HatarakiTest
 		Matrix3d rotation = Matrix3d::fromRowMajorArray(r);
 		
 		double xR,yR,zR;
-		MathUtil::extractEulerAngles(r, xR, yR, zR);
+		MathUtil::extractEulerAngles(rotation, xR, yR, zR);
 		
 		cout << "Angles = " << xR << "," << yR << "," << zR << endl;
 	}
+	
+	void testIKRotation()
+	{
+		Vector3d pos(10,0,-6);
+		pos /= 100.0;
+		
+		Matrix3d rotation = Matrix3d::createRotationAroundAxis(0,-90,0);
+		rotation = rotation * Matrix3d::createRotationAroundAxis(0, 0, 10);
+		
+		double r[9];
+		MathUtil::getRowMajorData(rotation, r);
+		
+		IkSolutionList<IkReal> solutions;
+		ComputeIk(pos,r,NULL,solutions);
+		
+		//for (int i=0;i<solutions.GetNumSolutions();i++)
+		{
+			int i=0;
+			double solution[6];
+			double freeVals[] = {1,2,3};
+			solutions.GetSolution(i).GetSolution(solution,freeVals);
+			
+			Vector3d fkPos;
+			double fkRot[9];
+			ComputeFk(solution, fkPos, fkRot);
+			
+			Matrix3d m = Matrix3d::fromRowMajorArray(fkRot);
+			
+			cout << m * Vector3d(1,0,0) << endl;
+			
+			double xR,yR,zR;
+			MathUtil::extractEulerAngles(m, xR, yR, zR);
+			//cout << "Position = " << fkPos.toString() << endl;
+			cout << "Angles = " << xR << "," << yR << "," << zR << endl;
+			
+		}
+	}
 }
 
-
-
 #endif
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

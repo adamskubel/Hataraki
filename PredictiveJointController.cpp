@@ -49,11 +49,12 @@ void PredictiveJointController::init()
 	nTargetVoltage = 0;
 	nAppliedVoltage = 0;
 	lDynamicPositionError = 0;
-
+	lVelocityError = 0;
 	cTime = 0;
 	lTime = 0;
 	nDriverMode = DriverMode::Coast;	
 	cDriverCommand = 0xFF;
+	cRevolutionCount = 0;
 	
 	isControlTorqueValid = false;
 
@@ -214,7 +215,7 @@ void PredictiveJointController::writeLogHeader()
 		"PredictedTorque"	<< Configuration::CsvSeparator <<
 		"ControlTorque"		<< Configuration::CsvSeparator <<
 		"EffectiveVoltage"	<< Configuration::CsvSeparator <<
-		"AverageVoltaged"	<< Configuration::CsvSeparator <<
+		"TargetVoltage"		<< Configuration::CsvSeparator <<
 		"AppliedVoltage"	<< Configuration::CsvSeparator <<
 		"ControlMode"		<< Configuration::CsvSeparator <<
 		"SecondaryState"	<< Configuration::CsvSeparator <<

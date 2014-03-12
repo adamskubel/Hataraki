@@ -7,12 +7,25 @@ double MathUtil::PI_STEPS = 8192;
 
 using namespace vmath;
 
+
+Matrix3d MathUtil::createQuaternionRotation(double xDeg, double yDeg, double zDeg)
+{
+	Matrix3d m;
+	
+//	double c = cos(
+//	
+//	m.at(0,0) =
+	
+	
+	return m;
+}
+
 void MathUtil::extractEulerAngles(vmath::Matrix3d m1, double &xR, double &yR, double &zR)
 {
 	vmath::Matrix3d matrix = m1.transpose();
 	
 	double m02 = matrix.at(0,2);
-	if (abs(1.0 - abs(m02)) < 0.05)
+	if (abs(1.0 - abs(m02)) < 0.000001)
 		matrix.at(0, 2) = sgn(m02)*1.0;
 	
 	if (abs(matrix.at(0,2)) != 1)

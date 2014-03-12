@@ -97,24 +97,28 @@ private:
 	
 	std::string logfileName;
 	
-	//Historical states	
+	//Filters
 	LowpassFilter * filter_lowpass_for_motorTorque;	
 	SimpleMovingAverage * filter_sma_for_speedController_motorTorque;
 	LowpassFilter * filter_lowpass_position;
 	SimpleMovingAverage * filter_sma_angle_for_speed;
 	LowpassFilter * filter_lowpass_speed;
-
 	QuadraticRegression * quadraticRegressionFilter;
 
+	//Historical data
+	std::list<std::pair<double,double> > rawSensorAngleHistory;
+	std::list<double> appliedVoltageHistory;
+
+	int cRevolutionCount;
+
+	//Previous state
 	double lFilteredAngleForSpeed;
 	double lTime;
 	double lRawSensorAngle;
 	
 	double lStaticModelTorque;
-
-	std::list<std::pair<double,double> > rawSensorAngleHistory;
-	std::list<double> appliedVoltageHistory;
-
+	double lVelocityError;
+		
 	//Motion plan
 	std::shared_ptr<MotionPlan> motionPlan;
 	timespec enableTime;
@@ -191,7 +195,7 @@ private:
 	double stableTorqueEstimate;
 	bool isTorqueEstimateValid;
 	bool isControlTorqueValid;
-		
+	
 	int expectedRotationalStopDirection;
 
 	//Speed control states

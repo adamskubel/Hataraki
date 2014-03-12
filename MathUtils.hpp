@@ -130,6 +130,8 @@ public:
 	static void getRowMajorData(vmath::Matrix3d matrix, double * result);
 	
 	static void extractEulerAngles(vmath::Matrix3d matrix, double & xR, double & yR, double & zR);
+	
+	static vmath::Matrix3d createQuaternionRotation(double xDeg, double yDeg, double zDeg);
 
 };
 

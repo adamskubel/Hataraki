@@ -1,7 +1,7 @@
 {
 	"Version" : "2.0",
 	"DataRecording" : {
-		"Enabled" : 1,
+		"Enabled" : 0,
 		"FilePrefix" : "JointData_"
 	},
 	"GlobalSettings" : {
@@ -14,17 +14,8 @@
 	{
 		"Joints" :
 		[
-			"WheelDefinitions.LeftWheel",
-			"WheelDefinitions.RightWheel",
-			"JointDefinitions.Roll_1",
-			"JointDefinitions.Pitch_1",
-			"JointDefinitions.Pitch_2",
-			"JointDefinitions.Roll_2"
-		],
-		"Joints2" :
-		[
 			"JointDefinitions.Roll_0",
-			"JointDefinitions.Pitch_0", 
+			"JointDefinitions.Pitch_0",
 			"JointDefinitions.Roll_1",
 			"JointDefinitions.Pitch_1",
 			"JointDefinitions.Pitch_2",
@@ -53,22 +44,22 @@
 			"NoLoadCurrent" : 0.020
 		},
 		{
+			"Name" : "GM12-100",
+			"TorqueConstant" : .1328,
+			"BackEmfConstant" : 3.15655,
+			"ArmatureResistance" : 9.4,
+			"StallTorque" : 0.0,
+			"NoLoadSpeed" : 145.0,
+			"NoLoadTorque" : 0.0,
+			"NoLoadCurrent" : 0.020
+		},
+		{
 			"Name" : "GM12-298",
 			"TorqueConstant" : 0.412,
 			"BackEmfConstant" : 0.105,
 			"ArmatureResistance" : 9.4,
 			"StallTorque" : 0.0,
 			"NoLoadSpeed" : 43.5,
-			"NoLoadTorque" : 0.0,
-			"NoLoadCurrent" : 0.015
-		},
-		{
-			"Name" : "GM12-100",
-			"TorqueConstant" : 0.1328,
-			"BackEmfConstant" : 0.0315655,
-			"ArmatureResistance" : 9.4,
-			"StallTorque" : 0.0,
-			"NoLoadSpeed" : 145.0,
 			"NoLoadTorque" : 0.0,
 			"NoLoadCurrent" : 0.015
 		}		
@@ -148,13 +139,11 @@
 	"Controllers" : [		
 		{
 			"Name" : "Default",
-			"MaxAcceleration" : 100,	
-			"SetpointPrecisionSteps" : 5,		
+			"MaxAcceleration" : 100,			
 			"SpeedControl" : 
 			{ 
 				"ProportionalGain" : 0.1,
 				"IntegralGain" : 0.0,
-				"DerivativeGain" : 0.0,
 				"HistoryLength" : 12
 			},
 			"GravityFlipTriggerEnabled" : 0,
@@ -207,13 +196,11 @@
 		},
 		{
 			"Name" : "HighSpeedMotors",
-			"MaxAcceleration" : 150,		
-			"SetpointPrecisionSteps" : 5,	
+			"MaxAcceleration" : 150,			
 			"SpeedControl" : 
 			{ 
 				"ProportionalGain" : 0.3,
 				"IntegralGain" : 0.0,
-				"DerivativeGain" : 0.0,
 				"HistoryLength" : 12
 			},
 			"GravityFlipTriggerEnabled" : 0,
@@ -249,50 +236,11 @@
 				"SetpointApproachVelocity" : 10,
 				"SetpointApproachDistanceThreshold" : 1.5
 			}
-		},
-		{
-			"Name" : "Wheels",
-			"MaxAcceleration" : 150,			
-			"SetpointPrecisionSteps" : 20,
-			"SpeedControl" : 
-			{ 
-				"ProportionalGain" : 0.1,
-				"IntegralGain" : 0.0,
-				"DerivativeGain" : 0.001,
-				"HistoryLength" : 12
-			},
-			"GravityFlipTriggerEnabled" : 0,
-			"ExternalDisturbanceFlipTriggerEnabled" : 0,
-			"GravityFlipPattern" : [],
-			"ExternalDisturbanceFlipPattern" : [],
-			"MotionStart" : 
-			{
-				"Enabled" : 0,
-				"VoltagePattern" : [ ]
-			},
-			"SensorFilters" : 
-			{
-				"LowpassPositionFilter" : 
-				{
-					"TimeConstant" : 0.01				
-				},
-				"VelocityApproximation" : 
-				{
-					"WindowSize" : 15
-				}
-			},
-			"DynamicController" :
-			{
-				"VelocityKPForPositionCorrection" : 0.05,
-				"VelocityKDForPositionCorrection" : 0.001,
-				"SetpointApproachVelocity" : 1,
-				"SetpointApproachDistanceThreshold" : 1.5
-			}
 		}
 	],
-	"WheelDefinitions" : [
+	"JointDefinitions" : [
 		{
-			"Name" : "RightWheel",
+			"Name" : "Roll_0",
 			"ZeroPosition" : 0, 
 			"MinAngle" : -181,
 			"MaxAngle" : 181,
@@ -304,14 +252,14 @@
 				"DriverDelay" : 0.0004,
 				"SensorDelay" : 0.0012,
 				"MaxDriverVoltage" : 1.8,
-				"FrictionTorque" : 0.0001,
+				"FrictionTorque" : 0.04,
 				"Motor" : "Motors.GM12-100",
 				"Gearbox" : "Gearboxes.GM12-100",
-				"ControllerConfig" : "Controllers.Wheels"
+				"ControllerConfig" : "Controllers.Default"
 			}
 		},
 		{
-			"Name" : "LeftWheel",
+			"Name" : "Pitch_0",
 			"ZeroPosition" : 0,
 			"MinAngle" : -181,
 			"MaxAngle" : 181,
@@ -323,49 +271,9 @@
 				"DriverDelay" : 0.0004,
 				"SensorDelay" : 0.0,
 				"MaxDriverVoltage" : 1.8,
-				"FrictionTorque" : 0.0001,
+				"FrictionTorque" : 0.02,
 				"Motor" : "Motors.GM12-100",
 				"Gearbox" : "Gearboxes.GM12-100",
-				"ControllerConfig" : "Controllers.Wheels"
-			}
-		}
-	],
-	"JointDefinitions" : [
-		{
-			"Name" : "Roll_0",
-			"ZeroPosition" : 223, 
-			"MinAngle" : -175,
-			"MaxAngle" : 175,
-			"AxisOfRotation" : [1,0,0],
-			"Servo" : 
-			{
-				"DriverAddress" : 100,
-				"SensorAddress" : 68,
-				"DriverDelay" : 0.0004,
-				"SensorDelay" : 0.0012,
-				"MaxDriverVoltage" : 3.6,
-				"FrictionTorque" : 0.04,
-				"Motor" : "Motors.GM12-1000",
-				"Gearbox" : "Gearboxes.GM12-1000-Bevel",
-				"ControllerConfig" : "Controllers.Default"
-			}
-		},
-		{
-			"Name" : "Pitch_0",
-			"ZeroPosition" : 31,
-			"MinAngle" : -35,
-			"MaxAngle" : 90,
-			"AxisOfRotation" : [0,-1,0],
-			"Servo" : 
-			{
-				"DriverAddress" : 101,
-				"SensorAddress" : 75,
-				"DriverDelay" : 0.0004,
-				"SensorDelay" : 0.0,
-				"MaxDriverVoltage" : 2.2,
-				"FrictionTorque" : 0.02,
-				"Motor" : "Motors.GM12-1000",
-				"Gearbox" : "Gearboxes.GM12-1000",
 				"ControllerConfig" : "Controllers.Default"
 			}
 		},

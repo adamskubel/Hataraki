@@ -38,6 +38,8 @@
 
 #include "MathUtilTests.hpp"
 #include "IKControlUI.hpp"
+#include "TMVoltageTest.hpp"
+
 
 using namespace std;
 using namespace ikfast2;
@@ -113,8 +115,11 @@ int main(int argc, char *argv[])
 //	cout << endl << endl << " --- MotionPlanning --- " << endl;
 //	testMotionPlanning();
 	
-	HatarakiTest::testEulerAngleExtraction();
-	HatarakiTest::testAngleExtractionIK();
+//	HatarakiTest::testEulerAngleExtraction();
+//	HatarakiTest::testIKRotation();
+	HatarakiTest::testTMVoltageConverter();
+	
+//	HatarakiTest::testAngleExtractionIK();
 }
 
 void testUI()

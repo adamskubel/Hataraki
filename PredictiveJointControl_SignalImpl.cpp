@@ -10,7 +10,7 @@ namespace ControllerConfiguration
 
 	const double TorqueSMAFilterWindowSize = 10;
 
-	const double MinimumPredictedTorque = 0.01; //N*m
+	const double MinimumPredictedTorque = 0.0; //N*m
 
 	const double MinAverageVoltageForCertainMovement = 0.56;
 
@@ -57,7 +57,7 @@ void PredictiveJointController::setCurrentTorqueStates()
 {
 	double direction = sgn(cPlanTargetVelocity);
 	//Need to invert this for some reason
-	cStaticModelTorque = -PoseDynamics::getInstance().computeJointTorque(jointModel->index);
+	cStaticModelTorque = 0;//-PoseDynamics::getInstance().computeJointTorque(jointModel->index);
 	cStaticModelRotatum = (cStaticModelTorque - lStaticModelTorque)/(cTime-lTime);
 
 	double frictionTorque = (servoModel->frictionTorque * -direction);
@@ -133,9 +133,6 @@ void PredictiveJointController::setCurrentState()
 	rawSensorAngleHistory.push_back(make_pair(cTime,cSensorAngle));
 	if (rawSensorAngleHistory.size() > HistorySize) rawSensorAngleHistory.pop_front();
 		
-	//setApproximateSpeed(rawSensorAngleHistory);
-
-	//doSavitzkyGolayFiltering();
 	doQuadraticRegression();
 
 	TimeUtil::assertTime(start,jointModel->name + ".setCurrentState()");

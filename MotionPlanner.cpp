@@ -408,7 +408,7 @@ shared_ptr<MotionPlan> MotionPlanner::buildOptimalMotionPlan(int jointIndex, con
 	double startAngle = joint->getCurrentAngle();
 	double delta = targetAngle - startAngle;
 	double dir = sgn(delta);
-	double vF = 0; //joint->getJointModel()->servoModel.controllerConfig.approachVelocity * dir;
+	double vF = joint->getJointModel()->servoModel.controllerConfig.approachVelocity * dir;
 	
 	double minTime = KinematicSolver::threePart_minimumTime(joint->getMaxAcceleration(),joint->getMaxVelocity(),v0,vF,delta);
 	minTime += 0.0001;
@@ -417,7 +417,7 @@ shared_ptr<MotionPlan> MotionPlanner::buildOptimalMotionPlan(int jointIndex, con
 		throw std::runtime_error("Cannot set joint position (negative/complex minimum time)");
 	
 	PlanSolution sol;
-	//KinematicSolver::twoPart_calculate(joint->getMaxAcceleration(),v0,delta,minTime,sol);
+
 	KinematicSolver::threePart_calculate(joint->getMaxAcceleration(),v0,vF,delta,minTime,sol);
 
 	if (sol.status != PlanSolution::SolutionStatus::OriginalSolution)
@@ -437,6 +437,14 @@ shared_ptr<MotionPlan> MotionPlanner::buildOptimalMotionPlan(int jointIndex, con
 
 	plan->startAngle = startAngle;
 	plan->finalAngle = targetAngle;
+
+	double planError = abs(plan->finalAngle - plan->x(plan->getPlanDuration()));
+	if (planError > 10.0)
+	{
+		stringstream ss;
+		ss << "Plan error was too high: " << planError;
+		throw std::runtime_error(ss.str());
+	}
 		
 	return plan;
 }

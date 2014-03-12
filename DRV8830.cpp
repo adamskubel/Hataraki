@@ -70,12 +70,14 @@ void DRV8830::printFaultRegister(unsigned char faultRegisterValue)
 
 double DRV8830::stepsToVoltage(int vCmd)
 {
-	return (1.285/16.0) * ((double)vCmd);
+	return fractionalStepsToVoltage((double)vCmd);
 }
 
 double DRV8830::fractionalStepsToVoltage(double vSteps)
 {
-	return (1.285/16.0) * (vSteps);
+	double v = (1.285/16.0) * (vSteps);
+	v = std::round(v/0.01)*0.01;
+	return v;
 }
 
 double DRV8830::voltageToFractionalSteps(double voltage)

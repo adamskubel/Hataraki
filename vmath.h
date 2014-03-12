@@ -1656,12 +1656,12 @@ public:
 		T zRads(DEG2RAD(zDeg));
 
 		Matrix3<T> ma, mb, mc;
-		float ac = cos(xRads);
-		float as = sin(xRads);
-		float bc = cos(yRads);
-		float bs = sin(yRads);
-		float cc = cos(zRads);
-		float cs = sin(zRads);
+		double ac = cos(xRads);
+		double as = sin(xRads);
+		double bc = cos(yRads);
+		double bs = sin(yRads);
+		double cc = cos(zRads);
+		double cs = sin(zRads);
 
 		ma.at(1, 1) = ac;
 		ma.at(2, 1) = as;

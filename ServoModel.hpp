@@ -69,6 +69,7 @@ class ControllerConfig {
 public:
 	double speedControlProportionalGain;
 	double speedControlIntegralGain;
+	double speedControlDerivativeGain;
 
 	std::vector<double> gravityFlipVoltagePattern, externalDisturbanceFlipVoltagePattern, startVoltagePattern;
 
@@ -76,14 +77,14 @@ public:
 	bool gravityFlipTriggerEnabled;
 	bool motionStartEnabled;
 
-	bool savitzyGolayFilteringEnabled;
-	int savitzyGolayWindowSize;
-	int savitzyGolayPolyDegree;
+	const bool savitzyGolayFilteringEnabled = false;
+	const int savitzyGolayWindowSize = 5;
+	const int savitzyGolayPolyDegree = 5;
 	
 	double velocityCorrectionProportionalGain,velocityCorrectionDerivativeGain;
 	double approachVelocity;
 	double approachDistanceThreshold;
-
+	double maxSetpointError;
 	double maxAcceleration;
 
 	int positionHistorySize;
@@ -102,6 +103,7 @@ public:
 
 		speedControlProportionalGain = Configuration::getInstance().getObject(rawConfig,"SpeedControl.ProportionalGain")->valuedouble;
 		speedControlIntegralGain = Configuration::getInstance().getObject(rawConfig,"SpeedControl.IntegralGain")->valuedouble;
+		speedControlDerivativeGain = Configuration::getInstance().getObject(rawConfig,"SpeedControl.DerivativeGain")->valuedouble;
 
 		gravityFlipVoltagePattern = Configuration::getVoltagePatternFromJSON(cJSON_GetObjectItem(rawConfig,"GravityFlipPattern"));
 		
@@ -113,9 +115,9 @@ public:
 		externalDisturbanceFlipTriggerEnabled = cJSON_GetObjectItem(rawConfig,"ExternalDisturbanceFlipTriggerEnabled")->valueint != 0;
 		gravityFlipTriggerEnabled = cJSON_GetObjectItem(rawConfig,"GravityFlipTriggerEnabled")->valueint != 0;
 
-		savitzyGolayWindowSize = Configuration::getInstance().getObject(rawConfig,"SavitzkyGolayFilter.WindowSize")->valueint;
-		savitzyGolayPolyDegree = Configuration::getInstance().getObject(rawConfig,"SavitzkyGolayFilter.PolynomialDegree")->valueint;
-		savitzyGolayFilteringEnabled = Configuration::getInstance().getObject(rawConfig,"SavitzkyGolayFilter.Enabled")->valueint != 0;
+		//savitzyGolayWindowSize = Configuration::getInstance().getObject(rawConfig,"SavitzkyGolayFilter.WindowSize")->valueint;
+		//savitzyGolayPolyDegree = Configuration::getInstance().getObject(rawConfig,"SavitzkyGolayFilter.PolynomialDegree")->valueint;
+		//savitzyGolayFilteringEnabled = Configuration::getInstance().getObject(rawConfig,"SavitzkyGolayFilter.Enabled")->valueint != 0;
 
 		maxAcceleration = AS5048::degreesToSteps(Configuration::getInstance().getObject(rawConfig,"MaxAcceleration")->valuedouble);
 
@@ -125,6 +127,7 @@ public:
 		approachDistanceThreshold = AS5048::degreesToSteps(Configuration::getInstance().getObject(rawConfig,"DynamicController.SetpointApproachDistanceThreshold")->valuedouble);
 		
 		positionHistorySize = Configuration::getInstance().getObject(rawConfig,"SpeedControl.HistoryLength")->valueint;
+		maxSetpointError = get("SetpointPrecisionSteps");
 	}
 
 

@@ -231,6 +231,7 @@ int main(int argc, char *argv[])
 					double angle;
 
 					input >> jointIndex;
+					input >> angle;
 					
 					if (input.fail()) {
 						cout << "Invalid input. Usage: set <index> <angle>" << endl;
