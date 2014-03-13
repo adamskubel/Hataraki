@@ -51,7 +51,7 @@ public:
 		backEmfConstant = MathUtil::stepsPerSecondToRPM(cJSON_GetObjectItem(rawConfig,"BackEmfConstant")->valuedouble);
 		armatureResistance = cJSON_GetObjectItem(rawConfig,"ArmatureResistance")->valuedouble;
 		stallTorque = cJSON_GetObjectItem(rawConfig,"StallTorque")->valuedouble;
-		//noLoadTorque = cJSON_GetObjectItem(rawConfig,"NoLoadTorque")->valuedouble;
+		noLoadTorque = cJSON_GetObjectItem(rawConfig,"NoLoadTorque")->valuedouble;
 		noLoadSpeed = MathUtil::rpmToStepsPerSecond(cJSON_GetObjectItem(rawConfig,"NoLoadSpeed")->valuedouble);		
 		noLoadCurrent = cJSON_GetObjectItem(rawConfig,"NoLoadCurrent")->valuedouble;
 		
@@ -164,74 +164,62 @@ public:
 	}
 
 	//These functions are here because they incorporate both gearbox and motor parameters
-	double getNoLoadSpeedForVoltage(double voltage) 
-	{
-		double sign = sgn(voltage);
-		double speed = (voltage - sign*motor.noLoadCurrent*motor.armatureResistance)/motor.backEmfConstant;
+	double getNoLoadSpeedForVoltage(double voltage);
 		
-		if (sign > 0)
-			return std::max<double>(speed,0);
-		else
-			return std::min<double>(0,speed);
-	}
-		
-	double getTorqueSpeedSlope() 
-	{
-		// return -motor.noLoadSpeed / (motor.stallTorque - motor.noLoadTorque);
-		return -motor.armatureResistance/(motor.torqueConstant*motor.backEmfConstant);
-	}	
+	double getTorqueSpeedSlope();
 
-	double getTorqueForVoltageSpeed(double voltage, double speed)
-	{
-		double sign = sgn(speed);
+	double getTorqueForVoltageSpeed(double voltage, double speed);
 
-		double torqueSpeedSlope = getTorqueSpeedSlope();
-		return ((speed - getNoLoadSpeedForVoltage(voltage))/torqueSpeedSlope) + (sign*motor.noLoadTorque);
-	}
+	double getVoltageForTorqueSpeed(double torque, double speed);
 
-	double getVoltageForTorqueSpeed(double torque, double speed)
-	{
-		double sign = 0;//sgn(speed);
-
-		double torqueSpeedSlope = getTorqueSpeedSlope();
-		return (speed - ((torque-(sign*motor.noLoadTorque))*torqueSpeedSlope))*motor.backEmfConstant;
-	}
-
-	double getSpeedForTorqueVoltage(double torque, double voltage)
-	{		
-		double sign = sgn(torque);
-
-		double torqueSpeedSlope = getTorqueSpeedSlope();
-		return getNoLoadSpeedForVoltage(voltage) + torqueSpeedSlope*(torque-(sign*motor.noLoadTorque));
-	}
+	double getSpeedForTorqueVoltage(double torque, double voltage);
 
 };
 
 class JointModel {
-	
+
+private:
+	cJSON * rawConfig;
 public:
 	ServoModel servoModel;
 
 	double maxAngle, minAngle;
 	double sensorZeroPosition;
+	bool continuousRotation;
 
 	std::string name;
 	
 	vmath::Vector3d axisOfRotation;
 
 	int index;
+	
+
+	double get(std::string key)
+	{
+		return Configuration::getInstance().getObject(rawConfig,key)->valuedouble;
+	}
 
 	JointModel(cJSON * rawConfig) :
 		servoModel(cJSON_GetObjectItem(rawConfig,"Servo"))
 	{		
 		Configuration::AssertConfigExists(rawConfig,"JointModel");
+		this->rawConfig = rawConfig;
 				
 		name = std::string(cJSON_GetObjectItem(rawConfig,"Name")->valuestring);
+		
+		continuousRotation = ((int)get("ContinuousRotation")) == 1;
+		
+		if (!continuousRotation)
+		{
+			maxAngle = AS5048::degreesToSteps(cJSON_GetObjectItem(rawConfig,"MaxAngle")->valuedouble);
+			minAngle = AS5048::degreesToSteps(cJSON_GetObjectItem(rawConfig,"MinAngle")->valuedouble);
+		}
+		else
+		{
+			maxAngle = minAngle = 0;
+		}
 
-		maxAngle = AS5048::degreesToSteps(cJSON_GetObjectItem(rawConfig,"MaxAngle")->valuedouble);
-		minAngle = AS5048::degreesToSteps(cJSON_GetObjectItem(rawConfig,"MinAngle")->valuedouble);
 		sensorZeroPosition = AS5048::degreesToSteps(cJSON_GetObjectItem(rawConfig,"ZeroPosition")->valuedouble);
-
 		axisOfRotation = Configuration::getVectorFromJSON(cJSON_GetObjectItem(rawConfig,"AxisOfRotation"));
 	}
 

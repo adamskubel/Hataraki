@@ -59,6 +59,7 @@ public:
 	std::vector<std::shared_ptr<MotionPlan> >  planForPosition(vmath::Vector3d position, vmath::Matrix3d rotation, int pathDivisionCount);
 	
 	
+	void setJointVelocity(int jointIndex, double velocity, double runTime);
 	void setJointPosition(int jointIndex, double angle);
 	bool confirmMotionPlan(std::vector<std::shared_ptr<MotionPlan> > & newPlan);
 

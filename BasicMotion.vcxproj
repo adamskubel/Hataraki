@@ -83,6 +83,7 @@
     <ClCompile Include="PredictiveJointControl_ControllerImpl.cpp" />
     <ClCompile Include="PredictiveJointControl_SignalImpl.cpp" />
     <ClCompile Include="QuadraticRegression.cpp" />
+    <ClCompile Include="ServoModel.cpp" />
     <ClCompile Include="ServoUtil.cpp" />
     <ClCompile Include="SavitzkyGolaySmooth.cpp" />
     <ClCompile Include="StepController.cpp" />

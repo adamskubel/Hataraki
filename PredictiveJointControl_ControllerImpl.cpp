@@ -2,28 +2,16 @@
 
 namespace ControllerConfiguration 
 {
-	const double MinimumStopTime = 0; //seconds
-	const double VelocityZeroThreshold = 30;
-	const double MinTorqueScale = 1.2;
-	
 	const double MaximumStopTime = 0.03;
-
 	const double SteppingModeReadDelay = 0.03; //seconds
 	const double MaxMotionForValidStep = 5;//steps
 
 	//Position Hold
-	const double MinDisturbanceError = 15;	
-	const double MinFlipTriggerVelocity = 500;
+	const double MinDisturbanceError = 15;
 	
 	//Speed Control
 	const double MinSpeedControlMeasureDelay = 0.05; //seconds
 	const double MaxSpeedControlMeasureDelay = 0.10; //seconds
-	const double MinVelocityRValue = 0.95;
-	const double MinNonZeroVelocity = 50; //steps/second
-
-	const double BaseStepSpeed = 800.0;// steps/second
-
-	const bool GravityFlipTriggerEnabled = false;
 };
 
 using namespace ControllerConfiguration;
@@ -63,14 +51,10 @@ void PredictiveJointController::run()
 
 	commitCommands();
 
+	cRunTime = TimeUtil::timeSince(start);
 	if (Configuration::CsvLoggingEnabled) logState();
 	
 	TimeUtil::assertTime(start,jointModel->name + ".run()");
-}
-
-void PredictiveJointController::runExternalController()
-{
-	externalController();
 }
 
 
@@ -99,7 +83,7 @@ void PredictiveJointController::setTargetState()
 			double t = TimeUtil::timeSince(motionPlan->startTime);
 			cTargetAngle = motionPlan->x(t);
 			cTargetVelocity = motionPlan->dx(t);
-			cTargetAcceleration = motionPlan->ddx(t);
+			cTargetAcceleration = 0; // motionPlan->ddx(t);
 			cDynamicTorque = 0;// PoseDynamics::getInstance().getTorqueForAcceleration(jointModel->index,AS5048::stepsToRadians(cTargetAcceleration));
 		}
 		else
@@ -115,12 +99,14 @@ void PredictiveJointController::setTargetState()
 
 void PredictiveJointController::performSafetyChecks()
 {
-	if (cRawSensorAngle < jointModel->minAngle || cRawSensorAngle > jointModel->maxAngle || 
-		cSensorAngle < jointModel->minAngle || cSensorAngle > jointModel->maxAngle)
+	if (!jointModel->continuousRotation)
 	{
-		stringstream ss;
-		ss << "Exceeded angle limits. Angle = " << AS5048::stepsToDegrees(cRawSensorAngle) << " [" << AS5048::stepsToDegrees(jointModel->minAngle) << "," << AS5048::stepsToDegrees(jointModel->maxAngle) << "]" << endl;
-		emergencyHalt(ss.str());
+		if (cSensorAngle < jointModel->minAngle || cSensorAngle > jointModel->maxAngle)
+		{
+			stringstream ss;
+			ss << "Exceeded angle limits. Angle = " << AS5048::stepsToDegrees(cSensorAngle) << " [" << AS5048::stepsToDegrees(jointModel->minAngle) << "," << AS5048::stepsToDegrees(jointModel->maxAngle) << "]" << endl;
+			emergencyHalt(ss.str());
+		}
 	}
 }
 
@@ -144,44 +130,14 @@ void PredictiveJointController::emergencyHalt(std::string reason)
 
 void PredictiveJointController::doPositionHoldControl()
 {
-	bool commanded = false;
-
-	//if (servoModel->controllerConfig.externalDisturbanceFlipTriggerEnabled && std::abs(cTargetAngleDistance) > MaxSetpointError)
-	//{
-	//	//Moving away from rotational stop
-	//	if ((int)sgn(cTargetAngleDistance) == -expectedRotationalStopDirection)
-	//	{
-	//		//double averageVelocity = getAverageSpeedForWindow(3);
-
-	//		//if ((int)sgn(averageVelocity) == expectedRotationalStopDirection && std::abs(averageVelocity) > MinFlipTriggerVelocity)
-	//		{
-	//			vector<double> flipPattern;
-	//			double direction = sgn(cTargetAngleDistance);
-
-	//			for (auto it=servoModel->controllerConfig.externalDisturbanceFlipVoltagePattern.begin(); it!= servoModel->controllerConfig.externalDisturbanceFlipVoltagePattern.end();it++)
-	//			{
-	//				flipPattern.push_back((*it) * direction);
-	//			}
-	//						
-	//			controlMode = ControlMode::StepControl;
-	//			executeStep(flipPattern);	
-	//			commanded = true;
-	//		}
-	//	}		
-	//}
-	
-	if (!commanded)
+	if (std::abs(cTargetAngleDistance) > MinDisturbanceError)
 	{
-		if (std::abs(cTargetAngleDistance) > MinDisturbanceError)
-		{
-			staticControlMode = StaticControlMode::Stepping;
-			doStepControl(cTargetAngle);
-		}	
-		else
-		{
-			readyForCommand = true;
-			commandDriver(0,DriverMode::Brake);
-		}
+		staticControlMode = StaticControlMode::Stepping;
+		doStepControl();
+	}	
+	else
+	{
+		commandDriver(0,DriverMode::Brake);
 	}
 }
 
@@ -193,17 +149,10 @@ double PredictiveJointController::estimateTimeToPosition(double position)
 }
 
 void PredictiveJointController::doDynamicControl()
-{		
-	
+{			
 	if (dynamicControlMode == DynamicControlMode::Starting)
 	{
-		//if (!config->motionStartEnabled || startModeIndex >= config->startVoltagePattern.size())
 		dynamicControlMode = DynamicControlMode::Travelling;
-		//else
-		//{
-		//	commandDriver(config->startVoltagePattern.at(startModeIndex)*sgn(cPlanTargetVelocity),DriverMode::ConstantVoltage);
-		//	startModeIndex++;
-		//}
 	}
 	
 	if (dynamicControlMode == DynamicControlMode::Travelling)
@@ -261,7 +210,7 @@ void PredictiveJointController::doStaticControl()
 	
 	if (!cDriverCommanded && staticControlMode == StaticControlMode::Stepping)
 	{
-		if (doStepControl(cTargetAngle))
+		if (doStepControl())
 		{
 			staticControlMode = StaticControlMode::Holding;
 		}
@@ -272,56 +221,65 @@ void PredictiveJointController::doSpeedControl()
 {
 	double expectedVelocity = servoModel->getSpeedForTorqueVoltage(cControlTorque,cVoltage);
 
-	double cVelocityError = expectedVelocity - cVelocity;
-	velocityErrorIntegral += cVelocityError * (cTime - lTime);
-	
-	double dVError = (cVelocityError - lVelocityError)/(cTime - lTime);
-
-	if (speedControlState == SpeedControlState::Measuring)
-	{
-		if (TimeUtil::timeSince(speedControlMeasureStart) > MinSpeedControlMeasureDelay && cVelocityApproximationError < 0.7) //MinVelocityRValue)
-		{
-			speedControlState = SpeedControlState::Adjusting;
-		}
-		else if (TimeUtil::timeSince(speedControlMeasureStart) > MaxSpeedControlMeasureDelay)
-		{
-			speedControlState = SpeedControlState::Adjusting;
-		}
-		else
-		{
-			commandDriver(servoModel->getVoltageForTorqueSpeed(cControlTorque,cTargetVelocity),DriverMode::TMVoltage);	
-		}
+	//Stall check
+	if (abs(expectedVelocity) > 1.0 && cVelocityApproximationError > 0.95 && abs(cVelocity) < 1.0)
+	{		
+		double voltageAdjust = 0.08 * sgn(cVoltage);
+		commandDriver(cVoltage+voltageAdjust,DriverMode::TMVoltage);	
+		speedControlState = SpeedControlState::Stalled;
 	}
-
-	if (!cDriverCommanded && speedControlState == SpeedControlState::Adjusting)
+	else if (speedControlState == SpeedControlState::Stalled)
 	{
-		double velocityError = ((cVelocityError * speedControlProportionalGain) + (velocityErrorIntegral * speedControlIntegralGain) + (dVError * config->speedControlDerivativeGain));
-		
-		cControlTorque -= velocityError/servoModel->getTorqueSpeedSlope();
-		if (sgn(cControlTorque) != sgn(cTargetVelocity))
-			cControlTorque = 0;
-
-		commandDriver(servoModel->getVoltageForTorqueSpeed(cControlTorque,cTargetVelocity),DriverMode::TMVoltage);	
+		cControlTorque = servoModel->getTorqueForVoltageSpeed(cVoltage,cTargetVelocity);
 		speedControlState = SpeedControlState::Measuring;
-		TimeUtil::setNow(speedControlMeasureStart);
 	}
 
-	velocityErrorIntegral *= 0.95;
-	lVelocityError = cVelocityError;
+	if (speedControlState != SpeedControlState::Stalled)
+	{
+		double cVelocityError = expectedVelocity - cVelocity;
+		velocityErrorIntegral += cVelocityError * (cTime - lTime);
+
+		double dVError = (cVelocityError - lVelocityError)/(cTime - lTime);
+
+		if (speedControlState == SpeedControlState::Measuring)
+		{
+			if (TimeUtil::timeSince(speedControlMeasureStart) > MinSpeedControlMeasureDelay && cVelocityApproximationError < 0.7) //MinVelocityRValue)
+			{
+				speedControlState = SpeedControlState::Adjusting;
+			}
+			else if (TimeUtil::timeSince(speedControlMeasureStart) > MaxSpeedControlMeasureDelay)
+			{
+				speedControlState = SpeedControlState::Adjusting;
+			}
+			else
+			{
+				commandDriver(servoModel->getVoltageForTorqueSpeed(cControlTorque,cTargetVelocity),DriverMode::TMVoltage);	
+			}
+		}
+
+		if (!cDriverCommanded && speedControlState == SpeedControlState::Adjusting)
+		{
+			double velocityError = ((cVelocityError * speedControlProportionalGain) + (velocityErrorIntegral * speedControlIntegralGain) + (dVError * config->speedControlDerivativeGain));
+
+			cControlTorque -= velocityError/servoModel->getTorqueSpeedSlope();
+			if (sgn(cControlTorque) != sgn(cTargetVelocity))
+				cControlTorque = 0;
+
+			commandDriver(servoModel->getVoltageForTorqueSpeed(cControlTorque,cTargetVelocity),DriverMode::TMVoltage);	
+			speedControlState = SpeedControlState::Measuring;
+			TimeUtil::setNow(speedControlMeasureStart);
+		}
+
+		velocityErrorIntegral *= 0.95;
+		lVelocityError = cVelocityError;
+	}
 }
 
 
-bool PredictiveJointController::doStepControl(double targetAngle)
-{	
-	double distanceToTarget = targetAngle - cSensorAngle;
-
+bool PredictiveJointController::doStepControl()
+{
 	switch (steppingState)
 	{
-	//case SteppingState::New:
-	//	double stepVoltage = servoModel->getVoltageForTorqueSpeed(stableTorqueEstimate,sgn(distanceToTarget)*BaseStepSpeed);
-	//	executeStep(stepVoltage,1,1);
-	//	isTorqueEstimateValid = false;
-	//	break;
 	case SteppingState::Energizing:
 		if (stepVoltageIndex < stepVoltages.size())
 		{
@@ -342,20 +300,17 @@ bool PredictiveJointController::doStepControl(double targetAngle)
 	case SteppingState::Reading:
 		if (TimeUtil::timeSince(readDelayStart) > SteppingModeReadDelay) 
 		{
-			int stepDirection = sgn(distanceToTarget);
+			int stepDirection = sgn(cTargetAngleDistance);
 
 			//Reached target, brake and return true to indicate position has been reached
-			if (std::abs(distanceToTarget) <= config->maxSetpointError) 
+			if (std::abs(cTargetAngleDistance) <= config->maxSetpointError)
 			{
 				commandDriver(0,DriverMode::Brake);	
 				return true;
 			}
 			//Overshoot, reverse direction and step again with lower voltage
 			else if (sgn(cTargetAngleDistance) != sgn(stepInitialTargetDistance))
-			{						
-				//double stepVoltage = servoModel->getVoltageForTorqueSpeed(stableTorqueEstimate,stepDirection*BaseStepSpeed);
-				//executeStep(stepVoltage,1,1);
-				
+			{										
 				int length = 1;
 				int vSteps = DRV8830::voltageToSteps(std::abs(stepVoltageIntegral));
 				vSteps--;
@@ -474,7 +429,6 @@ void PredictiveJointController::commitCommands()
 {
 	try
 	{
-		//This shouldn't happen. Shutdown motor to avoid damage due to unexpected condition;
 		if (!cDriverCommanded)
 		{
 			emergencyHalt("Command wasn't applied during operation. Motor shutdown.");

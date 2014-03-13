@@ -6,16 +6,7 @@ using namespace std;
 
 void PredictiveJointController::init()
 {
-	const double TorqueFilterTimeConstant = 0.05;
-	const double SpeedMovingAverageWindowSize = 4;
-	const double SpeedFilterTimeConstant = 0.05;
-	const double TorqueSMAFilterWindowSize = 10;
-	
-	filter_lowpass_for_motorTorque =	new LowpassFilter(TorqueFilterTimeConstant);
-	filter_lowpass_position	=			new LowpassFilter(config->get("SensorFilters.LowpassPositionFilter.TimeConstant"));
-	filter_sma_angle_for_speed =		new SimpleMovingAverage(SpeedMovingAverageWindowSize);
-	filter_lowpass_speed =				new LowpassFilter(SpeedFilterTimeConstant);
-	filter_sma_for_speedController_motorTorque =		new SimpleMovingAverage(TorqueSMAFilterWindowSize);
+	filter_lowpass_position	=	new LowpassFilter(config->get("SensorFilters.LowpassPositionFilter.TimeConstant"));
 
 	voltageConverter = new TimeMultiplexedVoltageConverter(2,servoModel->maxDriverVoltage);
 
@@ -32,8 +23,6 @@ void PredictiveJointController::init()
 
 	logfileName = "Data_" + jointModel->name + ".csv";
 				
-	TimeUtil::setNow(controllerStartTime);
-
 	cSensorAngle = 0;
 	cRawSensorAngle = 0;
 	cVelocity = 0;
@@ -55,12 +44,8 @@ void PredictiveJointController::init()
 	nDriverMode = DriverMode::Coast;	
 	cDriverCommand = 0xFF;
 	cRevolutionCount = 0;
-	
+	cRunTime = 0;
 	isControlTorqueValid = false;
-
-	flipRequestedByUser = false;
-	requestedFlipDirection = 0;
-	expectedRotationalStopDirection = 0;
 
 	speedControlProportionalGain = servoModel->controllerConfig.speedControlProportionalGain;
 	speedControlIntegralGain = servoModel->controllerConfig.speedControlIntegralGain;
@@ -70,6 +55,7 @@ void PredictiveJointController::init()
 		writeLogHeader();
 	}
 	
+	TimeUtil::setNow(controllerStartTime);
 }
 
 void PredictiveJointController::prepare()
@@ -132,8 +118,7 @@ void PredictiveJointController::executeMotionPlan(std::shared_ptr<MotionPlan> re
 	
 	this->motionPlan = requestedMotionPlan;
 
-	motionPlanComplete = false;	
-	isTorqueEstimateValid = false;
+	motionPlanComplete = false;
 	isControlTorqueValid = false;
 	dynamicControlMode = DynamicControlMode::Starting;
 	startModeIndex = 0;
@@ -151,54 +136,11 @@ void PredictiveJointController::validateMotionPlan(std::shared_ptr<MotionPlan> r
 	if (!(jointStatus == JointStatus::Active || jointStatus == JointStatus::Paused))
 		throw std::runtime_error("Joint must be in Active state to execute a motion plan");
 	
-	if (requestedMotionPlan->finalAngle < jointModel->minAngle || requestedMotionPlan->finalAngle > jointModel->maxAngle)
+	if (!jointModel->continuousRotation && (requestedMotionPlan->finalAngle < jointModel->minAngle || requestedMotionPlan->finalAngle > jointModel->maxAngle))
 	{
 		throw std::runtime_error("Motion plan angle exceeds joint range");
 	}
 }
-
-
-
-//bool PredictiveJointController::handleUserRequests()
-//{
-//	bool handled = false;
-//	if (readyForCommand)
-//	{
-//		if (flipRequestedByUser)
-//		{
-//			flipRequestedByUser = false;
-//			requestedFlipDirection = 0;
-//			handled = true;
-//		}
-//		else if (patternRequestedByUser)
-//		{
-//			patternRequestedByUser = false;
-//			list<double> * executePattern = new list<double>(requestedVoltagePattern.begin(),requestedVoltagePattern.end());
-//
-//			externalController = [this,executePattern]()
-//			{
-//				if (!executePattern->empty())
-//				{
-//					commandDriver(executePattern->front(),DriverMode::ConstantVoltage);			
-//					executePattern->pop_front();
-//				}
-//				else 
-//				{
-//					//delete executePattern;
-//					//executePattern = NULL;
-//					readyForCommand = true;
-//					commandDriver(0,DriverMode::Brake);			
-//				}
-//			};
-//		
-//			commandDriver(0,DriverMode::Brake);		
-//			controlMode = ControlMode::External;
-//			handled = true;
-//		} 
-//		if (handled) readyForCommand = false;
-//	}
-//	return handled;
-//}
 
 void PredictiveJointController::writeLogHeader()
 {
@@ -222,9 +164,8 @@ void PredictiveJointController::writeLogHeader()
 		"SensorWriteTime"	<< Configuration::CsvSeparator <<
 		"SensorReadTime"	<< Configuration::CsvSeparator <<
 		"DriverWriteTime"	<< Configuration::CsvSeparator <<
-		"StableTorque"		<< Configuration::CsvSeparator << 
-		"BusSelectTime"		<< Configuration::CsvSeparator << 
-		"FileWriteTime"		<< Configuration::CsvSeparator << 
+		"MotorTorque"		<< Configuration::CsvSeparator <<
+		"RunTime"			<< Configuration::CsvSeparator <<
 		"QuadRegAccel"		<< Configuration::CsvSeparator << 
 		"PlanAccel"			<< Configuration::CsvSeparator <<
 		"PlanVelocity"		<< Configuration::CsvSeparator << 
@@ -242,7 +183,6 @@ void PredictiveJointController::logState()
 	TimeUtil::setNow(logStart);
 
 	const double torqueScale = 100.0;
-	double writeTime = TimeUtil::timeSince(controllerStartTime);
 	stringstream ss;
 
 	ss
@@ -294,9 +234,8 @@ void PredictiveJointController::logState()
 		<< cSensorWriteTime		<< Configuration::CsvSeparator 
 		<< cSensorReadTime		<< Configuration::CsvSeparator 
 		<< cDriverWriteTime		<< Configuration::CsvSeparator 
-		<< stableTorqueEstimate*100.0 << Configuration::CsvSeparator
-		<< cBusSelectTime		<< Configuration::CsvSeparator
-		<< writeTime			<< Configuration::CsvSeparator
+		<< cMotorTorque*torqueScale << Configuration::CsvSeparator
+		<< cRunTime				<< Configuration::CsvSeparator
 		<< cQuadRegAcceleration	<< Configuration::CsvSeparator
 		<< cTargetAcceleration	<< Configuration::CsvSeparator
 		<< cPlanTargetVelocity	<< Configuration::CsvSeparator 
@@ -306,7 +245,7 @@ void PredictiveJointController::logState()
 
 	AsyncLogger::getInstance().postLogTask(logfileName,ss.str());
 
-	TimeUtil::assertTime(logStart,jointModel->name + ".logState()");
+	TimeUtil::assertTime(logStart,jointModel->name + ".logState()",0.01);
 
 }
 
@@ -330,6 +269,11 @@ JointModel * PredictiveJointController::getJointModel()
 double PredictiveJointController::getCurrentAngle()
 {
 	return cSensorAngle;
+}
+
+double PredictiveJointController::getCurrentVelocity()
+{
+	return cVelocity;
 }
 
 double PredictiveJointController::getMaxVoltageSteps()
@@ -360,52 +304,6 @@ JointStatus PredictiveJointController::getJointStatus()
 {
 	return this->jointStatus;
 }
-
-bool PredictiveJointController::jointReadyForCommand()
-{
-	return false; //return (readyForCommand && (controlMode == ControlMode::Hold || controlMode == ControlMode::External));
-}
-
-void PredictiveJointController::requestFlip(int direction, double voltage)
-{
-	//if (std::abs(direction) < 20)
-	//{
-	//	if (controlMode == ControlMode::Hold)
-	//	{
-	//		flipRequestedByUser = true;
-	//		requestedFlipDirection = direction;
-	//		if (voltage > 0)
-	//			requestedFlipVoltage = DRV8830::getNearestVoltage(voltage);
-	//		else
-	//			requestedFlipVoltage = LostMotionFlipVoltage;
-
-	//	}
-	//	else
-	//	{
-	//		stringstream ss;
-	//		ss << "Flip can only be requested in ControlMode::Hold. Current mode = " << controlMode;
-	//		throw std::runtime_error(ss.str());
-	//	}
-	//}
-	//else
-	//{
-	//	throw std::runtime_error("Requested flip direction is invalid.");
-	//}
-	//readyForCommand = false;
-}
-
-void PredictiveJointController::requestPattern(vector<double> pattern)
-{
-	if (pattern.empty())
-		throw std::runtime_error("Requested pattern is empty");
-
-	requestedVoltagePattern = pattern;
-	patternRequestedByUser = true;
-}
-
-
-
-
 
 
 

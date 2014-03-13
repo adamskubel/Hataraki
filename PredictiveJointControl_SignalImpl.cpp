@@ -2,18 +2,9 @@
 
 namespace ControllerConfiguration 
 {	
-	//Speed Control
-	const double MinVelocityRValue = 0.95;
-	const double BaseSpeedControlMeasureTorque = 0.01;
 	const double MaxPossibleZeroVelocity = 150;
 	const double MinAverageOffsetForNonZeroVelocity = 4;
-
-	const double TorqueSMAFilterWindowSize = 10;
-
 	const double MinimumPredictedTorque = 0.0; //N*m
-
-	const double MinAverageVoltageForCertainMovement = 0.56;
-
 };
 
 using namespace ControllerConfiguration;
@@ -27,13 +18,11 @@ int PredictiveJointController::getSensorAngleRegisterValue()
 		timespec start;
 		TimeUtil::setNow(start);
 		bus->selectAddress(servoModel->sensorAddress);
-		cBusSelectTime = TimeUtil::timeSince(start)*1000.0;
 		
 		TimeUtil::setNow(start);
 		unsigned char buf[1] = {AS5048Registers::ANGLE};
 		bus->writeToBus(buf,1);
 		cSensorWriteTime = TimeUtil::timeSince(start)*1000.0;
-		
 		
 		TimeUtil::setNow(start);
 		unsigned char result[2] = {0,0};
@@ -73,11 +62,6 @@ void PredictiveJointController::setCurrentTorqueStates()
 	else
 		cPredictedTorque = std::min<double>(-MinimumPredictedTorque,cPredictedTorque);
 
-	if (!isTorqueEstimateValid) 
-	{
-		stableTorqueEstimate = cPredictedTorque;		
-	}
-
 	if (!isControlTorqueValid) 
 	{
 		velocityErrorIntegral = 0;
@@ -85,25 +69,12 @@ void PredictiveJointController::setCurrentTorqueStates()
 		isControlTorqueValid = true;
 	}
 
-	//Torque experienced by the motor, over last N frames.
-	cAverageVoltage = std::accumulate(appliedVoltageHistory.begin(), appliedVoltageHistory.end(), 0.0) / appliedVoltageHistory.size();
-	cMotorTorque = servoModel->getTorqueForVoltageSpeed(cAverageVoltage, cVelocity);
-
-	
-	expectedRotationalStopDirection = (int)sgn(-cStaticModelTorque);
-
-	//if (std::abs(cAverageVoltage) > MinAverageVoltageForCertainMovement)
-	//{
-	//	expectedRotationalStopDirection = sgn(cAverageVoltage);
-	//}
+	cMotorTorque = servoModel->getTorqueForVoltageSpeed(cVoltage, cVelocity);		
 }
 
 
 void PredictiveJointController::setCurrentState()
 {
-	int HistorySize = config->positionHistorySize;
-	int VoltageHistorySize = config->positionHistorySize;
-
 	timespec start;
 	TimeUtil::setNow(start);
 
@@ -113,77 +84,46 @@ void PredictiveJointController::setCurrentState()
 	lTime = cTime;
 	
 	//Carry next to current
-	cDriverCommanded = false;
-	
+	cDriverCommanded = false;	
 	cVoltage = nVoltage;
 	cAppliedVoltage = nAppliedVoltage;
 	cTargetVoltage = nTargetVoltage;
 	cDriverMode = nDriverMode;
 	
 	//Read new values
-	cNonZeroOffsetSensorAngle = getSensorAngleRegisterValue();
-	cRawSensorAngle = correctAngleForDiscreteErrors(MathUtil::subtractAngles(cNonZeroOffsetSensorAngle,jointModel->sensorZeroPosition,AS5048::PI_STEPS));
-	cSensorAngle = filterAngle(cRawSensorAngle); //Filter for position
+	double sensorAngle = getSensorAngleRegisterValue();
+	cRawSensorAngle = correctAngleForDiscreteErrors(MathUtil::subtractAngles(sensorAngle,jointModel->sensorZeroPosition,AS5048::PI_STEPS));
+
+	cSensorAngle = filterAngle(cRawSensorAngle); 
+
+	//Using history to check lRawSensorAngle is valid
+	if (jointModel->continuousRotation && rawSensorAngleHistory.size() > 1)
+	{
+		const double pi = AS5048::PI_STEPS;
+
+		//eg. -175 to 179
+		if (cSensorAngle > (pi/2) && lRawSensorAngle < (-pi/2))		
+			cRevolutionCount--;		
+		//eg. 178 to -179
+		else if (cSensorAngle < (-pi/2) && lRawSensorAngle > (pi/2))
+			cRevolutionCount++;
+
+		cSensorAngle += (cRevolutionCount * AS5048::TAU_STEPS);
+	}
 	
 	cTime = TimeUtil::timeSince(controllerStartTime);
 	
-	appliedVoltageHistory.push_back(cAppliedVoltage);
-	if (appliedVoltageHistory.size() > VoltageHistorySize) appliedVoltageHistory.pop_front();
-
 	rawSensorAngleHistory.push_back(make_pair(cTime,cSensorAngle));
-	if (rawSensorAngleHistory.size() > HistorySize) rawSensorAngleHistory.pop_front();
+	if (rawSensorAngleHistory.size() > config->positionHistorySize) rawSensorAngleHistory.pop_front();
 		
 	doQuadraticRegression();
 
 	TimeUtil::assertTime(start,jointModel->name + ".setCurrentState()");
 }
 
-double PredictiveJointController::getAverageSpeedForWindow(int windowSize)
-{
-	double avgSpeed = 0;
-	if (!rawSensorAngleHistory.empty())
-	{
-		int count = 1;
-		auto it=rawSensorAngleHistory.begin();
-	
-		auto last = (*it); it++;
-		for (;it != rawSensorAngleHistory.end() && count < windowSize; it++,count++)
-		{
-			avgSpeed += (it->second - last.second)/(it->first - last.first);
-		}
-		avgSpeed /= count;
-	}
-	return avgSpeed;
-}
-
-void PredictiveJointController::doSavitzkyGolayFiltering()
-{
-	if (!config->savitzyGolayFilteringEnabled) return;
-
-	timespec start;
-	TimeUtil::setNow(start);
-	
-	if (rawSensorAngleHistory.size() > (config->savitzyGolayWindowSize * 2) + 2)
-	{
-		vector<double> constantTimeData; 
-
-		//Assuming constant period, but data should really be resampled
-		for (auto it=rawSensorAngleHistory.begin(); it != rawSensorAngleHistory.end(); it++)
-			constantTimeData.push_back(it->second);
-
-		vector<double> filtered = SGSmoothUtil::SGSmooth(constantTimeData,config->savitzyGolayWindowSize,config->savitzyGolayPolyDegree);
-		cSGFilterAngle = filtered.back();
-		
-		filtered = SGSmoothUtil::SGDerivative(constantTimeData,config->savitzyGolayWindowSize,config->savitzyGolayPolyDegree);
-		cSGFilterVelocity = filtered.back();
-	}
-
-	TimeUtil::assertTime(start,jointModel->name + ".doSavitzkyGolayFiltering()");
-}
-
 void PredictiveJointController::doQuadraticRegression()
 {
-	quadraticRegressionFilter->addPoint(cTime,cRawSensorAngle);
+	quadraticRegressionFilter->addPoint(cTime,cSensorAngle);
 		
 	if (quadraticRegressionFilter->getSize() > 3)
 	{
@@ -213,43 +153,7 @@ void PredictiveJointController::doQuadraticRegression()
 	}
 	else
 	{
-		cVelocity = 0; // (cRawSensorAngle - lRawSensorAngle)/(cTime - lTime);
-	}
-}
-
-void PredictiveJointController::setApproximateSpeed(std::list<std::pair<double, double> > history)
-{
-	//double guess = computeSpeed(history.back().second);
-	double slope, intercept, rValue;
-	if (MathUtil::linearRegression(history,slope,intercept,rValue))
-	{
-		cVelocity = slope;
-		cVelocityApproximationError = std::pow(rValue,2);
-
-		//Very low speeds will be noisy and have a low R value
-		if (cVelocityApproximationError < MinVelocityRValue && std::abs(slope) < MaxPossibleZeroVelocity)
-		{
-			double avgSpeed = 0;
-			auto it=history.begin();
-			auto last = (*it);
-			it++;
-			for (;it != history.end(); it++)
-			{
-				avgSpeed += (it->second - last.second);
-			}
-			avgSpeed /= history.size();
-
-			if (std::abs(avgSpeed) < MinAverageOffsetForNonZeroVelocity)
-			{
-				cVelocity = 0;
-				cVelocityApproximationError = 1.0;
-			}
-		}
-	}
-	else
-	{
-		//Infinite velocity!
-		cVelocityApproximationError = 0;
+		cVelocity = 0; 
 	}
 }
 
@@ -278,30 +182,6 @@ double PredictiveJointController::correctAngleForDiscreteErrors(double rawAngle)
 	return rawAngle;
 }
 
-
-/*
- Determining speed is non-trivial due to sensor noise.
- Sensor noise can be removed with a low-pass filter, but this may not be sufficient as the frequency
- of the noise is close to the frequency of the actual velocity changes.
- 
- More investigation is needed to determine the optimal filtering strategy.
- Minimizing delay is critical to obtain smooth motion.
- */
-double PredictiveJointController::computeSpeed(double rawSensorAngle)
-{
-	filter_sma_angle_for_speed->add(rawSensorAngle);
-	double filteredAngle = filter_sma_angle_for_speed->avg();
-	
-	double delta = filteredAngle - lFilteredAngleForSpeed;
-	lFilteredAngleForSpeed = filteredAngle;
-	
-	if (std::abs(cTime - lTime) > 0.000001)
-	{
-		return delta/(cTime - lTime);
-	}
-	else
-		return 0;
-}
 
 double PredictiveJointController::filterAngle(int rawSensorAngle)
 {

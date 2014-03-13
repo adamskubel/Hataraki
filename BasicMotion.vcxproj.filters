@@ -52,6 +52,9 @@
     <Filter Include="Header Files\Test">
       <UniqueIdentifier>{a1d85f3c-5a69-4a6c-b33e-1ec2782ea4a8}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\Model">
+      <UniqueIdentifier>{7e69a73c-5104-4ce7-aeca-3f1feb130b29}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="I2CBus.cpp">
@@ -140,6 +143,9 @@
     </ClCompile>
     <ClCompile Include="UIElement.cpp">
       <Filter>Source Files\UI</Filter>
+    </ClCompile>
+    <ClCompile Include="ServoModel.cpp">
+      <Filter>Source Files\Model</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

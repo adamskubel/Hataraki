@@ -65,12 +65,22 @@
 		{
 			"Name" : "GM12-100",
 			"TorqueConstant" : 0.1328,
-			"BackEmfConstant" : 0.0315655,
+			"BackEmfConstant" : 0.03157,
 			"ArmatureResistance" : 9.4,
 			"StallTorque" : 0.0,
 			"NoLoadSpeed" : 145.0,
 			"NoLoadTorque" : 0.0,
-			"NoLoadCurrent" : 0.015
+			"NoLoadCurrent" : 0.02
+		},
+		{
+			"Name" : "GM12-50",
+			"TorqueConstant" : 0.0664,
+			"BackEmfConstant" : 0.01578,
+			"ArmatureResistance" : 9.4,
+			"StallTorque" : 0.0,
+			"NoLoadSpeed" : 290.0,
+			"NoLoadTorque" : 0.0,
+			"NoLoadCurrent" : 0.02
 		}		
 	],
 	"Gearboxes" : 
@@ -117,7 +127,14 @@
 			"LostMotion" : 3.45,
 			"Efficiency" : 1.0,
 			"ViscousFriction" : 0
-		}
+	 },
+	 {
+	 "Name" : "GM12-50",
+	 "Ratio" : 50,
+	 "LostMotion" : 3.45,
+	 "Efficiency" : 1.0,
+	 "ViscousFriction" : 0
+	 }
 	],
 	"SegmentDefinitions" : [
 		{
@@ -283,8 +300,8 @@
 			},
 			"DynamicController" :
 			{
-				"VelocityKPForPositionCorrection" : 0.05,
-				"VelocityKDForPositionCorrection" : 0.001,
+				"VelocityKPForPositionCorrection" : 0.0,
+				"VelocityKDForPositionCorrection" : 0.0,
 				"SetpointApproachVelocity" : 1,
 				"SetpointApproachDistanceThreshold" : 1.5
 			}
@@ -294,8 +311,7 @@
 		{
 			"Name" : "RightWheel",
 			"ZeroPosition" : 0, 
-			"MinAngle" : -181,
-			"MaxAngle" : 181,
+			"ContinuousRotation" : 1,
 			"AxisOfRotation" : [1,0,0],
 			"Servo" : 
 			{
@@ -303,18 +319,17 @@
 				"SensorAddress" : 65,
 				"DriverDelay" : 0.0004,
 				"SensorDelay" : 0.0012,
-				"MaxDriverVoltage" : 1.8,
+				"MaxDriverVoltage" : 3.6,
 				"FrictionTorque" : 0.0001,
-				"Motor" : "Motors.GM12-100",
-				"Gearbox" : "Gearboxes.GM12-100",
+				"Motor" : "Motors.GM12-50",
+				"Gearbox" : "Gearboxes.GM12-50",
 				"ControllerConfig" : "Controllers.Wheels"
 			}
 		},
 		{
 			"Name" : "LeftWheel",
 			"ZeroPosition" : 0,
-			"MinAngle" : -181,
-			"MaxAngle" : 181,
+			"ContinuousRotation" : 1,
 			"AxisOfRotation" : [0,-1,0],
 			"Servo" : 
 			{
@@ -322,7 +337,7 @@
 				"SensorAddress" : 66,
 				"DriverDelay" : 0.0004,
 				"SensorDelay" : 0.0,
-				"MaxDriverVoltage" : 1.8,
+				"MaxDriverVoltage" : 3.6,
 				"FrictionTorque" : 0.0001,
 				"Motor" : "Motors.GM12-100",
 				"Gearbox" : "Gearboxes.GM12-100",
@@ -334,6 +349,7 @@
 		{
 			"Name" : "Roll_0",
 			"ZeroPosition" : 223, 
+			"ContinuousRotation" : 0,
 			"MinAngle" : -175,
 			"MaxAngle" : 175,
 			"AxisOfRotation" : [1,0,0],
@@ -353,6 +369,7 @@
 		{
 			"Name" : "Pitch_0",
 			"ZeroPosition" : 31,
+			"ContinuousRotation" : 0,
 			"MinAngle" : -35,
 			"MaxAngle" : 90,
 			"AxisOfRotation" : [0,-1,0],
@@ -372,6 +389,7 @@
 		{
 			"Name" : "Roll_1",
 			"ZeroPosition" : 101, 
+			"ContinuousRotation" : 0,
 			"MinAngle" : -120,
 			"MaxAngle" : 120,
 			"AxisOfRotation" : [1,0,0],
@@ -391,6 +409,7 @@
 		{
 			"Name" : "Pitch_1",
 			"ZeroPosition" : 40,
+			"ContinuousRotation" : 0,
 			"MinAngle" : -40,
 			"MaxAngle" : 90,
 			"AxisOfRotation" : [0,-1,0],
@@ -410,6 +429,7 @@
 		{
 			"Name" : "Pitch_2",
 			"ZeroPosition" : 325,
+			"ContinuousRotation" : 0,
 			"MinAngle" : -60,
 			"MaxAngle" : 95,
 			"AxisOfRotation" : [0,-1,0],
@@ -429,6 +449,7 @@
 		{
 			"Name" : "Roll_2",
 			"ZeroPosition" : 144,
+			"ContinuousRotation" : 0,
 			"MinAngle" : -170,
 			"MaxAngle" : 170,
 			"AxisOfRotation" : [1,0,0],

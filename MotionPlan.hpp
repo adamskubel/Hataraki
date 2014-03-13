@@ -60,15 +60,6 @@ public:
 		motionIntervals.push_back(MotionInterval(0,0));
 	}
 	
-//	MotionPlan(std::vector<MotionInterval> motionIntervals, double startAngle, timespec startTime) {
-//		this->motionIntervals = motionIntervals;
-//		this->startAngle = startAngle;
-//		this->startTime = startTime;
-//		this->finalAngle = x(1000.0); //infinity 
-//
-//		TimeUtil::addTime(startTime,getPlanDuration(),endTime);
-//	}
-
 	void startNow();
 	
 	void markKeyframe();

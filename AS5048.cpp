@@ -104,16 +104,3 @@ void AS5048::printDiagnosticFlags(unsigned char diagnosticFlags)
 
 	cout << endl;
 }
-
-
-int AS5048::getAngleError(int currentAngle,int targetAngle)
-{
-	int delta = targetAngle - currentAngle;
-	
-	if (delta > AS5048::PI_STEPS)
-		return delta - AS5048::TAU_STEPS;
-	else if (delta < -AS5048::PI_STEPS)
-		return delta + AS5048::TAU_STEPS;
-	else
-		return delta;
-}

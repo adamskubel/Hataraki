@@ -3,6 +3,8 @@
 
 using namespace std;
 
+double PlanSolution::MaxSpeed = 20000.0;
+
 void KinematicSolver::validateSolution(PlanSolution & sol)
 {
 	////if (!sol.valid) cout << "Solution is invalid" << endl;

@@ -88,17 +88,37 @@ double getAccelDistFromSpeed(double initialSpeed, double endSpeed, double accel)
 	return time*initialSpeed + (std::pow(time,2) * accel)/2.0;
 }
 
+void MotionController::setJointVelocity(int jointIndex, double targetVelocity, double runTime)
+{
+	if (jointIndex >= 0 && jointIndex < joints.size()){		
+			
+		auto joint = joints.at(jointIndex);
+		auto plan = std::shared_ptr<MotionPlan>(new MotionPlan());
+
+		double v0 = joint->getCurrentVelocity();
+		double vF = targetVelocity;
+		double accelTime = abs((vF - v0)/joint->getMaxAcceleration());
+
+		plan->motionIntervals.push_back(MotionInterval(v0,vF,accelTime));
+		plan->motionIntervals.push_back(MotionInterval(vF,runTime));
+
+		plan->startAngle = joint->getCurrentAngle();
+		plan->finalAngle = plan->x(plan->getPlanDuration());
+
+		joint->validateMotionPlan(plan);		
+		plan->startNow();		
+		joint->executeMotionPlan(plan);
+	}
+	else {
+		throw std::runtime_error("Error! Joint index is not valid.");
+	}
+}
 
 
 void MotionController::setJointPosition(int jointIndex, double targetAngle)
 {
 	if (jointIndex >= 0 && jointIndex < joints.size()){		
 			
-		//
-		//if (accel == 0)
-		//	 accel = pjc->getMaxAcceleration();
-		//auto plan = motionPlanner->buildMotionPlan(pjc->getCurrentAngle(),targetAngle,travelTime,pjc->getJointModel()->servoModel.controllerConfig.approachVelocity,accel);
-
 		auto joint = joints.at(jointIndex);
 		auto plan = motionPlanner->buildOptimalMotionPlan(jointIndex,targetAngle);
 		

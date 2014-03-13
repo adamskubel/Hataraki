@@ -37,8 +37,13 @@ double TimeUtil::timeUntil(struct timespec & untilTime)
 
 void TimeUtil::assertTime(timespec & start, std::string message)
 {
+	assertTime(start,message,AlarmThreshold);
+}
+
+void TimeUtil::assertTime(timespec & start, std::string message, double threshold)
+{
 	double elapsed = timeSince(start);
-	if (elapsed > AlarmThreshold)
+	if (elapsed > threshold)
 	{
 		cout << "Threshold exceeded: " << elapsed << " : " << message << endl;
 	}

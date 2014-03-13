@@ -33,16 +33,16 @@ bool ServoUtils::validateAndPrintJointFunction(I2CBus * bus, JointModel * joint)
 			<< " Magnitude = " << dec << (int)magnitude
 			<< " GainValue = " << dec << (int)agc
 			<< " DiagRegister = " << hex << (int)diagnosticFlags
-			<< endl;
+			<< dec << endl;
 		
-		if (angle < joint->minAngle || angle > joint->maxAngle)
-		{
-			cout << "Encoder is reporting an angle out of range." << endl;
-		}
-		else if (!AS5048::isValidStatus(diagnosticFlags)) {
+		if (!AS5048::isValidStatus(diagnosticFlags)) {
 			cout << "Encoder is reporting an invalid condition." << endl;
 			AS5048::printDiagnosticFlags(diagnosticFlags);
 		}
+		else if (!joint->continuousRotation && (angle < joint->minAngle || angle > joint->maxAngle))
+		{
+			cout << "Encoder is reporting an angle out of range." << endl;
+		}		
 		else
 		{
 			//cout << "Encoder initialized." << endl;

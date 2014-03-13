@@ -30,11 +30,9 @@ double TimeMultiplexedVoltageConverter::nextVoltage(double targetVoltage)
 	
 	double appliedVoltage = 0;
 	double stepError = steps - std::round(steps);
-
-	double maxStep = std::min((double)DRV8830::MaxVoltageStep,(double)DRV8830::voltageToSteps(DRV8830::getNearestVoltage(maxVoltage)));
 	
 	const double cutoffStep = 5.0;	
-	const bool subCutoffPulsingEnabled = true;
+	const bool subCutoffPulsingEnabled = false;
 	const double pulseVoltage = 0.52;
 	const double offVoltage = 0.24;
 

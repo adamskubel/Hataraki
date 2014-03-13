@@ -33,7 +33,7 @@ public:
 	static std::string get_file_contents(const char *filename);
 
 	static bool CsvLoggingEnabled;
-	static std::string CsvSeparator;
+	static char CsvSeparator;
 	
 	static Configuration & getInstance();
 	

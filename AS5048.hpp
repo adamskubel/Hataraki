@@ -45,8 +45,6 @@ public:
 
 	static void printDiagnosticFlags(unsigned char diagnosticFlags);
 
-	static int getAngleError(int currentAngle, int targetAngle);	
-
 };
 
 #endif

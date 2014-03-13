@@ -29,6 +29,7 @@ public:
 	static double timeSince(struct timespec & sinceTime);
 	static double timeUntil(struct timespec & untilTime);
 	static void assertTime(timespec & start, std::string message);
+	static void assertTime(timespec & start, std::string message, double threshold);
 };
 
 

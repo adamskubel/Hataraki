@@ -74,6 +74,7 @@ void testQuadRegression();
 void testQuadRegressionWithData();
 void testDynamicTorque();
 void testUI();
+void testServoModel(ServoModel * sm);
 
 int main(int argc, char *argv[])
 {
@@ -117,9 +118,11 @@ int main(int argc, char *argv[])
 	
 //	HatarakiTest::testEulerAngleExtraction();
 //	HatarakiTest::testIKRotation();
-	HatarakiTest::testTMVoltageConverter();
+//	HatarakiTest::testTMVoltageConverter();
 	
 //	HatarakiTest::testAngleExtractionIK();
+	
+	testServoModel(&(controllers[0]->getJointModel()->servoModel));
 }
 
 void testUI()
@@ -217,6 +220,26 @@ void testQuadRegressionWithData()
 	}
 	
 	outFile.close();
+}
+
+void testServoModel(ServoModel * sm)
+{
+	double torque = sm->getTorqueForVoltageSpeed(1.2,1000);
+	cout << "V=1.2, S=1000, T=" << torque << endl;
+	cout << "V=1.2, T=" << torque << ", S=" << sm->getSpeedForTorqueVoltage(torque,1.2) << endl;
+	cout << "T=" << torque << ", S=1000, V=" << sm->getVoltageForTorqueSpeed(torque,1000) << endl;
+	
+	cout << endl;
+	torque = sm->getTorqueForVoltageSpeed(-1.2,-1000);
+	cout << "V=-1.2, S=-1000, T=" << torque << endl;
+	cout << "V=-1.2, T=" << torque << ", S=" << sm->getSpeedForTorqueVoltage(torque,-1.2) << endl;
+	cout << "T=" << torque << ", S=-1000, V=" << sm->getVoltageForTorqueSpeed(torque,-1000) << endl;
+	
+	cout << endl;
+	cout << "V=-0.19, S=0, T=" << sm->getTorqueForVoltageSpeed(-0.19,0) << endl;
+	
+	cout << endl;
+	cout << "V=0.56, T=0, S=" << sm->getSpeedForTorqueVoltage(0,0.56) << endl;
 }
 
 void testMotionPlanning()

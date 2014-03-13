@@ -200,22 +200,28 @@ int main(int argc, char *argv[])
 				}
 				else if (command.compare("enable") == 0)
 				{
-					motionController->postTask([](){
-						motionController->enableAllJoints();
-					});
-				}
-				else if (command.compare("enable_") == 0)
-				{
-					int jointIndex;
-					input >> jointIndex;
+					
+					string enableName;
+					input >> enableName;
 
 					if (input.fail()) {
-						cout << "Invalid input. Usage: enable_ <index>" << endl;
+						cout << "Invalid input. Usage: enable <index|all>" << endl;
 					}
 					else
-					{
-						motionController->postTask([jointIndex,controllers](){
-							controllers.at(jointIndex)->enable();
+					{						
+						bool enableAll = false;
+						int jointIndex;
+
+						if (enableName.compare("all") == 0) 
+							enableAll = true;
+						else 
+							jointIndex= std::stoi(enableName);
+						
+						motionController->postTask([enableAll,jointIndex,controllers](){
+							if (enableAll)
+								motionController->enableAllJoints();
+							else
+								controllers.at(jointIndex)->enable();
 						});
 					}
 				}
@@ -225,7 +231,7 @@ int main(int argc, char *argv[])
 						motionController->zeroAllJoints();
 					});
 				}
-				else if (command.compare("set") == 0) {
+				else if (command.compare("set") == 0 || command.compare("s") == 0) {
 
 					int jointIndex;
 					double angle;
@@ -244,6 +250,28 @@ int main(int argc, char *argv[])
 					}
 					
 				}
+				else if (command.compare("ss") == 0 || command.compare("setspeed") == 0)
+				{
+					int jointIndex;
+					double speed, runTime;
+
+					input >> jointIndex;
+					input >> speed;
+
+					if (input.fail()) {
+						cout << "Invalid input. Usage: setspeed <index> <speed> [runtime]" << endl;
+					}
+					else
+					{
+						input >> runTime;
+						if (input.fail()) runTime = 30.0;
+
+						motionController->postTask([jointIndex,runTime,speed](){
+							motionController->setJointVelocity(jointIndex, AS5048::degreesToSteps(speed),runTime);
+						});
+					}
+					
+				}
 				else if (command.compare("list") == 0) {
 
 					cout << "Angles: ";
@@ -253,49 +281,6 @@ int main(int argc, char *argv[])
 					}
 					cout << std::fixed;
 					cout << endl;
-				}
-				else if (command.compare("setpos") == 0 || command.compare("goto") == 0) {
-
-					Vector3d targetPosition;
-
-					input >> targetPosition.x;
-					input >> targetPosition.y;
-					input >> targetPosition.z;
-					
-					targetPosition = targetPosition / 100.0;
-					
-					bool interactive = (command.compare("setpos") == 0);
-
-
-					if (input.fail()) {
-						cout << "Usage: <setpos|goto> <x>cm <y>cm <z>cm [rX rY rZ] [divs]" << endl;
-					} else {
-						
-
-						double rX,rY,rZ;
-						input >> rX; input >> rY; input >> rZ;
-						if (input.fail())
-						{
-							rY = -90; rX = 0; rZ = 0;
-						}
-						
-						int pathDivisionCount = 10;
-						input >> pathDivisionCount;
-						if (input.fail()) pathDivisionCount = 10;
-						
-						motionController->moveToPosition(targetPosition,Matrix3d::createRotationAroundAxis(rX,rY,rZ),pathDivisionCount,interactive);
-					}
-				}
-				else if (command.compare("getpos") == 0) {
-
-					double angles[6];
-					int i=0;
-					for (auto it = controllers.begin(); it != controllers.end(); it++,i++)
-					{					
-						angles[i] = AS5048::stepsToRadians((*it)->getCurrentAngle());
-					}
-					
-					printPositionForAngles(angles);
 				}
 				else if (command.compare("pause") == 0)
 				{
@@ -307,45 +292,6 @@ int main(int argc, char *argv[])
 						motionController->postTask([controllers,jointIndex](){
 							controllers.at(jointIndex)->pause();
 						});
-					}
-				}
-				else if (command.compare("flip") == 0)
-				{
-					int jointIndex,direction;
-					input >> jointIndex;
-					input >> direction;
-					double voltage;
-					input >> voltage;
-
-					if (input.fail()) {
-						cout << "Usage: flip <jointIndex> <direction> <voltage>" << endl;
-					} else {
-						motionController->postTask([controllers,direction,jointIndex,voltage](){
-							controllers.at(jointIndex)->requestFlip(direction,voltage);
-						});
-					}
-				}
-				else if (command.compare("runpatterns") == 0)
-				{
-					int jointIndex;
-					string filename;
-
-					input >> jointIndex;
-					input >> filename;
-
-					if (input.fail()) {
-						cout << "Usage: flip <jointIndex> <patternFile>" << endl;
-					} else {
-						string fileString = Configuration::get_file_contents(filename.c_str());
-						cJSON * patterns = cJSON_Parse(fileString.c_str());
-
-						if (!patterns) cout << "Invalid JSON file." << endl;
-						else
-						{
-							FlipIdentifier flipId(samplePeriod,jointIndex,motionController);
-							flipId.loadPatterns(patterns);
-							flipId.execute();
-						}
 					}
 				}
 				else if (command.compare("ik") == 0)

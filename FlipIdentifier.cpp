@@ -45,6 +45,7 @@ std::vector<double> FlipIdentifier::parsePattern(cJSON * rawPattern)
 
 void FlipIdentifier::execute()
 {
+	/*
 	stringstream ss;
 	ss << "Pattern,Score,Extent,FinalAngle" << endl;
 	AsyncLogger::getInstance().postLogTask("PatternResults.csv",ss.str());
@@ -109,5 +110,5 @@ void FlipIdentifier::execute()
 			AsyncLogger::getInstance().postLogTask("PatternResults.csv",ss.str());
 		}
 	}
-
+	 */
 }

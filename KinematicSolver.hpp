@@ -28,6 +28,8 @@ struct PlanSolution {
 	double t0,t1,t2,t3,v1;
 	double a0,a1;
 
+	static double MaxSpeed;
+
 
 	SolutionStatus status;
 
@@ -49,7 +51,7 @@ public:
 		{
 			throw std::logic_error("Negative time");
 		}
-		else if (abs(v1) > 10000)
+		else if (abs(v1) > MaxSpeed)
 		{
 			std::stringstream ss;
 			ss << "Speed too high. V1 = " << v1;
