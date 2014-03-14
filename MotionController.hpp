@@ -37,7 +37,6 @@ private:
 	std::vector<std::shared_ptr<MotionPlan> > currentPlan;
 	std::queue<std::function<void()> > taskQueue;
 	std::mutex taskQueueMutex;
-	double samplePeriod;
 	long updatePeriod;
 	
 	MotionPlanner * motionPlanner;
@@ -50,7 +49,7 @@ public:
 	
 	void executeMotionPlan(std::vector<std::shared_ptr<MotionPlan> > newPlan);
 	
-	MotionController(std::vector<PredictiveJointController*> & joints, double samplePeriod, int planStepCount);
+	MotionController(std::vector<PredictiveJointController*> & joints, int planStepCount);
 
 	PredictiveJointController * getJointByIndex(int jointIndex);
 		

@@ -81,9 +81,7 @@ private:
 
 	JointStatus jointStatus;
 	bool haltRequested;
-
-	double samplePeriod;
-
+	
 	TimeMultiplexedVoltageConverter * voltageConverter;
 	
 	std::string logfileName;
@@ -232,10 +230,9 @@ private:
 	double getAverageSpeedForWindow(int windowSize);
 
 public:
-	PredictiveJointController (JointModel * _jointModel, I2CBus * _bus, double _samplePeriod) 
+	PredictiveJointController (JointModel * _jointModel, I2CBus * _bus) 
 	{
 		this->bus = _bus;
-		this->samplePeriod = _samplePeriod;
 		
 		jointModel	= _jointModel;
 		servoModel	= &(jointModel->servoModel);
@@ -255,6 +252,8 @@ public:
 	
 	void validateMotionPlan(std::shared_ptr<MotionPlan> requestedMotionPlan);
 	void executeMotionPlan(std::shared_ptr<MotionPlan> requestedMotionPlan);
+	void joinMotionPlan(std::shared_ptr<MotionPlan> newMotionPlan);
+
 	void run();
 
 	double getMaxVelocity();

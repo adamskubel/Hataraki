@@ -109,6 +109,32 @@ void PredictiveJointController::disable()
 	emergencyHalt("Disabled by user");
 }
 
+void PredictiveJointController::joinMotionPlan(std::shared_ptr<MotionPlan> newMotionPlan)
+{
+	//If current plan is already done, just start the new one
+	if (motionPlanComplete || motionPlan == NULL || TimeUtil::timeUntil(motionPlan->endTime) < 0) 
+	{
+		executeMotionPlan(newMotionPlan);
+	}
+	else
+	{
+		validateMotionPlan(newMotionPlan);
+		double t = TimeUtil::timeBetween(motionPlan->startTime,newMotionPlan->startTime);
+		
+		double xJoin = newMotionPlan->x(0);
+		double dxJoin = newMotionPlan->dx(0);
+		
+		double xError = abs(xJoin - cSensorAngle);
+		double dxError = abs(dxJoin - cVelocity);
+
+		if (xError > 100 || dxError > 100) throw std::runtime_error("Error between new plan and current state is too high");
+				
+		this->motionPlan = requestedMotionPlan;
+		speedControlState = SpeedControlState::Adjusting;
+		lDynamicPositionError = 0;
+	}
+}
+
 void PredictiveJointController::executeMotionPlan(std::shared_ptr<MotionPlan> requestedMotionPlan)
 {	
 	validateMotionPlan(requestedMotionPlan);
@@ -133,6 +159,11 @@ void PredictiveJointController::executeMotionPlan(std::shared_ptr<MotionPlan> re
 
 void PredictiveJointController::validateMotionPlan(std::shared_ptr<MotionPlan> requestedMotionPlan)
 {
+	if (TimeUtil::timeUntil(requestedMotionPlan->startTime) < 0)
+	{
+		throw std::runtime_error("Plan starts in the past.");
+	}
+
 	if (!(jointStatus == JointStatus::Active || jointStatus == JointStatus::Paused))
 		throw std::runtime_error("Joint must be in Active state to execute a motion plan");
 	
@@ -177,7 +208,7 @@ void PredictiveJointController::writeLogHeader()
 
 void PredictiveJointController::logState()
 {
-	if (TimeUtil::timeSince(enableTime) < samplePeriod*3.0) return;
+	if (TimeUtil::timeSince(enableTime) < Configuration::SamplePeriod*3.0) return;
 
 	timespec logStart;
 	TimeUtil::setNow(logStart);

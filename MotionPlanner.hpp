@@ -83,15 +83,22 @@ public:
 	}
 };
 
+enum PathInterpolationMode {
+	
+	SingleStep,
+	FixedStepCount,
+	FixedStepDistance
+};
+
 class MotionPlanner {
 	
 private:
 	std::vector<PredictiveJointController*> joints;
 	
-	double interpolationDistance;
+	double pathInterpolationDistance;	
 	int pathDivisionCount;
-	double firstStepTime, lastStepTime, samplePeriod;
-	
+	PathInterpolationMode pathInterpolationMode;
+		
 	std::vector<std::shared_ptr<MotionPlan> > compileStepMotionPlans(std::vector<StepMotionPlan> * stepPlans, std::vector<Step> & steps);
 
 	//IK stuff
@@ -103,6 +110,9 @@ public:
 	MotionPlanner(std::vector<PredictiveJointController*> joints);
 	
 	void setPathDivisions(int divisionCount);
+	void setPathInterpolationDistance(double pathInterpolationDistance);
+	void setPathInterpolationMode(PathInterpolationMode pathInterpolationMode);
+
 	
 	std::vector<Step> buildMotionSteps(std::vector<double> initialAngles, vmath::Vector3d position, vmath::Matrix3d targetRotation);
 	

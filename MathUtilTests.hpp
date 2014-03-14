@@ -70,8 +70,16 @@ namespace HatarakiTest
 		MathUtil::getRowMajorData(rotation, r);
 		
 		IkSolutionList<IkReal> solutions;
-		ComputeIk(pos,r,NULL,solutions);
-		
+		timespec ikStart;
+
+		TimeUtil::setNow(ikStart);
+		for (int i=0;i<1000; i++)
+		{
+			ComputeIk(pos,r,NULL,solutions);
+		}
+		cout << "IK time = " << TimeUtil::timeSince(ikStart) << " ms" << endl;
+
+
 		//for (int i=0;i<solutions.GetNumSolutions();i++)
 		{
 			int i=0;

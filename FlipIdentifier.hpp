@@ -21,11 +21,10 @@ private:
 
 	std::vector<double> parsePattern(cJSON * rawPattern);
 
-	double samplePeriod;
 	int jointIndex;
 
 public:
-	FlipIdentifier(double samplePeriod, int jointIndex, MotionController * motionController);
+	FlipIdentifier(int jointIndex, MotionController * motionController);
 
 	void loadPatterns(cJSON * patternArray);
 

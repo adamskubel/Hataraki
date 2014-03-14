@@ -2,6 +2,7 @@
 
 bool Configuration::CsvLoggingEnabled = false;
 char Configuration::CsvSeparator = ',';
+double Configuration::SamplePeriod = 0.01;
 
 using namespace std;
 using namespace vmath;
@@ -35,8 +36,6 @@ Vector3d Configuration::getVectorFromJSON(cJSON * vectorObj)
 
 vector<double> Configuration::getVoltagePatternFromJSON(cJSON * rawPattern)
 {
-	const double samplePeriod = 0.01;
-
 	std::vector<double> pattern;
 
 	for (int i=0; i < cJSON_GetArraySize(rawPattern); i++)
@@ -45,7 +44,7 @@ vector<double> Configuration::getVoltagePatternFromJSON(cJSON * rawPattern)
 		double voltage = cJSON_GetArrayItem(interval,0)->valuedouble;
 		double duration = cJSON_GetArrayItem(interval,1)->valuedouble/1000.0;
 
-		int repeats = (int)std::round(duration / samplePeriod);
+		int repeats = (int)std::round(duration / Configuration::SamplePeriod);
 
 		for (int j=0;j<repeats;j++) pattern.push_back(voltage);
 	}

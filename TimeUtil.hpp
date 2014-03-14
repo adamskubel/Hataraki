@@ -28,6 +28,9 @@ public:
 	static void setNow(struct timespec & now);	
 	static double timeSince(struct timespec & sinceTime);
 	static double timeUntil(struct timespec & untilTime);
+	
+	static double timeBetween(struct timespec & tStart, timespec & tEnd);
+
 	static void assertTime(timespec & start, std::string message);
 	static void assertTime(timespec & start, std::string message, double threshold);
 };

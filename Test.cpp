@@ -75,15 +75,10 @@ void testQuadRegressionWithData();
 void testDynamicTorque();
 void testUI();
 void testServoModel(ServoModel * sm);
+void testKinematicPerformance();
 
 int main(int argc, char *argv[])
 {
-	double samplePeriod = 0.01;
-
-	//signal(SIGSEGV, handle);
-	
-	//signal(SIGINT, signal_callback_handler);
-
 	std::string configFileName = "config.json";
 
 	if (argc >= 2)
@@ -102,10 +97,10 @@ int main(int argc, char *argv[])
 
 	for (int i=0;i<armModel->joints.size();i++)
 	{
-		PredictiveJointController * pjc = new PredictiveJointController(&(armModel->joints.at(i)),NULL, 0.01);	
+		PredictiveJointController * pjc = new PredictiveJointController(&(armModel->joints.at(i)),NULL);	
 		controllers.push_back(pjc);
 	}
-	motionController = new MotionController(controllers,samplePeriod,5);
+	motionController = new MotionController(controllers,5);
 
 	//testUI();
 	
@@ -117,12 +112,26 @@ int main(int argc, char *argv[])
 //	testMotionPlanning();
 	
 //	HatarakiTest::testEulerAngleExtraction();
-//	HatarakiTest::testIKRotation();
+	HatarakiTest::testIKRotation();
 //	HatarakiTest::testTMVoltageConverter();
 	
 //	HatarakiTest::testAngleExtractionIK();
+	testKinematicPerformance();
 	
-	testServoModel(&(controllers[0]->getJointModel()->servoModel));
+	//testServoModel(&(controllers[0]->getJointModel()->servoModel));
+}
+
+void testKinematicPerformance()
+{
+	timespec start;
+	TimeUtil::setNow(start);
+	for (int i=0;i<1000;i++)
+	{
+		PlanSolution sol;
+		double minTime = KinematicSolver::threePart_minimumTime(10,100, 10, 0, 1000);
+		KinematicSolver::threePart_calculate(10, 100, 10, 1000, minTime, sol);
+	}
+	cout << "Kinematic time = " << TimeUtil::timeSince(start) << " ms " << endl;
 }
 
 void testUI()
@@ -291,7 +300,7 @@ void testMotionPlanning()
 			cout << "Final = " << f0 << ", Final(t) = " <<  f1 << endl;
 	}
 	
-	for (double t = 0.0; t < motionPlan.front()->getPlanDuration(); t += 0.01)
+	for (double t = 0.0; t < motionPlan.front()->getPlanDuration(); t += 0.02)
 	{
 		Vector3d actualPosition,expectedPosition;
 		

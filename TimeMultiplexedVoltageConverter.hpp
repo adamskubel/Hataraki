@@ -10,19 +10,28 @@
 #include "DRV8830.hpp"
 #include "MathUtils.hpp"
 
+//#include "cJSON.h"
+
+//struct TMVoltageConfig
+//{
+//	TMVoltageConfig(cJSON * rawConfig);
+//
+//	double cutoff
+//};
+
 class TimeMultiplexedVoltageConverter {
 
 private:
 	int maxMultiplexPeriods;	
-	std::list<double> voltageHistory;
-	int cycleIndex;
+	std::list<std::pair<double,double> > voltageHistory;
+	double totalTime, lastVoltage;
 	double maxVoltage;
 
 public:
 	TimeMultiplexedVoltageConverter(int maxMultiplexPeriods, double maxVoltage);
 	
 	void setActualVoltage(double voltage);
-	double nextVoltage(double targetVoltage);
+	double nextVoltage(double elapsedTime, double targetVoltage);
 
 	double getAverageVoltage();
 

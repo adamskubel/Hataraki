@@ -4,9 +4,8 @@
 
 using namespace std;
 
-FlipIdentifier::FlipIdentifier(double _samplePeriod, int _jointIndex, MotionController * _motionController)
+FlipIdentifier::FlipIdentifier(int _jointIndex, MotionController * _motionController)
 {
-	this->samplePeriod = _samplePeriod;
 	this->motionController = _motionController;
 	this->jointIndex = _jointIndex;
 
@@ -34,7 +33,7 @@ std::vector<double> FlipIdentifier::parsePattern(cJSON * rawPattern)
 		double voltage = cJSON_GetArrayItem(interval,0)->valuedouble;
 		double duration = cJSON_GetArrayItem(interval,1)->valuedouble/1000.0;
 
-		int repeats = (int)std::round(duration / samplePeriod);
+		int repeats = (int)std::round(duration / Configuration::SamplePeriod);
 
 		for (int j=0;j<repeats;j++) pattern.push_back(voltage);
 	}

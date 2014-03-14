@@ -113,7 +113,6 @@ void ikControl()
 
 int main(int argc, char *argv[])
 {
-	double samplePeriod;
 	vector<PredictiveJointController*> controllers;
 	cJSON * globalConfig;
 	ArmModel * armModel;
@@ -138,8 +137,8 @@ int main(int argc, char *argv[])
 
 		globalConfig = cJSON_GetObjectItem(Configuration::getInstance().getRoot(),"GlobalSettings");	
 
-		samplePeriod = 1.0/cJSON_GetObjectItem(globalConfig,"UpdateFrequency")->valuedouble;
-		cout << "Operating with period of " << samplePeriod << " seconds. " <<endl;
+		Configuration::SamplePeriod = 1.0/cJSON_GetObjectItem(globalConfig,"UpdateFrequency")->valuedouble;
+		cout << "Operating with period of " << Configuration::SamplePeriod << " seconds. " <<endl;
 
 		DRV8830::MaxVoltageStep = DRV8830::voltageToSteps(cJSON_GetObjectItem(globalConfig,"MaxVoltage")->valuedouble);	
 		cout << "Setting maximum voltage to " << DRV8830::stepsToVoltage(DRV8830::MaxVoltageStep) << " V (Step=0x" << hex << DRV8830::MaxVoltageStep << ")" << endl;
@@ -151,7 +150,7 @@ int main(int argc, char *argv[])
 
 		for (int i=0;i<armModel->joints.size();i++)
 		{
-			PredictiveJointController * pjc = new PredictiveJointController(&(armModel->joints.at(i)),bus, samplePeriod);		
+			PredictiveJointController * pjc = new PredictiveJointController(&(armModel->joints.at(i)),bus);		
 			controllers.push_back(pjc);
 		}
 	}
@@ -166,7 +165,7 @@ int main(int argc, char *argv[])
 
 	PoseDynamics::getInstance().setArmModel(armModel);
 		
-	motionController = new MotionController(controllers,samplePeriod,cJSON_GetObjectItem(globalConfig,"MotionPlanSteps")->valueint);
+	motionController = new MotionController(controllers,cJSON_GetObjectItem(globalConfig,"MotionPlanSteps")->valueint);
 	
 	motionController->prepareAllJoints();		
 		

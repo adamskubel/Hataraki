@@ -162,7 +162,7 @@ void PredictiveJointController::doDynamicControl()
 		lDynamicPositionError = dynamicAngleError;
 
 		double velocityCorrection = dynamicAngleError * config->velocityCorrectionProportionalGain + errorDerivative * config->velocityCorrectionDerivativeGain;
-		velocityCorrection /= samplePeriod; 
+		velocityCorrection /= Configuration::SamplePeriod; 
 
 		cTargetVelocity = cPlanTargetVelocity+velocityCorrection;
 		double finalAngleError = motionPlan->finalAngle - cSensorAngle;
@@ -402,7 +402,7 @@ void PredictiveJointController::commandDriver(double voltage, DriverMode mode)
 	nTargetVoltage = voltage;
 	if (mode == DriverMode::TMVoltage)
 	{
-		nAppliedVoltage = voltageConverter->nextVoltage(voltage);
+		nAppliedVoltage = voltageConverter->nextVoltage((cTime-lTime),voltage);
 		nVoltage = voltageConverter->getAverageVoltage();
 	}
 	else if (mode == DriverMode::ConstantVoltage)

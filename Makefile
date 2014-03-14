@@ -1,5 +1,5 @@
 CXX=g++
-CXXFLAGS=-g -std=c++0x 
+CXXFLAGS=-g -std=c++0x -Ofast
 	
 LIB=rt ncurses tinfo
 LIB_PARAMS=$(foreach d,$(LIB),-l$d)

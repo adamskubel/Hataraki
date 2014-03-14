@@ -7,12 +7,10 @@ using namespace vmath;
 
 #define MathDebug true
 
-MotionController::MotionController(vector<PredictiveJointController*> & _joints, double _samplePeriod, int _planStepCount) {
+MotionController::MotionController(vector<PredictiveJointController*> & _joints, int _planStepCount) {
 	this->joints = _joints;
-	this->updatePeriod = (long)(_samplePeriod*1000000.0); //seconds to microseconds
-	this->planStepCount = _planStepCount;
-	this->samplePeriod = _samplePeriod;
-	
+	this->updatePeriod = (long)(Configuration::SamplePeriod*1000000.0); //seconds to microseconds
+	this->planStepCount = _planStepCount;	
 	this->motionPlanner = new MotionPlanner(joints);
 }
 
@@ -234,15 +232,8 @@ bool MotionController::confirmMotionPlan(vector<shared_ptr<MotionPlan> > & newPl
 
 void MotionController::moveToPosition(Vector3d targetPosition, Matrix3d targetRotation, int pathDivisionCount, bool interactive)
 {
-	motionPlanner->setPathDivisions(pathDivisionCount);
-	vector<Step> steps = motionPlanner->buildMotionSteps( getJointAnglesRadians(), targetPosition, targetRotation);
-	
-	vector<shared_ptr<MotionPlan> > newPlan;
-	if (pathDivisionCount > 1)
-		newPlan = motionPlanner->buildPlan(steps);
-	else
-		newPlan = motionPlanner->createClosedSolutionMotionPlanFromSteps(steps);
-	
+	auto newPlan = planForPosition(targetPosition,targetRotation,pathDivisionCount);
+
 	if (!interactive || confirmMotionPlan(newPlan))
 	{
 		executeMotionPlan(newPlan);
@@ -262,8 +253,6 @@ vector<shared_ptr<MotionPlan> > MotionController::planForPosition(Vector3d targe
 	
 	return newPlan;
 }
-
-
 
 void MotionController::postTask(std::function<void()> task)
 {

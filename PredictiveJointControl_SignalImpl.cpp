@@ -167,7 +167,7 @@ double PredictiveJointController::correctAngleForDiscreteErrors(double rawAngle)
 	double predictedDisplacement = 0;
 	if (cVelocityApproximationError > MinRValueForDisplacementPrediction)
 	{
-		predictedDisplacement = cVelocity*samplePeriod;
+		predictedDisplacement = cVelocity*Configuration::SamplePeriod;
 	}
 
 	if (std::abs(std::abs(rawAngle - (lRawSensorAngle+predictedDisplacement)) - 64.0) < MaxCorrectedOffsetFromPrevious)

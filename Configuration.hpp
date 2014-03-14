@@ -34,7 +34,8 @@ public:
 
 	static bool CsvLoggingEnabled;
 	static char CsvSeparator;
-	
+	static double SamplePeriod;
+
 	static Configuration & getInstance();
 	
 	static void AssertConfigExists(cJSON * configItem,std::string configItemName);
