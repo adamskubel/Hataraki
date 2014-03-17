@@ -12,6 +12,10 @@ MotionController::MotionController(vector<PredictiveJointController*> & _joints,
 	this->updatePeriod = (long)(Configuration::SamplePeriod*1000000.0); //seconds to microseconds
 	this->planStepCount = _planStepCount;	
 	this->motionPlanner = new MotionPlanner(joints);
+
+	updateCount = 0;
+	
+	state = State::Waiting;
 }
 
 PredictiveJointController * MotionController::getJointByIndex(int jointIndex)
@@ -23,6 +27,8 @@ PredictiveJointController * MotionController::getJointByIndex(int jointIndex)
 }
 
 void MotionController::updateController(){
+
+	if (state == State::Shutdown) return;
 
 	try 
 	{
@@ -39,11 +45,16 @@ void MotionController::updateController(){
 			TimeUtil::assertTime(step,"Joint " + (*it)->getJointModel()->name + " update");
 		}
 
-		TimeUtil::setNow(step);
-		PoseDynamics::getInstance().setJointAngles(jointAngles);
-		PoseDynamics::getInstance().update();
-		TimeUtil::assertTime(step,"Pose dynamics update");
-				
+		//TimeUtil::setNow(step);
+		if (updateCount % 100 == 0)
+		{
+			PoseDynamics::getInstance().setJointAngles(jointAngles);
+			PoseDynamics::getInstance().update();
+		}
+		//TimeUtil::assertTime(step,"Pose dynamics update",10.0/1000.0);
+		
+		updateStreamingMotionPlans();
+
 		TimeUtil::setNow(step);
 		if (taskQueueMutex.try_lock()) {		
 			while (!taskQueue.empty()) {
@@ -65,14 +76,54 @@ void MotionController::updateController(){
 		long adjustedSleep = updatePeriod - (totalTime*1000000);
 		if (adjustedSleep > 0 && adjustedSleep <= updatePeriod)
 			usleep(static_cast<unsigned int>(adjustedSleep));
+		
+		updateCount++;
 	}
 	catch (std::runtime_error & e)
 	{
 		cout << "Exception thrown during control loop execution: " << e.what() << endl;
 		cout << "Commencing emergency shutdown." << endl;
 		shutdown();
+		state = State::Shutdown;
 	}
 }
+
+
+void MotionController::updateStreamingMotionPlans()
+{
+	if (state == State::StreamingPlan)
+	{
+		bool complete = false;
+		for (auto it=currentPlan.begin(); it != currentPlan.end(); it++)
+		{
+			if (TimeUtil::timeUntil((*it)->endTime) < 0)
+			{
+				complete = true;
+				break;
+			}
+		}
+		
+		if (complete)
+		{
+			currentPlan.clear();
+			IKGoal goal = controlProvider->nextGoal();
+			currentPlan = motionPlanner->buildPlan(goal);
+			
+			std::for_each(currentPlan.begin(),currentPlan.end(),[](shared_ptr<MotionPlan> p){p->startNow();});
+			for (int i=0;i<6;i++) joints.at(i)->joinMotionPlan(currentPlan.at(i));			
+		}
+	}
+}
+
+void MotionController::requestDirectControl(IKGoal initialGoal, DirectControlProvider * controlProvider)
+{
+	auto plan = motionPlanner->buildPlan(initialGoal);
+	this->controlProvider = controlProvider;	
+	executeMotionPlan(plan);		
+	state = State::StreamingPlan;
+	controlProvider->grantControl();
+}
+
 
 double getAccelDistFromTime(double initialSpeed, double accel, double time)
 {
@@ -170,21 +221,24 @@ void MotionController::enableAllJoints()
 
 void MotionController::executeMotionPlan(vector<shared_ptr<MotionPlan> > newPlan)
 {
+	if (state != State::Waiting)
+		throw std::runtime_error("Must be in waiting state to execute plans");
+
 	this->postTask([this,newPlan](){
 		
 		this->currentPlan.clear();
 		this->currentPlan = newPlan;
-		for (int i=0;i<6;i++)
-		{
-			joints.at(i)->validateMotionPlan(currentPlan.at(i));
-		}
+		
 		
 		//Simultaneous start
 		for (int i=0;i<6;i++)
 		{
 			currentPlan.at(i)->startNow();
 		}
-		
+		for (int i=0;i<6;i++)
+		{
+			joints.at(i)->validateMotionPlan(currentPlan.at(i));
+		}
 		for (int i=0;i<6;i++)
 		{
 			joints.at(i)->executeMotionPlan(currentPlan.at(i));
@@ -232,7 +286,8 @@ bool MotionController::confirmMotionPlan(vector<shared_ptr<MotionPlan> > & newPl
 
 void MotionController::moveToPosition(Vector3d targetPosition, Matrix3d targetRotation, int pathDivisionCount, bool interactive)
 {
-	auto newPlan = planForPosition(targetPosition,targetRotation,pathDivisionCount);
+	motionPlanner->setPathDivisions(pathDivisionCount);
+	auto newPlan = motionPlanner->buildPlan(IKGoal(targetPosition,targetRotation,false));
 
 	if (!interactive || confirmMotionPlan(newPlan))
 	{
@@ -240,19 +295,6 @@ void MotionController::moveToPosition(Vector3d targetPosition, Matrix3d targetRo
 	}
 }
 
-vector<shared_ptr<MotionPlan> > MotionController::planForPosition(Vector3d targetPosition, Matrix3d targetRotation, int pathDivisionCount)
-{
-	motionPlanner->setPathDivisions(pathDivisionCount);
-	vector<Step> steps = motionPlanner->buildMotionSteps( getJointAnglesRadians(), targetPosition, targetRotation);
-	
-	vector<shared_ptr<MotionPlan> > newPlan;
-	if (pathDivisionCount > 1)
-		newPlan = motionPlanner->buildPlan(steps);
-	else
-		newPlan = motionPlanner->createClosedSolutionMotionPlanFromSteps(steps);
-	
-	return newPlan;
-}
 
 void MotionController::postTask(std::function<void()> task)
 {
@@ -295,3 +337,28 @@ vector<double> MotionController::getJointAnglesSteps()
 	}
 	return angles;
 }
+
+MotionPlanner * MotionController::getMotionPlanner()
+{
+	return motionPlanner;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

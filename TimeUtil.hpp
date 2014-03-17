@@ -25,11 +25,11 @@ public:
 	static void addTime(timespec & t0, double seconds, timespec & tResult);
 
 	static double getTimeDelta(timespec & t0, timespec & t1);
-	static void setNow(struct timespec & now);	
-	static double timeSince(struct timespec & sinceTime);
-	static double timeUntil(struct timespec & untilTime);
+	static void setNow(timespec & now);	
+	static double timeSince(timespec & sinceTime);
+	static double timeUntil(timespec & untilTime);
 	
-	static double timeBetween(struct timespec & tStart, timespec & tEnd);
+	static double timeBetween(timespec & tStart, timespec & tEnd);
 
 	static void assertTime(timespec & start, std::string message);
 	static void assertTime(timespec & start, std::string message, double threshold);

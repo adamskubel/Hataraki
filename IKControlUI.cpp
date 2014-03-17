@@ -21,6 +21,7 @@ IKControlUI::IKControlUI(MotionController * motionController)
 {
 	this->motionController = motionController;
 	this->selectedElement = NULL;
+	this->controlProvider = new UIControlProvider();
 	init();
 }
 
@@ -28,6 +29,7 @@ void IKControlUI::init()
 {
 	int x0 = 18;
 	int columnWidth = 12;
+	directModeActive = false;
 	
 	elements.insert(make_pair("T",new UIElement(3,1,"T:")));
 	elements["T"]->setText("[T]ranslation:");
@@ -109,9 +111,17 @@ void IKControlUI::init()
 	((NumberBox*)elements["DivisionNumBox"])->setPrecision(0);
 	((NumberBox*)elements["DivisionNumBox"])->setValue(1);
 	
+	elements.insert(make_pair("PathStepLength_Label",new UIElement(6,24,"PathStepLength_Label","Step Length:")));
+	elements.insert(make_pair("PathStepLength",new NumberBox(6,38,"PathStepLength")));
+	
+	((NumberBox*)elements["PathStepLength"])->setIncrement(0.1);
+	((NumberBox*)elements["PathStepLength"])->setPrecision(1);
+	((NumberBox*)elements["PathStepLength"])->setValue(0.5);
+	
 	int helpX = 4,helpY = 8, helpSpacing = 6;
 	
 	vector<pair<string,string> > helpKeys({
+		{"Direct Mode","d"},
 		{"Update angles","u"},
 		{"Go to angles","g"},
 		{"Calculate angles","c"},
@@ -144,8 +154,10 @@ void IKControlUI::start()
 	noecho();
 	curs_set(0);
 
-	int windowHeight = 40, windowWidth = 160;
+	int windowHeight = LINES, windowWidth = COLS;
 	uiWindow = newwin(windowHeight,windowWidth,0,0); //(LINES - windowHeight)/2,(COLS - windowWidth)/2);
+	//int directWindowHeight = 20, directWindowWidth = 80;
+	//directControlWindow = newwin(LINES - directWindowHeight)/2,(COLS - directWindowWidth)/2);
 	keypad(uiWindow,TRUE);
 
 	box(uiWindow,0,0);
@@ -186,6 +198,98 @@ void IKControlUI::updateAll()
 	}
 	//refresh();
 	wrefresh(uiWindow);
+	//}
+}
+
+IKGoal UIControlProvider::nextGoal()
+{
+	IKGoal g = currentGoal;
+	currentGoal = IKGoal::stopGoal(); //Default to stop unless current goal is replaced before next call
+	return g;
+}
+
+void UIControlProvider::motionComplete()
+{
+	
+}
+
+void UIControlProvider::motionOutOfRange()
+{
+	
+}
+
+bool IKControlUI::doDirectControl(int c)
+{
+	if (!directModeActive) return false;
+
+	Vector3d dir;
+	switch (c)
+	{
+		case KEY_PPAGE:
+			dir = Vector3d(0,0,1);
+			break;
+		case KEY_NPAGE:
+			dir = Vector3d(0,0,-1);
+			break;
+		case KEY_RIGHT:
+			dir = Vector3d(0,1,0);
+			break;
+		case KEY_LEFT:
+			dir = Vector3d(0,-1,0);
+			break;
+		case KEY_UP:
+			dir = Vector3d(1,0,0);
+			break;
+		case KEY_DOWN:
+			dir = Vector3d(-1,0,0);
+			break;
+		case 'k':
+			directModeActive = false;
+			controlProvider->hasControl = false;
+			return false;
+		case 'x':
+			directModeActive = false;
+			controlProvider->hasControl = false;
+			break;
+	}
+	
+	if (dir.length() == 0 || !directModeActive)
+	{
+		controlProvider->currentGoal = IKGoal::stopGoal();
+	}
+	else
+	{
+		dir = dir * ((NumberBox*)elements["PathStepLength"])->getValue()/100.0;
+		controlProvider->currentGoal = IKGoal(dir,true);
+
+		if (!controlProvider->hasControl)
+		{
+			motionController->getMotionPlanner()->setPathInterpolationMode(PathInterpolationMode::SingleStep);
+			motionController->requestDirectControl(controlProvider->currentGoal,controlProvider);
+		}
+	}	
+	return true;
+}
+
+void IKControlUI::drawDirectControlWindow()
+{
+	//if (directModeActive)
+	//{
+	//	vector<pair<string,string> > helpKeys({
+	//	{"UP","+Y"},
+	//	{"DOWN","-Y"},
+	//	{"LEFT","+X"},
+	//	{"RIGHT","-X"},
+	//	{"PAGEUP","+Z"},
+	//	{"PAGEDOWN","-Z"}
+	//});
+	//
+
+	//	for (int i=0;i<helpKeys.size();i++)
+	//	{
+	//		mvwprintw(directControlWindow,0,0,help
+	//	}
+	//	wrefresh(directControlWindow);
 	//}
 }
 
@@ -232,6 +336,7 @@ void IKControlUI::handleInput()
 	
 	try
 	{
+		handled = handled || doDirectControl(c);
 		handled = handled || handleElementSelection(c);
 		handled = handled || (selectedElement != NULL && selectedElement->handleInput(uiWindow,c));
 		
@@ -241,32 +346,13 @@ void IKControlUI::handleInput()
 			{
 				case 't':
 					setSelected(elements["T"]);
-					editingState = TranslationEditing;
 					break;
 				case 'r':
 					setSelected(elements["R"]);
-					editingState = RotationEditing;
 					break;
 				case 'a':
 					setSelected(elements["AngleLabel"]);
-					editingState = AngleEditing;
 					break;
-				//case 'x':
-				//	if (editingState == TranslationEditing)
-				//		setSelected(elements["Tx"]);
-				//	else if (editingState == RotationEditing)
-				//		setSelected(elements["Rx"]);
-				//	break;
-				//case 'y':
-				//	if (editingState == TranslationEditing)
-				//		setSelected(elements["Ty"]);
-				//	else if (editingState == RotationEditing)
-				//		setSelected(elements["Ry"]);
-				//	break;
-				//case 'z':
-				//	if (editingState == TranslationEditing)		setSelected(elements["Tz"]);
-				//	else if (editingState == RotationEditing)	setSelected(elements["Rz"]);
-				//	break;
 				case 'U':
 					updateArmStatus(true);
 					break;
@@ -288,6 +374,10 @@ void IKControlUI::handleInput()
 					break;
 				case 'h':
 					motionController->postTask([this](){motionController->zeroAllJoints();});
+					break;
+				case 'd':
+					elements["StatusLog"]->setText("Direct mode enabled");
+					directModeActive = true;
 					break;
 			}
 		}
@@ -320,7 +410,8 @@ void IKControlUI::calculatePlan()
 	Matrix3d targetRotation = Matrix3d::createRotationAroundAxis(targetEulerAngles.x, targetEulerAngles.y,targetEulerAngles.z);
 	//targetRotation = targetRotation.transpose();
 
-	pendingMotionPlan = motionController->planForPosition(targetPosition, targetRotation, divisionCount);
+	
+	pendingMotionPlan = motionController->getMotionPlanner()->buildPlan(IKGoal(targetPosition, targetRotation, false));
 	
 	for (int i=0;i<6;i++)
 	{

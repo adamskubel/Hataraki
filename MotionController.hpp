@@ -28,8 +28,30 @@
 #include "TimeUtil.hpp"
 
 
+class DirectControlProvider
+{
+public:
+//	DirectControlProvider() { }
+	
+	virtual IKGoal nextGoal() = 0;
+	virtual void motionComplete() = 0;
+	virtual void motionOutOfRange() = 0;
+
+	virtual void grantControl() = 0;
+	virtual void revokeControl() = 0;
+
+};
+
 
 class MotionController {
+
+	enum class State
+	{
+		Waiting,
+		FinitePlan,
+		StreamingPlan,
+		Shutdown
+	};
 
 private:
 	std::vector<PredictiveJointController*> joints;
@@ -38,8 +60,13 @@ private:
 	std::queue<std::function<void()> > taskQueue;
 	std::mutex taskQueueMutex;
 	long updatePeriod;
+	long updateCount;
 	
 	MotionPlanner * motionPlanner;
+
+	DirectControlProvider * controlProvider;
+
+	State state;
 	
 public:
 
@@ -56,8 +83,7 @@ public:
 	void moveToPosition(vmath::Vector3d position, vmath::Matrix3d rotation, int pathDivisionCount, bool interactive);
 	
 	std::vector<std::shared_ptr<MotionPlan> >  planForPosition(vmath::Vector3d position, vmath::Matrix3d rotation, int pathDivisionCount);
-	
-	
+		
 	void setJointVelocity(int jointIndex, double velocity, double runTime);
 	void setJointPosition(int jointIndex, double angle);
 	bool confirmMotionPlan(std::vector<std::shared_ptr<MotionPlan> > & newPlan);
@@ -71,6 +97,11 @@ public:
 	void zeroAllJoints();
 	void prepareAllJoints();
 	void enableAllJoints();
+
+	void updateStreamingMotionPlans();
+	void requestDirectControl(IKGoal initialGoal, DirectControlProvider * controlProvider);
+	
+	MotionPlanner * getMotionPlanner();
 
 };
 

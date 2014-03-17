@@ -119,19 +119,21 @@ void PredictiveJointController::joinMotionPlan(std::shared_ptr<MotionPlan> newMo
 	else
 	{
 		validateMotionPlan(newMotionPlan);
-		double t = TimeUtil::timeBetween(motionPlan->startTime,newMotionPlan->startTime);
-		
-		double xJoin = newMotionPlan->x(0);
-		double dxJoin = newMotionPlan->dx(0);
-		
-		double xError = abs(xJoin - cSensorAngle);
-		double dxError = abs(dxJoin - cVelocity);
+		//double t = TimeUtil::timeBetween(motionPlan->startTime,newMotionPlan->startTime);
+		//
+		//double xJoin = newMotionPlan->x(0);
+		//double dxJoin = newMotionPlan->dx(0);
+		//
+		//double xError = abs(xJoin - cSensorAngle);
+		//double dxError = abs(dxJoin - cVelocity);
 
-		if (xError > 100 || dxError > 100) throw std::runtime_error("Error between new plan and current state is too high");
-				
-		this->motionPlan = requestedMotionPlan;
+		//if (xError > 100 || dxError > 100) throw std::runtime_error("Error between new plan and current state is too high");
+			
+		this->motionPlan = newMotionPlan;
 		speedControlState = SpeedControlState::Adjusting;
+		dynamicControlMode = DynamicControlMode::Starting;
 		lDynamicPositionError = 0;
+		motionPlanComplete = false;
 	}
 }
 
@@ -159,9 +161,9 @@ void PredictiveJointController::executeMotionPlan(std::shared_ptr<MotionPlan> re
 
 void PredictiveJointController::validateMotionPlan(std::shared_ptr<MotionPlan> requestedMotionPlan)
 {
-	if (TimeUtil::timeUntil(requestedMotionPlan->startTime) < 0)
+	if (TimeUtil::timeUntil(requestedMotionPlan->startTime) > 0)
 	{
-		throw std::runtime_error("Plan starts in the past.");
+		throw std::runtime_error("Plan starts in the future.");
 	}
 
 	if (!(jointStatus == JointStatus::Active || jointStatus == JointStatus::Paused))

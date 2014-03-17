@@ -13,41 +13,72 @@
 #include "UIElement.hpp"
 #include "MotionPlan.hpp"
 
+class UIControlProvider : public DirectControlProvider
+{
+public:
+	UIControlProvider() :
+		currentGoal(IKGoal::stopGoal())
+	{
+		hasControl = false;
+	}
+		
+	void grantControl()
+	{
+		hasControl = true;
+	}
+	
+	void revokeControl()
+	{
+		hasControl = false;
+	}
+	
+	
+	IKGoal nextGoal();
+	void motionComplete();
+	void motionOutOfRange();
+
+	IKGoal currentGoal;
+
+	bool hasControl;
+
+};
+
 class IKControlUI {
 	
 
-private:
-	const int RotationEditing = 0;
-	const int TranslationEditing = 1;
-	const int AngleEditing = 2;
-	WINDOW * uiWindow;
-	
-	MotionController * motionController;
+private:	
+	//UI properties
+	WINDOW * uiWindow;	
 	std::map<std::string,UIElement*> elements;
+	UIElement * selectedElement;
 	
-	std::vector<NumberBox*> actualAngles, inputAngles;
-	
-	int editingState;
-	
+	//UI members
 	void init();
 	bool handleElementSelection(int c);
 	void handleInput();
-	void updateAll();
-	
-	void updateArmStatus(bool copyToInput);
-	
+	void updateAll();	
+	UIElement * getNextElementFrom(int x, int y, int xDirection, int yDirection);
 	void setSelected(UIElement * element);
 	
-	UIElement * selectedElement;
+	//Direct control
+	WINDOW * directControlWindow;
+	bool directModeActive;
+	UIControlProvider * controlProvider;
+
+	bool doDirectControl(int c);	
+	void drawDirectControlWindow();
+
+	//Numeric input/output
+	std::vector<NumberBox*> actualAngles, inputAngles;
+	vmath::Vector3d getVectorFromElements(std::vector<std::string> elementNames);
+	void updateArmStatus(bool copyToInput);		
 	
-	UIElement * getNextElementFrom(int x, int y, int xDirection, int yDirection);
+	//Motion planning
+	MotionController * motionController;
+	std::vector<std::shared_ptr<MotionPlan> > pendingMotionPlan;	
 	
 	void calculatePlan();
-	void executePlan();
-	
-	vmath::Vector3d getVectorFromElements(std::vector<std::string> elementNames);
-	
-	std::vector<std::shared_ptr<MotionPlan> > pendingMotionPlan;
+	void executePlan();	
 	
 public:
 	IKControlUI(MotionController * motionController);

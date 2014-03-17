@@ -32,6 +32,38 @@ bool MotionPlanner::checkSolutionValid(const double * solution)
 	return true;
 }
 
+vector<double> MotionPlanner::getJointAnglesRadians()
+{
+	double  initialAngles_deg[] = {0,-17,0,53,34,0};
+	vector<double> angles;
+	int i =0;
+	for (auto it = joints.begin(); it != joints.end(); it++)
+	{
+		angles.push_back(MathUtil::degreesToRadians(initialAngles_deg[i]));
+		i++;
+//		angles.push_back(AS5048::stepsToRadians((*it)->getCurrentAngle()));
+	}
+	return angles;
+}
+
+
+vector<shared_ptr<MotionPlan> > MotionPlanner::buildPlanForSmoothStop()
+{
+	vector<shared_ptr<MotionPlan> > plans;
+	for (int i=0;i<joints.size();i++)
+	{			
+		auto joint = joints.at(i);
+		auto plan = shared_ptr<MotionPlan>(new MotionPlan());
+
+		double v0 = joint->getCurrentVelocity();
+		double vF = 0;
+		double accelTime = abs((vF - v0)/joint->getMaxAcceleration());
+
+		plan->motionIntervals.push_back(MotionInterval(v0,vF,accelTime));
+		plans.push_back(plan);
+	}
+	return plans;
+}
 
 
 void MotionPlanner::setPathDivisions(int _pathDivisionCount)
@@ -231,7 +263,7 @@ void MotionPlanner::calculateStep(vector<StepMotionPlan> * stepPlans, std::vecto
 		{
 			PlanSolution sol;
 			vector<MotionInterval> stepIntervals;			
-			double minTime = -1;
+			double minTime = 0;
 			
 			if (enforce)
 			{
@@ -248,6 +280,7 @@ void MotionPlanner::calculateStep(vector<StepMotionPlan> * stepPlans, std::vecto
 				if (sol.t0 >= minTime) stepIntervals.push_back(MotionInterval(v0,sol.v1,sol.t0));
 				if (sol.t1 >= minTime) stepIntervals.push_back(MotionInterval(sol.v1,sol.t1));
 			}
+			
 			
 			if (stepPlans[c].size() > i)
 				stepPlans[c].at(i).intervals = stepIntervals;
@@ -272,9 +305,6 @@ vector<shared_ptr<MotionPlan> > MotionPlanner::compileStepMotionPlans(vector<Ste
 	{
 		MotionPlan * plan = new MotionPlan();		
 		
-		plan->startAngle = steps.front().Positions[c];
-		plan->finalAngle = steps.back().Positions[c];
-
 		int s= 0;
 		auto mi = stepPlans[c];
 		for (auto it=mi.begin();it!=mi.end();it++,s++)
@@ -292,6 +322,25 @@ vector<shared_ptr<MotionPlan> > MotionPlanner::compileStepMotionPlans(vector<Ste
 	}
 
 	return motionPlan;
+}
+
+vector<shared_ptr<MotionPlan> > MotionPlanner::buildPlan(IKGoal goal)
+{
+	vector<shared_ptr<MotionPlan> > newPlan;
+
+	if (goal.action == IKGoal::Action::Stop)
+	{
+		newPlan = buildPlanForSmoothStop();
+	}
+	else
+	{
+		vector<Step> steps = buildMotionSteps(goal);
+		if (steps.size() > 2)
+			newPlan = buildPlan(steps);
+		else
+			newPlan = createClosedSolutionMotionPlanFromSteps(steps);
+	}
+	return newPlan;
 }
 
 vector<shared_ptr<MotionPlan> > MotionPlanner::buildPlan(vector<Step> & steps)
@@ -312,7 +361,7 @@ vector<shared_ptr<MotionPlan> > MotionPlanner::buildPlan(vector<Step> & steps)
 		}
 	
 		auto motionPlan = compileStepMotionPlans(stepMotionPlans,steps);
-		delete [] stepMotionPlans;
+		//delete [] stepMotionPlans;
 	
 		for (int c=0; c<6; c++)
 		{
@@ -326,6 +375,8 @@ vector<shared_ptr<MotionPlan> > MotionPlanner::buildPlan(vector<Step> & steps)
 			
 				motionPlan.at(c)->motionIntervals.insert(motionPlan.at(c)->motionIntervals.begin(),mi);
 			}
+			motionPlan.at(c)->startAngle = steps.front().Positions[c];
+			motionPlan.at(c)->finalAngle = steps.back().Positions[c];
 		} 
 		
 		return motionPlan;
@@ -483,33 +534,54 @@ shared_ptr<MotionPlan> MotionPlanner::buildMotionPlan(const double startAngle,co
 	plan->startAngle = startAngle;
 	plan->finalAngle = targetAngle;
 	
-	//cout << "V0=" << sol.v1 << " T0=" << sol.t0 << " T1=" << sol.t1 << " T2=" << sol.t2 << " T3=" << sol.t3 <<endl;
-	//cout << "FinalAngle=" << AS5048::stepsToDegrees(plan->x(1000)) << endl;
-	
 	return plan;
 }
 
+vector<Step> MotionPlanner::buildMotionSteps(IKGoal goal)
+{	
+	Vector3d targetPosition;
+	Matrix3d targetRotation;
 
-
-//TODO: Move this to IK planner
-vector<Step> MotionPlanner::buildMotionSteps(vector<double> jointAngles, Vector3d targetPosition,Matrix3d targetRotation)
-{
-	vector<Step> steps;
 		
 	Vector3d currentPosition;
-	double rotationMatrix[9];
-	
-	vector<double> lastAngles = jointAngles;
+	double rotationMatrix[9];	
+	vector<double> lastAngles = getJointAnglesRadians();
 	
 	ComputeFk(lastAngles.data(),currentPosition,rotationMatrix);
 	
+	
+	switch (goal.action)
+	{
+		case IKGoal::Action::Position:
+			targetPosition = goal.Position;
+			targetRotation = Matrix3d::fromRowMajorArray(rotationMatrix);
+			break;
+		case IKGoal::Action::PositionRotation:
+			targetPosition = goal.Position;
+			targetRotation = goal.Rotation;
+			break;
+		case IKGoal::Action::Rotation:
+			targetPosition = currentPosition;
+			targetRotation = goal.Rotation;
+			break;
+		case IKGoal::Action::Stop:
+		default:
+			throw std::logic_error("Cannot build steps for stop goal");
+			break;
+	}
+	
+	if (goal.relative)
+	{
+		targetPosition = currentPosition + targetPosition;
+		//How do I added rotations?
+	}
+
 	Vector3d delta = targetPosition - currentPosition;
 	
 	vector<double> initialAnglesConv(6);
-	for (int c=0;c<6;c++)
-	{
-		initialAnglesConv[c] = AS5048::radiansToSteps(jointAngles[c]);
-	}
+	std::transform(lastAngles.begin(),lastAngles.end(),initialAnglesConv.begin(),AS5048::radiansToSteps);
+		
+	vector<Step> steps;
 	steps.push_back(Step(initialAnglesConv));
 	
 	int numDivisions;
@@ -529,7 +601,7 @@ vector<Step> MotionPlanner::buildMotionSteps(vector<double> jointAngles, Vector3
 
 	for (int i=1;i<=numDivisions;i++)
 	{
-		Vector3d stepPosition = currentPosition + delta*((double)i/pathDivisionCount);
+		Vector3d stepPosition = currentPosition + delta*((double)i/(double)numDivisions);
 		
 		double stepAngles[6];
 		bool solutionExists = getEasiestSolution(lastAngles.data(),stepPosition,targetRotation,stepAngles);
@@ -578,7 +650,6 @@ vector<shared_ptr<MotionPlan> > MotionPlanner::createClosedSolutionMotionPlanFro
 		double lastVelocity = 0;
 
 		double delta = step->Positions[i] - s1->Positions[i];
-		//cout << delta << " ";
 
 		double direction = sgn(delta);
 		double maxSpeed = joints.at(i)->getMaxVelocity() * direction;
@@ -591,7 +662,6 @@ vector<shared_ptr<MotionPlan> > MotionPlanner::createClosedSolutionMotionPlanFro
 
 		stepTime = std::max(stepTime,jointTime);
 	}
-	//cout << endl;
 
 	for (int i=0;i<6;i++) 
 	{	
@@ -613,10 +683,7 @@ vector<shared_ptr<MotionPlan> > MotionPlanner::createClosedSolutionMotionPlanFro
 
 		motionPlan.at(i)->motionIntervals.push_back(MotionInterval(sol.v1,coastVelocity,sol.t2));
 		motionPlan.at(i)->motionIntervals.push_back(MotionInterval(coastVelocity,sol.t3));
-
-		//cout << sol.v1 << " ;";
 	}
-	//cout << endl;
 
 	for (int i=0;i<6;i++)
 	{

@@ -76,6 +76,13 @@ bool KinematicSolver::twoPart_attemptSolution(const double aMax, const double v0
 void KinematicSolver::twoPart_calculate(double aMax,double v0, double d, double tTotal, PlanSolution & sol)
 {
 	double v1,t0,t1,a0;
+	
+	if (v0 == 0 && d == 0)
+	{
+		sol.setResult(0, tTotal, 0, 0);
+		sol.status = PlanSolution::SolutionStatus::OriginalSolution;
+		return;
+	}
 
 	if (abs(v0 * tTotal) > abs(d))
 		a0 = aMax * -sgn(d);

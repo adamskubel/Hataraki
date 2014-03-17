@@ -12,7 +12,7 @@
 	},
 	"ArmModel" : 
 	{
-		"Joints" :
+		"JointsWheel" :
 		[
 			"WheelDefinitions.LeftWheel",
 			"WheelDefinitions.RightWheel",
@@ -21,7 +21,7 @@
 			"JointDefinitions.Pitch_2",
 			"JointDefinitions.Roll_2"
 		],
-		"Joints2" :
+		"Joints" :
 		[
 			"JointDefinitions.Roll_0",
 			"JointDefinitions.Pitch_0", 
@@ -165,7 +165,7 @@
 	"Controllers" : [		
 		{
 			"Name" : "Default",
-			"MaxAcceleration" : 100,	
+			"MaxAcceleration" : 60,
 			"SetpointPrecisionSteps" : 5,		
 			"SpeedControl" : 
 			{ 
@@ -224,7 +224,7 @@
 		},
 		{
 			"Name" : "HighSpeedMotors",
-			"MaxAcceleration" : 150,		
+			"MaxAcceleration" : 80,
 			"SetpointPrecisionSteps" : 5,	
 			"SpeedControl" : 
 			{ 
@@ -322,7 +322,7 @@
 				"MaxDriverVoltage" : 3.6,
 				"FrictionTorque" : 0.0001,
 				"Motor" : "Motors.GM12-50",
-				"Gearbox" : "Gearboxes.GM12-50",
+				"Gearbox" : "Gearboxes.GM12-100",
 				"ControllerConfig" : "Controllers.Wheels"
 			}
 		},
@@ -359,7 +359,7 @@
 				"SensorAddress" : 68,
 				"DriverDelay" : 0.0004,
 				"SensorDelay" : 0.0012,
-				"MaxDriverVoltage" : 3.6,
+				"MaxDriverVoltage" : 2.6,
 				"FrictionTorque" : 0.04,
 				"Motor" : "Motors.GM12-1000",
 				"Gearbox" : "Gearboxes.GM12-1000-Bevel",

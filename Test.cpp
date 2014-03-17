@@ -101,22 +101,29 @@ int main(int argc, char *argv[])
 		controllers.push_back(pjc);
 	}
 	motionController = new MotionController(controllers,5);
-
-	//testUI();
+	
+	
+//	vector<double> lastAngles({1,1,1,1,1,1});
+//	vector<double> initialAnglesConv(6);
+//	std::transform(lastAngles.begin(),lastAngles.end(),initialAnglesConv.begin(),AS5048::radiansToSteps);
+//	
+//	for (int i=0;i<6;i++) cout << initialAnglesConv[i] << endl;
+	
+//	testUI();
 	
 //	cout << std::ios_base::dec << endl;
 //	testQuadRegressionWithData();
 //	testDynamicTorque();
 
 //	cout << endl << endl << " --- MotionPlanning --- " << endl;
-//	testMotionPlanning();
+	testMotionPlanning();
 	
 //	HatarakiTest::testEulerAngleExtraction();
-	HatarakiTest::testIKRotation();
+//	HatarakiTest::testIKRotation();
 //	HatarakiTest::testTMVoltageConverter();
 	
 //	HatarakiTest::testAngleExtractionIK();
-	testKinematicPerformance();
+//	testKinematicPerformance();
 	
 	//testServoModel(&(controllers[0]->getJointModel()->servoModel));
 }
@@ -269,7 +276,7 @@ void testMotionPlanning()
 	
 	int divisionCount = 25;
 	mp->setPathDivisions(divisionCount);
-	auto steps = mp->buildMotionSteps(intialAngles_rad, Vector3d(11,0,-5.5)/100.0, Matrix3d::createRotationAroundAxis(0, -70, 0));
+	auto steps = mp->buildMotionSteps(IKGoal(Vector3d(11,0,-5.5)/100.0, Matrix3d::createRotationAroundAxis(0, -70, 0),false));
 	
 	//if (divisionCount != steps.size()) cout << "Division count is " << steps.size() << ", expected " << divisionCount << endl;
 	
@@ -286,8 +293,8 @@ void testMotionPlanning()
 	}
 	outFile << endl;
 	
-	
-	auto motionPlan = mp->buildPlan(steps);
+	mp->setPathInterpolationMode(PathInterpolationMode::FixedStepCount);
+	auto motionPlan = mp->buildPlan(IKGoal(Vector3d(11,0,-5.5)/100.0, Matrix3d::createRotationAroundAxis(0, -70, 0),false));
 	
 	cout << "Plan duration = " << motionPlan.front()->getPlanDuration() << endl;
 	
@@ -296,7 +303,7 @@ void testMotionPlanning()
 		double f0 = motionPlan[c]->finalAngle;
 		double f1 =motionPlan[c]->x(10);
 		
-		if (std::abs(f0 - f1) > 1.0)
+		//if (std::abs(f0 - f1) > 1.0)
 			cout << "Final = " << f0 << ", Final(t) = " <<  f1 << endl;
 	}
 	

@@ -21,16 +21,22 @@ void TimeUtil::setNow(timespec & now)
 #endif
 }
 
-double TimeUtil::timeSince(struct timespec & sinceTime)
+double TimeUtil::timeBetween(timespec & t0, timespec & t1)
 {
-	struct timespec now;
+	return getTimeDelta(t0,t1);
+}
+
+
+double TimeUtil::timeSince(timespec & sinceTime)
+{
+	timespec now;
 	setNow(now);
 	return getTimeDelta(sinceTime,now);
 }
 
-double TimeUtil::timeUntil(struct timespec & untilTime)
+double TimeUtil::timeUntil(timespec & untilTime)
 {
-	struct timespec now;
+	timespec now;
 	setNow(now);
 	return getTimeDelta(now,untilTime);
 }
@@ -45,7 +51,7 @@ void TimeUtil::assertTime(timespec & start, std::string message, double threshol
 	double elapsed = timeSince(start);
 	if (elapsed > threshold)
 	{
-		cout << "Threshold exceeded: " << elapsed << " : " << message << endl;
+		cout << "Threshold exceeded: " << elapsed*1000.0 << "ms : " << message << endl;
 	}
 }
 

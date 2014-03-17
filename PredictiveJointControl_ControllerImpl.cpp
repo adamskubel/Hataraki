@@ -84,7 +84,7 @@ void PredictiveJointController::setTargetState()
 			cTargetAngle = motionPlan->x(t);
 			cTargetVelocity = motionPlan->dx(t);
 			cTargetAcceleration = 0; // motionPlan->ddx(t);
-			cDynamicTorque = 0;// PoseDynamics::getInstance().getTorqueForAcceleration(jointModel->index,AS5048::stepsToRadians(cTargetAcceleration));
+			cDynamicTorque = PoseDynamics::getInstance().getTorqueForAcceleration(jointModel->index,AS5048::stepsToRadians(cTargetAcceleration));
 		}
 		else
 		{
@@ -222,19 +222,19 @@ void PredictiveJointController::doSpeedControl()
 	double expectedVelocity = servoModel->getSpeedForTorqueVoltage(cControlTorque,cVoltage);
 
 	//Stall check
-	if (abs(expectedVelocity) > 1.0 && cVelocityApproximationError > 0.95 && abs(cVelocity) < 1.0)
-	{		
-		double voltageAdjust = 0.08 * sgn(cVoltage);
-		commandDriver(cVoltage+voltageAdjust,DriverMode::TMVoltage);	
-		speedControlState = SpeedControlState::Stalled;
-	}
-	else if (speedControlState == SpeedControlState::Stalled)
-	{
-		cControlTorque = servoModel->getTorqueForVoltageSpeed(cVoltage,cTargetVelocity);
-		speedControlState = SpeedControlState::Measuring;
-	}
-
-	if (speedControlState != SpeedControlState::Stalled)
+//	if (abs(expectedVelocity) > 1.0 && cVelocityApproximationError > 0.95 && abs(cVelocity) < 1.0)
+//	{		
+//		double voltageAdjust = 0.08 * sgn(cVoltage);
+//		commandDriver(cVoltage+voltageAdjust,DriverMode::TMVoltage);	
+//		speedControlState = SpeedControlState::Stalled;
+//	}
+//	else if (speedControlState == SpeedControlState::Stalled)
+//	{
+//		cControlTorque = servoModel->getTorqueForVoltageSpeed(cVoltage,cTargetVelocity);
+//		speedControlState = SpeedControlState::Measuring;
+//	}
+//
+//	if (speedControlState != SpeedControlState::Stalled)
 	{
 		double cVelocityError = expectedVelocity - cVelocity;
 		velocityErrorIntegral += cVelocityError * (cTime - lTime);
