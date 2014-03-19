@@ -46,7 +46,7 @@ void MotionController::updateController(){
 		}
 
 		//TimeUtil::setNow(step);
-		if (updateCount % 100 == 0)
+		//if (updateCount % 100 == 0)
 		{
 			PoseDynamics::getInstance().setJointAngles(jointAngles);
 			PoseDynamics::getInstance().update();
@@ -64,7 +64,9 @@ void MotionController::updateController(){
 				}
 				catch (std::runtime_error & e)
 				{
-					cout << "Exception executing scheduled task: " << e.what() << endl;
+					stringstream ss;
+					ss << "Exception executing scheduled task: " << e.what();
+					AsyncLogger::log(ss);
 				}
 				taskQueue.pop();
 			}
@@ -81,8 +83,9 @@ void MotionController::updateController(){
 	}
 	catch (std::runtime_error & e)
 	{
-		cout << "Exception thrown during control loop execution: " << e.what() << endl;
-		cout << "Commencing emergency shutdown." << endl;
+		stringstream ss;
+		ss << "Exception thrown during control loop execution: " << e.what();
+		AsyncLogger::log(ss);
 		shutdown();
 		state = State::Shutdown;
 	}
@@ -105,9 +108,22 @@ void MotionController::updateStreamingMotionPlans()
 		
 		if (complete)
 		{
+			AsyncLogger::log("Plan complete, reading next goal");
 			currentPlan.clear();
 			IKGoal goal = controlProvider->nextGoal();
-			currentPlan = motionPlanner->buildPlan(goal);
+			try
+			{
+				currentPlan = motionPlanner->buildPlan(goal);
+			}
+			catch (std::runtime_error & e)
+			{
+				stringstream ss;
+				ss << "Exception building plan for streaming goal." << e.what();
+				AsyncLogger::log(ss.str());
+				controlProvider->motionOutOfRange();
+				controlProvider->revokeControl();
+				currentPlan = motionPlanner->buildPlan(IKGoal::stopGoal());
+			}
 			
 			std::for_each(currentPlan.begin(),currentPlan.end(),[](shared_ptr<MotionPlan> p){p->startNow();});
 			for (int i=0;i<6;i++) joints.at(i)->joinMotionPlan(currentPlan.at(i));			
@@ -171,6 +187,7 @@ void MotionController::setJointPosition(int jointIndex, double targetAngle)
 		auto joint = joints.at(jointIndex);
 		auto plan = motionPlanner->buildOptimalMotionPlan(jointIndex,targetAngle);
 		
+		plan->startNow();
 		joint->validateMotionPlan(plan);		
 		plan->startNow();		
 		joint->executeMotionPlan(plan);
@@ -221,6 +238,8 @@ void MotionController::enableAllJoints()
 
 void MotionController::executeMotionPlan(vector<shared_ptr<MotionPlan> > newPlan)
 {
+	AsyncLogger::getInstance().postLogTask("motion.log", "Executing motion plan\n");
+	
 	if (state != State::Waiting)
 		throw std::runtime_error("Must be in waiting state to execute plans");
 
@@ -238,6 +257,11 @@ void MotionController::executeMotionPlan(vector<shared_ptr<MotionPlan> > newPlan
 		for (int i=0;i<6;i++)
 		{
 			joints.at(i)->validateMotionPlan(currentPlan.at(i));
+		}
+		//Simultaneous start
+		for (int i=0;i<6;i++)
+		{
+			currentPlan.at(i)->startNow();
 		}
 		for (int i=0;i<6;i++)
 		{

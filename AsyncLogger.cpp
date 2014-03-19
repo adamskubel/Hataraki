@@ -2,6 +2,10 @@
 
 using namespace std;
 
+
+string AsyncLogger::LogFileName = "basicmotion.log";
+string AsyncLogger::DefaultLogTag = "";
+
 void AsyncLogger::postLogTask(string filename, string message)
 {
 	std::lock_guard<std::mutex> locks(taskQueueMutex);
@@ -13,6 +17,36 @@ void AsyncLogger::postConsoleOutTask(string message)
 {
 	std::lock_guard<std::mutex> locks(taskQueueMutex);	
 	taskQueue.push(new LogTask("cout",message));
+}
+
+
+
+void AsyncLogger::log(std::string message)
+{	
+	log(DefaultLogTag,message);
+}
+
+void AsyncLogger::log(stringstream & messageStream)
+{	
+	log(DefaultLogTag,messageStream.str());
+}
+
+void AsyncLogger::log(std::string tag, std::string message)
+{
+	stringstream ss;
+	
+	ss << std::round(TimeUtil::timeSince(TimeUtil::ApplicationStart)/0.001)*0.001 << " - ";
+	if (tag.length() > 0)
+		ss << "[" << tag << "] " << message;
+	else
+		ss << message;
+
+	ss << endl;
+	getInstance().postLogTask(LogFileName, ss.str());
+}
+void AsyncLogger::log(std::string tag, std::stringstream & messageStream)
+{
+	log(tag,messageStream.str());
 }
 
 

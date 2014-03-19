@@ -140,30 +140,35 @@ void PredictiveJointController::joinMotionPlan(std::shared_ptr<MotionPlan> newMo
 void PredictiveJointController::executeMotionPlan(std::shared_ptr<MotionPlan> requestedMotionPlan)
 {	
 	validateMotionPlan(requestedMotionPlan);
-	
-	if (this->motionPlan != NULL)
-		motionPlan.reset();		
-	
+		
 	this->motionPlan = requestedMotionPlan;
 
 	motionPlanComplete = false;
 	isControlTorqueValid = false;
 	dynamicControlMode = DynamicControlMode::Starting;
-	startModeIndex = 0;
 
 	//Make sure speed controller starts off in adjusting state
 	speedControlState = SpeedControlState::Adjusting;
 	lDynamicPositionError = 0;
 
-	while (rawSensorAngleHistory.size() > 1)
-		rawSensorAngleHistory.pop_front();
+	//while (rawSensorAngleHistory.size() > 1)
+	//	rawSensorAngleHistory.pop_front();
 }
 
 void PredictiveJointController::validateMotionPlan(std::shared_ptr<MotionPlan> requestedMotionPlan)
 {
-	if (TimeUtil::timeUntil(requestedMotionPlan->startTime) > 0)
+	if (TimeUtil::timeUntil(requestedMotionPlan->startTime) > 0.2)
 	{
-		throw std::runtime_error("Plan starts in the future.");
+		stringstream ss;
+		ss << "Plan starts " << TimeUtil::timeUntil(requestedMotionPlan->startTime)  << " s in the future";
+		throw std::runtime_error(ss.str());
+	}
+	
+	if (TimeUtil::timeUntil(requestedMotionPlan->endTime) < -0.2)
+	{
+		stringstream ss;
+		ss << "Plan ended " << TimeUtil::timeSince(requestedMotionPlan->endTime)  << " s ago";
+		throw std::runtime_error(ss.str());
 	}
 
 	if (!(jointStatus == JointStatus::Active || jointStatus == JointStatus::Paused))
@@ -171,7 +176,9 @@ void PredictiveJointController::validateMotionPlan(std::shared_ptr<MotionPlan> r
 	
 	if (!jointModel->continuousRotation && (requestedMotionPlan->finalAngle < jointModel->minAngle || requestedMotionPlan->finalAngle > jointModel->maxAngle))
 	{
-		throw std::runtime_error("Motion plan angle exceeds joint range");
+		stringstream ss;
+		ss << jointModel->name << " - Motion plan angle out of range: " << AS5048::stepsToDegrees(requestedMotionPlan->finalAngle);
+		throw std::runtime_error(ss.str());
 	}
 }
 
@@ -254,7 +261,7 @@ void PredictiveJointController::logState()
 			ss << -2	<< Configuration::CsvSeparator;
 			ss << steppingState;
 		}
-		else if (staticControlMode == StaticControlMode::Holding)
+		else //if (staticControlMode == StaticControlMode::Holding)
 		{			
 			ss << -1	<< Configuration::CsvSeparator;
 			ss << 0;

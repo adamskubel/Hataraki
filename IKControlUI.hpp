@@ -7,6 +7,7 @@
 #include <string>
 #include <map>
 #include <memory>
+#include <mutex>
 
 #include "MotionController.hpp"
 #include "PredictiveJointController.hpp"
@@ -32,6 +33,7 @@ public:
 		hasControl = false;
 	}
 	
+	void setGoal(IKGoal goal);
 	
 	IKGoal nextGoal();
 	void motionComplete();
@@ -39,7 +41,10 @@ public:
 
 	IKGoal currentGoal;
 
-	bool hasControl;
+	bool hasControl, hasError;
+	std::string errorText;
+
+	std::mutex goalMutex;
 
 };
 

@@ -67,6 +67,14 @@ public:
 		return g;
 	}
 	
+	std::string toString()
+	{
+		std::stringstream ss;
+		if (relative) ss << "[R]";
+		ss << "Target = " << Position.toString();
+		return ss.str();
+	}
+	
 };
 
 
@@ -166,6 +174,15 @@ private:
 
 	std::vector<std::shared_ptr<MotionPlan> > buildPlanForSmoothStop();
 	
+	void validatePlan(IKGoal goal, std::vector<std::shared_ptr<MotionPlan> > plan);
+	
+	static std::shared_ptr<MotionPlan> buildMotionPlan(const double startPosition,const double endPosition, const double totalTime, const double approachVelocity, const double maxAccel);
+	std::vector<std::shared_ptr<MotionPlan> > createClosedSolutionMotionPlanFromSteps(std::vector<Step> & steps);
+	
+	std::vector<std::shared_ptr<MotionPlan> > buildPlan(std::vector<Step> & steps);
+	void calculateStep(std::vector<StepMotionPlan> * stepPlans, std::vector<Step> & steps, int stepNumber);
+	std::vector<Step> buildMotionSteps(IKGoal goal);
+	
 public:
 	MotionPlanner(std::vector<PredictiveJointController*> joints);
 	
@@ -174,14 +191,8 @@ public:
 	void setPathInterpolationMode(PathInterpolationMode pathInterpolationMode);
 		
 	std::vector<std::shared_ptr<MotionPlan> > buildPlan(IKGoal goal);
-	std::vector<Step> buildMotionSteps(IKGoal goal);
-	
-	static std::shared_ptr<MotionPlan> buildMotionPlan(const double startPosition,const double endPosition, const double totalTime, const double approachVelocity, const double maxAccel);
-	std::vector<std::shared_ptr<MotionPlan> > createClosedSolutionMotionPlanFromSteps(std::vector<Step> & steps);
-	
-	std::vector<std::shared_ptr<MotionPlan> > buildPlan(std::vector<Step> & steps);
-	void calculateStep(std::vector<StepMotionPlan> * stepPlans, std::vector<Step> & steps, int stepNumber);
 	std::shared_ptr<MotionPlan> buildOptimalMotionPlan(int jointIndex, const double targetAngle);
+	
 };
 
 

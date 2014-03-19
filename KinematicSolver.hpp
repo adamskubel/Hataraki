@@ -49,7 +49,9 @@ public:
 		}
 		else if (t0 < 0 || t1 < 0 || t2 < 0 || t3 < 0)
 		{
-			throw std::logic_error("Negative time");
+			std::stringstream ss;
+			ss << "Negative time: T0 = " << t0 << " T1 = " << t1 << " T2 = " << t2 << " T3 = " << t3;
+			throw std::logic_error(ss.str());
 		}
 		else if (abs(v1) > MaxSpeed)
 		{

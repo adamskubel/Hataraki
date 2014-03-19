@@ -21,11 +21,13 @@ class TimeUtil {
 
 public:
 	static double AlarmThreshold;
+	static timespec ApplicationStart;
 
 	static void addTime(timespec & t0, double seconds, timespec & tResult);
 
 	static double getTimeDelta(timespec & t0, timespec & t1);
 	static void setNow(timespec & now);	
+	static timespec getNow();	
 	static double timeSince(timespec & sinceTime);
 	static double timeUntil(timespec & untilTime);
 	

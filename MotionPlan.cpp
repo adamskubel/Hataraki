@@ -68,6 +68,8 @@ void MotionPlan::startNow()
 {
 	TimeUtil::setNow(startTime);
 	TimeUtil::addTime(startTime,getPlanDuration(),endTime);
+	if (TimeUtil::getTimeDelta(startTime, endTime) < 0)
+		throw std::runtime_error("Plan starts before ending");
 }
 
 void MotionPlan::markKeyframe()

@@ -18,6 +18,9 @@
 #include <chrono>
 #include <string>
 #include <unistd.h>
+#include <sstream>
+
+#include "TimeUtil.hpp"
 
 class AsyncLogger {
 
@@ -42,11 +45,21 @@ private:
 	}
 
 public:
+	static std::string LogFileName;
+	static std::string DefaultLogTag;
+
 	static AsyncLogger & getInstance()
 	{
 		static AsyncLogger instance;
 		return instance;
 	}
+	
+	static void log(std::string message);
+	static void log(std::stringstream & messageStream);
+
+	static void log(std::string tag, std::string message);
+	static void log(std::string tag, std::stringstream & messageStream);
+	
 
 private:
 	std::unordered_map<std::string,std::ofstream*> filemap;

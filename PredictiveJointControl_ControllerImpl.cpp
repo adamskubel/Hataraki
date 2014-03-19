@@ -85,6 +85,7 @@ void PredictiveJointController::setTargetState()
 			cTargetVelocity = motionPlan->dx(t);
 			cTargetAcceleration = 0; // motionPlan->ddx(t);
 			cDynamicTorque = PoseDynamics::getInstance().getTorqueForAcceleration(jointModel->index,AS5048::stepsToRadians(cTargetAcceleration));
+			cPlanTargetVelocity = cTargetVelocity;
 		}
 		else
 		{
@@ -93,7 +94,6 @@ void PredictiveJointController::setTargetState()
 		}
 	}
 
-	cPlanTargetVelocity = cTargetVelocity;
 	cTargetAngleDistance = cTargetAngle - cSensorAngle;
 }
 
@@ -104,7 +104,7 @@ void PredictiveJointController::performSafetyChecks()
 		if (cSensorAngle < jointModel->minAngle || cSensorAngle > jointModel->maxAngle)
 		{
 			stringstream ss;
-			ss << "Exceeded angle limits. Angle = " << AS5048::stepsToDegrees(cSensorAngle) << " [" << AS5048::stepsToDegrees(jointModel->minAngle) << "," << AS5048::stepsToDegrees(jointModel->maxAngle) << "]" << endl;
+			ss << jointModel->name << " exceeded angle limits. Angle = " << AS5048::stepsToDegrees(cSensorAngle) << " [" << AS5048::stepsToDegrees(jointModel->minAngle) << "," << AS5048::stepsToDegrees(jointModel->maxAngle) << "]" << endl;
 			emergencyHalt(ss.str());
 		}
 	}
@@ -121,6 +121,7 @@ void PredictiveJointController::emergencyHalt(std::string reason)
 		jointStatus = JointStatus::Error;		
 		cout << "Joint " << jointModel->name << " is now offline" << endl;
 		cout << "Reason for shutdown: " << reason << endl;
+		AsyncLogger::log("JointController", reason);
 	}
 	catch (std::runtime_error & e)
 	{

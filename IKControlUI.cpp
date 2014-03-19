@@ -202,11 +202,19 @@ void IKControlUI::updateAll()
 }
 
 IKGoal UIControlProvider::nextGoal()
-{
+{	
+	std::lock_guard<std::mutex> locks(goalMutex);	
 	IKGoal g = currentGoal;
 	currentGoal = IKGoal::stopGoal(); //Default to stop unless current goal is replaced before next call
 	return g;
 }
+
+void UIControlProvider::setGoal(IKGoal goal)
+{	
+	std::lock_guard<std::mutex> locks(goalMutex);	
+	currentGoal = goal;
+}
+
 
 void UIControlProvider::motionComplete()
 {
@@ -215,7 +223,8 @@ void UIControlProvider::motionComplete()
 
 void UIControlProvider::motionOutOfRange()
 {
-	
+	this->hasError = true;
+	this->errorText = "Out of range";
 }
 
 bool IKControlUI::doDirectControl(int c)
@@ -254,18 +263,27 @@ bool IKControlUI::doDirectControl(int c)
 	}
 	
 	if (dir.length() == 0 || !directModeActive)
-	{
-		controlProvider->currentGoal = IKGoal::stopGoal();
+	{		
+		controlProvider->setGoal(IKGoal::stopGoal());
 	}
 	else
 	{
-		dir = dir * ((NumberBox*)elements["PathStepLength"])->getValue()/100.0;
-		controlProvider->currentGoal = IKGoal(dir,true);
-
-		if (!controlProvider->hasControl)
+		if (controlProvider->hasError)
 		{
-			motionController->getMotionPlanner()->setPathInterpolationMode(PathInterpolationMode::SingleStep);
-			motionController->requestDirectControl(controlProvider->currentGoal,controlProvider);
+			elements["StatusLog"]->setText(controlProvider->errorText);
+			controlProvider->hasError = false;
+		}
+		else
+		{
+			dir = dir * ((NumberBox*)elements["PathStepLength"])->getValue()/100.0;
+			controlProvider->setGoal(IKGoal(dir,true));
+			
+			if (!controlProvider->hasControl)
+			{
+				AsyncLogger::log("Requesting control");
+				motionController->getMotionPlanner()->setPathInterpolationMode(PathInterpolationMode::SingleStep);
+				motionController->requestDirectControl(controlProvider->currentGoal,controlProvider);
+			}
 		}
 	}	
 	return true;
@@ -410,6 +428,11 @@ void IKControlUI::calculatePlan()
 	Matrix3d targetRotation = Matrix3d::createRotationAroundAxis(targetEulerAngles.x, targetEulerAngles.y,targetEulerAngles.z);
 	//targetRotation = targetRotation.transpose();
 
+	motionController->getMotionPlanner()->setPathDivisions(divisionCount);
+	if (divisionCount > 1)
+		motionController->getMotionPlanner()->setPathInterpolationMode(PathInterpolationMode::FixedStepCount);
+	else
+		motionController->getMotionPlanner()->setPathInterpolationMode(PathInterpolationMode::SingleStep);
 	
 	pendingMotionPlan = motionController->getMotionPlanner()->buildPlan(IKGoal(targetPosition, targetRotation, false));
 	

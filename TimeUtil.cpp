@@ -1,9 +1,11 @@
 #include "TimeUtil.hpp"
+#include "AsyncLogger.hpp"
 
 using namespace std;
 
 double TimeUtil::AlarmThreshold = 0.5;
 
+timespec TimeUtil::ApplicationStart = TimeUtil::getNow();
 
 
 void TimeUtil::setNow(timespec & now) 
@@ -19,6 +21,13 @@ void TimeUtil::setNow(timespec & now)
 	now.tv_sec = mts.tv_sec;
 	now.tv_nsec = mts.tv_nsec;
 #endif
+}
+
+timespec TimeUtil::getNow()
+{
+	timespec now;
+	setNow(now);
+	return now;
 }
 
 double TimeUtil::timeBetween(timespec & t0, timespec & t1)
@@ -51,7 +60,9 @@ void TimeUtil::assertTime(timespec & start, std::string message, double threshol
 	double elapsed = timeSince(start);
 	if (elapsed > threshold)
 	{
-		cout << "Threshold exceeded: " << elapsed*1000.0 << "ms : " << message << endl;
+		stringstream ss;
+		ss << "Threshold exceeded: " << elapsed*1000.0 << "ms : " << message;
+		AsyncLogger::log(ss);
 	}
 }
 

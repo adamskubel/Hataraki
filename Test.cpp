@@ -258,6 +258,7 @@ void testServoModel(ServoModel * sm)
 	cout << "V=0.56, T=0, S=" << sm->getSpeedForTorqueVoltage(0,0.56) << endl;
 }
 
+
 void testMotionPlanning()
 {
 	MotionPlanner * mp = new MotionPlanner(controllers);
@@ -274,9 +275,9 @@ void testMotionPlanning()
 	for (int i=0;i<6;i++) intialAngles_rad.push_back(MathUtil::degreesToRadians(initialAngles_deg[i]));
 	for (int i=0;i<6;i++) initialAngles_step.push_back(AS5048::degreesToSteps(initialAngles_deg[i]));
 	
-	int divisionCount = 25;
+	int divisionCount = 1;
 	mp->setPathDivisions(divisionCount);
-	auto steps = mp->buildMotionSteps(IKGoal(Vector3d(11,0,-5.5)/100.0, Matrix3d::createRotationAroundAxis(0, -70, 0),false));
+	//auto steps = mp->buildMotionSteps(IKGoal(Vector3d(11,0,-5.5)/100.0, Matrix3d::createRotationAroundAxis(0, -70, 0),false));
 	
 	//if (divisionCount != steps.size()) cout << "Division count is " << steps.size() << ", expected " << divisionCount << endl;
 	
@@ -303,8 +304,15 @@ void testMotionPlanning()
 		double f0 = motionPlan[c]->finalAngle;
 		double f1 =motionPlan[c]->x(10);
 		
-		//if (std::abs(f0 - f1) > 1.0)
+		if (std::abs(f0 - f1) > 1.0)
+		//cout << "Channel " << c << endl;
 			cout << "Final = " << f0 << ", Final(t) = " <<  f1 << endl;
+		
+//		for (auto it = motionPlan[c]->motionIntervals.begin(); it != motionPlan[c]->motionIntervals.end(); it++)
+//		{
+//			cout << it->startSpeed << " - " << it->endSpeed << ", " << it->duration << " s" <<  endl;
+//		}
+//		cout << endl;
 	}
 	
 	for (double t = 0.0; t < motionPlan.front()->getPlanDuration(); t += 0.02)
@@ -313,20 +321,18 @@ void testMotionPlanning()
 		
 		
 		outFile
-		<< t
-		<< "," << actualPosition.x << "," << actualPosition.y << "," << actualPosition.z
-		<< "," << expectedPosition.x << "," << expectedPosition.y << "," << expectedPosition.z << ",";
+		<< t << ",";
+		//<< "," << actualPosition.x << "," << actualPosition.y << "," << actualPosition.z
+		//<< "," << expectedPosition.x << "," << expectedPosition.y << "," << expectedPosition.z << ",";
 		for (int c=0;c<numChannels;c++)
 		{
 			auto kF= motionPlan[c]->keyframes.lower_bound(t);
 			if (kF == motionPlan[c]->keyframes.end()) kF--;
-			
-			double offset = 0; //c*2000.0 - motionPlan[c]->startAngle;
-			
+						
 			outFile
-			<< fmt(motionPlan[c]->x(t)+offset) << ","
-			<< fmt(motionPlan[c]->dx(t)+offset) << ","
-			<< fmt(kF->second+offset) << ","
+			<< fmt(motionPlan[c]->x(t)) << ","
+			<< fmt(motionPlan[c]->dx(t)) << ","
+			<< fmt(kF->second) << ","
 			<< fmt((motionPlan[c]->ddx(t)*0.1)) << ",";
 		}
 		outFile << endl;

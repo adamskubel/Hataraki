@@ -177,7 +177,6 @@ private:
 	double velocityErrorIntegral;
 	double speedControlIntegralGain;
 	double speedControlProportionalGain;
-	int startModeIndex;
 
 	//Stepping states
 	//struct StepControlData {
