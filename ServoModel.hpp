@@ -143,6 +143,8 @@ public:
 	double driverDelay, sensorDelay;
 	double maxDriverVoltage;
 	
+	std::string driverBus, sensorBus;
+
 	int driverAddress;
 	int sensorAddress;
 
@@ -157,6 +159,10 @@ public:
 
 		sensorAddress = cJSON_GetObjectItem(rawConfig, "SensorAddress")->valueint;
 		driverAddress = cJSON_GetObjectItem(rawConfig, "DriverAddress")->valueint;
+
+		sensorBus = std::string(cJSON_GetObjectItem(rawConfig, "SensorBus")->valuestring);
+		driverBus = std::string(cJSON_GetObjectItem(rawConfig, "DriverBus")->valuestring);
+
 		driverDelay = cJSON_GetObjectItem(rawConfig,"DriverDelay")->valuedouble;
 		sensorDelay = cJSON_GetObjectItem(rawConfig,"SensorDelay")->valuedouble;
 		maxDriverVoltage = cJSON_GetObjectItem(rawConfig,"MaxDriverVoltage")->valuedouble;

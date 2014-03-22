@@ -14,6 +14,8 @@
 #include <inttypes.h>
 #include <stdio.h>
 
+#include <string>
+
 #ifdef __linux__
 #define I2C_SUPPORTED
 #include <linux/i2c-dev.h>
@@ -29,12 +31,9 @@ class I2CBus {
 private:
 	int file,currentAddr;
 
-	SimpleMovingAverage * sma;
-
-public:
-//	static I2CBus * getBus(string busname);
+public:	
+	I2CBus(std::string busNames);
 	
-	I2CBus(const char * busname);
 
 	void selectAddress(int addr);
 
@@ -42,9 +41,8 @@ public:
 	void readFromBus(unsigned char * buffer, int length);
 	
 	void setRegister(unsigned char regAddr, unsigned char regValue);
-	int getRegisterValue(unsigned char regAddr);		
+	int getRegisterValue(unsigned char regAddr);	
 
-	double getAverageDataRate(); //bits per second
 
 };
 

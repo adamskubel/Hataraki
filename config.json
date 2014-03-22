@@ -12,7 +12,7 @@
 	},
 	"ArmModel" : 
 	{
-		"JointsWheel" :
+		"JointsW" :
 		[
 			"WheelDefinitions.LeftWheel",
 			"WheelDefinitions.RightWheel",
@@ -315,7 +315,9 @@
 			"AxisOfRotation" : [1,0,0],
 			"Servo" : 
 			{
+				"DriverBus"		: "i2c-2",
 				"DriverAddress" : 98,
+				"SensorBus"		: "i2c-1",
 				"SensorAddress" : 65,
 				"DriverDelay" : 0.0004,
 				"SensorDelay" : 0.0012,
@@ -333,7 +335,9 @@
 			"AxisOfRotation" : [0,-1,0],
 			"Servo" : 
 			{
+				"DriverBus"		: "i2c-2",
 				"DriverAddress" : 97,
+				"SensorBus"		: "i2c-1",
 				"SensorAddress" : 66,
 				"DriverDelay" : 0.0004,
 				"SensorDelay" : 0.0,
@@ -355,7 +359,9 @@
 			"AxisOfRotation" : [1,0,0],
 			"Servo" : 
 			{
+				"DriverBus"		: "i2c-2",
 				"DriverAddress" : 100,
+				"SensorBus"		: "i2c-1",
 				"SensorAddress" : 68,
 				"DriverDelay" : 0.0004,
 				"SensorDelay" : 0.0012,
@@ -375,7 +381,9 @@
 			"AxisOfRotation" : [0,-1,0],
 			"Servo" : 
 			{
+				"DriverBus"		: "i2c-2",
 				"DriverAddress" : 101,
+				"SensorBus"		: "i2c-1",
 				"SensorAddress" : 75,
 				"DriverDelay" : 0.0004,
 				"SensorDelay" : 0.0,
@@ -395,7 +403,9 @@
 			"AxisOfRotation" : [1,0,0],
 			"Servo" : 
 			{
+				"DriverBus"		: "i2c-2",
 				"DriverAddress" : 103,
+				"SensorBus"		: "i2c-1",
 				"SensorAddress" : 65,				
 				"DriverDelay" : 0.0004,
 				"SensorDelay" : 0.0,
@@ -415,7 +425,9 @@
 			"AxisOfRotation" : [0,-1,0],
 			"Servo" : 
 			{
+				"DriverBus"		: "i2c-2",
 				"DriverAddress" : 99,
+				"SensorBus"		: "i2c-1",
 				"SensorAddress" : 66,
 				"DriverDelay" : 0.0004,
 				"SensorDelay" : 0.0,
@@ -435,7 +447,9 @@
 			"AxisOfRotation" : [0,-1,0],
 			"Servo" : 
 			{
+				"DriverBus"		: "i2c-2",
 				"DriverAddress" : 104,
+				"SensorBus"		: "i2c-1",
 				"SensorAddress" : 67,
 				"DriverDelay" : 0.0004,
 				"SensorDelay" : 0.0,
@@ -455,7 +469,9 @@
 			"AxisOfRotation" : [1,0,0],
 			"Servo" : 
 			{
+				"DriverBus"		: "i2c-2",
 				"DriverAddress" : 102,
+				"SensorBus"		: "i2c-1",
 				"SensorAddress" : 64,
 				"DriverDelay" : 0.0004,
 				"SensorDelay" : 0.0,

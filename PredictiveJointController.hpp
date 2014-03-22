@@ -11,6 +11,7 @@
 #include <locale>
 #include <algorithm>
 #include <list>
+#include <map>
 
 #include "cJSON.h"
 
@@ -77,7 +78,7 @@ private:
 	ServoModel * servoModel;
 	JointModel * jointModel;
 	ControllerConfig * config;
-	I2CBus * bus;
+	std::map<std::string,I2CBus*> bus;
 
 	JointStatus jointStatus;
 	bool haltRequested;
@@ -229,9 +230,9 @@ private:
 	double getAverageSpeedForWindow(int windowSize);
 
 public:
-	PredictiveJointController (JointModel * _jointModel, I2CBus * _bus) 
+	PredictiveJointController (JointModel * _jointModel, std::map<std::string,I2CBus*> busMap) 
 	{
-		this->bus = _bus;
+		this->bus = busMap;
 		
 		jointModel	= _jointModel;
 		servoModel	= &(jointModel->servoModel);

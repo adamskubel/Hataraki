@@ -115,8 +115,8 @@ void PredictiveJointController::emergencyHalt(std::string reason)
 	try
 	{
 		haltRequested = true;
-		bus->selectAddress(servoModel->driverAddress);
-		DRV8830::writeVoltageMode(bus, 0, DriveMode::OFF);		
+		bus[servoModel->driverBus]->selectAddress(servoModel->driverAddress);
+		DRV8830::writeVoltageMode(bus[servoModel->driverBus], 0, DriveMode::OFF);		
 		haltRequested = false;
 		jointStatus = JointStatus::Error;		
 		cout << "Joint " << jointModel->name << " is now offline" << endl;
@@ -453,7 +453,7 @@ void PredictiveJointController::commitCommands()
 			TimeUtil::setNow(startTime);
 			if (cDriverCommand != driverCommand)
 			{
-				bus->selectAddress(servoModel->driverAddress);
+				bus[servoModel->driverBus]->selectAddress(servoModel->driverAddress);
 				DRV8830::writeCommand(bus,driverCommand);
 				cDriverCommand = driverCommand;
 			}

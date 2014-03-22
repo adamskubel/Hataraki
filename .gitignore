@@ -1,4 +1,5 @@
 .gitignore
+BasicMotion
 *.sdf
 *.opensdf
 *.suo

@@ -4,13 +4,12 @@ using namespace std;
 
 
 
-#ifdef I2C_SUPPORTED
+#ifndef I2C_SUPPORTED
 
-I2CBus::I2CBus(const char * busname)
+I2CBus::I2CBus(string busname)
 {
-
     char filename[40];
-	sprintf(filename,"%s",busname);
+	sprintf(filename,"%s",busname.c_str());
     if ((file = open(filename,O_RDWR)) < 0) {
 
 		stringstream ss;
@@ -18,9 +17,7 @@ I2CBus::I2CBus(const char * busname)
 		throw std::runtime_error(ss.str());
     }	   
 
-	sma = new SimpleMovingAverage(10);
 }
-
 void I2CBus::writeToBus(unsigned char * buf, int length)
 {
 	int res = 0;
@@ -33,7 +30,6 @@ void I2CBus::writeToBus(unsigned char * buf, int length)
 
 void I2CBus::readFromBus(unsigned char * buffer, int length)
 {
-	//unsigned char * buf = new unsigned char[length];
 	if (read(file,buffer,length) != length) 	{
 		stringstream ss;
 		ss << "Failed to read from the i2c bus. Address = " << currentAddr << ", Error=" << strerror(errno);        
@@ -54,11 +50,6 @@ void I2CBus::selectAddress(int addr)
 	}
 }
 
-
-double I2CBus::getAverageDataRate()
-{
-	return sma->avg();
-}
 #else
 
 I2CBus::I2CBus(const char * busname)

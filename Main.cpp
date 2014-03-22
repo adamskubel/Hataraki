@@ -117,7 +117,9 @@ int main(int argc, char *argv[])
 	cJSON * globalConfig;
 	ArmModel * armModel;
 	std::string configFileName = "config.json";
-	I2CBus * bus = NULL;
+	//I2CBus * bus = NULL;
+
+	map<string,I2CBus*> busMap;
 
 	running = false;
 
@@ -145,12 +147,12 @@ int main(int argc, char *argv[])
 
 		armModel = new ArmModel(cJSON_GetObjectItem(Configuration::getInstance().getRoot(),"ArmModel"));
 
-		cout << "Opening I2C bus... " << endl;
-		bus = new I2CBus("/dev/i2c-1");
+		busMap.put("i2c-1",new I2CBus("/dev/i2c-1"));
+		busMap.put("i2c-2",new I2CBus("/dev/i2c-2"));
 
 		for (int i=0;i<armModel->joints.size();i++)
 		{
-			PredictiveJointController * pjc = new PredictiveJointController(&(armModel->joints.at(i)),bus);		
+			PredictiveJointController * pjc = new PredictiveJointController(&(armModel->joints.at(i)),busMap);		
 			controllers.push_back(pjc);
 		}
 	}
