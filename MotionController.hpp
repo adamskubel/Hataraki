@@ -68,6 +68,8 @@ private:
 
 	State state;
 	
+	std::map<std::string,SimpleMovingAverage*> timeSMA_map;
+	
 public:
 
 	std::vector<double> getJointAnglesRadians();
@@ -100,6 +102,8 @@ public:
 
 	void updateStreamingMotionPlans();
 	void requestDirectControl(IKGoal initialGoal, DirectControlProvider * controlProvider);
+	
+	void printAverageTime();
 	
 	MotionPlanner * getMotionPlanner();
 

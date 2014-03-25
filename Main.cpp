@@ -139,7 +139,6 @@ int main(int argc, char *argv[])
 
 		globalConfig = cJSON_GetObjectItem(Configuration::getInstance().getRoot(),"GlobalSettings");	
 
-		Configuration::SamplePeriod = 1.0/cJSON_GetObjectItem(globalConfig,"UpdateFrequency")->valuedouble;
 		cout << "Operating with period of " << Configuration::SamplePeriod << " seconds. " <<endl;
 
 		DRV8830::MaxVoltageStep = DRV8830::voltageToSteps(cJSON_GetObjectItem(globalConfig,"MaxVoltage")->valuedouble);	
@@ -147,8 +146,8 @@ int main(int argc, char *argv[])
 
 		armModel = new ArmModel(cJSON_GetObjectItem(Configuration::getInstance().getRoot(),"ArmModel"));
 
-		busMap.put("i2c-1",new I2CBus("/dev/i2c-1"));
-		busMap.put("i2c-2",new I2CBus("/dev/i2c-2"));
+		busMap.insert(make_pair("i2c-1",new I2CBus("/dev/i2c-1")));
+		busMap.insert(make_pair("i2c-2",new I2CBus("/dev/i2c-2")));
 
 		for (int i=0;i<armModel->joints.size();i++)
 		{
@@ -298,6 +297,17 @@ int main(int argc, char *argv[])
 				else if (command.compare("ik") == 0)
 				{
 					ikControl();
+				}
+				else if (command.compare("time") == 0)
+				{
+					motionController->printAverageTime();
+					for (auto it = busMap.begin(); it != busMap.end(); it++)
+					{
+						cout << "Bus: " << it->first <<
+							". Read = " << it->second->readTime->avg() << " ms" <<
+							". Write = " << it->second->writeTime->avg() << " ms" <<
+						endl;
+					}
 				}
 				else
 				{

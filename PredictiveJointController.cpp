@@ -60,7 +60,7 @@ void PredictiveJointController::init()
 
 void PredictiveJointController::prepare()
 {
-	if (ServoUtils::validateAndPrintJointFunction(bus, jointModel))
+	if (ServoUtils::validateAndPrintJointFunction(bus[servoModel->driverBus],bus[servoModel->sensorBus], jointModel))
 	{
 		jointStatus = JointStatus::Ready;
 	}

@@ -3,7 +3,7 @@
 using namespace std;
 
 
-bool ServoUtils::validateAndPrintJointFunction(I2CBus * bus, JointModel * joint)
+bool ServoUtils::validateAndPrintJointFunction(I2CBus * driverBus, I2CBus * sensorBus, JointModel * joint)
 {
 	ServoModel * servo = &joint->servoModel;
 	
@@ -15,17 +15,17 @@ bool ServoUtils::validateAndPrintJointFunction(I2CBus * bus, JointModel * joint)
 	
 	//AS5048
 	
-	bus->selectAddress(servo->sensorAddress);
+	sensorBus->selectAddress(servo->sensorAddress);
 	
 	try
 	{
 		
-		int magnitude = AS5048::getSensorMagnitude(bus);
+		int magnitude = AS5048::getSensorMagnitude(sensorBus);
 
-		int rawAngle = AS5048::getSensorAngleSteps(bus);
+		int rawAngle = AS5048::getSensorAngleSteps(sensorBus);
 		int angle = MathUtil::subtractAngles(rawAngle,joint->sensorZeroPosition,AS5048::PI_STEPS);
-		unsigned char diagnosticFlags = AS5048::getDiagnosticFlags(bus);
-		unsigned char agc = AS5048::getAutoGainValue(bus);
+		unsigned char diagnosticFlags = AS5048::getDiagnosticFlags(sensorBus);
+		unsigned char agc = AS5048::getAutoGainValue(sensorBus);
 		
 		cout
 			<< "Angle = " << AS5048::stepsToDegrees(angle)
@@ -59,8 +59,8 @@ bool ServoUtils::validateAndPrintJointFunction(I2CBus * bus, JointModel * joint)
 	//DRV8830
 	try
 	{
-		bus->selectAddress(servo->driverAddress);
-		unsigned char driverFaults = DRV8830::readFaultRegister(bus);
+		driverBus->selectAddress(servo->driverAddress);
+		unsigned char driverFaults = DRV8830::readFaultRegister(driverBus);
 		
 		if (!DRV8830::hasFault(driverFaults))
 		{

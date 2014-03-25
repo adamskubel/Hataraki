@@ -14,31 +14,38 @@
 #include <inttypes.h>
 #include <stdio.h>
 
+
 #include <string>
 
 #ifdef __linux__
 #define I2C_SUPPORTED
 #include <linux/i2c-dev.h>
+#include <linux/i2c.h>
 #endif
 
 #include <stdexcept>
 #include <sstream>
 
+#include "TimeUtil.hpp"
 #include "SimpleMovingAverage.hpp"
 
 class I2CBus {
 
 private:
 	int file,currentAddr;
+	std::string busName;
 
 public:	
 	I2CBus(std::string busNames);
 	
-
+	SimpleMovingAverage * writeTime, * readTime;
 	void selectAddress(int addr);
 
 	void writeToBus(unsigned char * buf, int length);
 	void readFromBus(unsigned char * buffer, int length);
+	
+	int readWord(int address);
+	int readByte(int address);
 	
 	void setRegister(unsigned char regAddr, unsigned char regValue);
 	int getRegisterValue(unsigned char regAddr);	

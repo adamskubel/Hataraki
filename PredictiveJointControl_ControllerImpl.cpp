@@ -51,7 +51,7 @@ void PredictiveJointController::run()
 
 	commitCommands();
 
-	cRunTime = TimeUtil::timeSince(start);
+	cRunTime = TimeUtil::timeSince(start)*1000.0;
 	if (Configuration::CsvLoggingEnabled) logState();
 	
 	TimeUtil::assertTime(start,jointModel->name + ".run()");
@@ -454,7 +454,7 @@ void PredictiveJointController::commitCommands()
 			if (cDriverCommand != driverCommand)
 			{
 				bus[servoModel->driverBus]->selectAddress(servoModel->driverAddress);
-				DRV8830::writeCommand(bus,driverCommand);
+				DRV8830::writeCommand(bus[servoModel->driverBus],driverCommand);
 				cDriverCommand = driverCommand;
 			}
 			cDriverWriteTime = TimeUtil::timeSince(startTime)*1000.0;

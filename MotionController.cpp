@@ -15,6 +15,12 @@ MotionController::MotionController(vector<PredictiveJointController*> & _joints,
 
 	updateCount = 0;
 	
+	for (auto it = joints.begin(); it != joints.end(); it++)
+		timeSMA_map.insert(make_pair((*it)->getJointModel()->name,new SimpleMovingAverage(30)));
+	
+	
+	timeSMA_map.insert(make_pair("All",new SimpleMovingAverage(30)));
+	
 	state = State::Waiting;
 }
 
@@ -42,11 +48,13 @@ void MotionController::updateController(){
 			TimeUtil::setNow(step);
 			(*it)->run();
 			jointAngles.push_back(AS5048::stepsToRadians((*it)->getCurrentAngle()));
-			TimeUtil::assertTime(step,"Joint " + (*it)->getJointModel()->name + " update");
+			timeSMA_map[(*it)->getJointModel()->name]->add(TimeUtil::timeSince(step)*1000.0);
+			//TimeUtil::assertTime(step,"Joint " + (*it)->getJointModel()->name + " update");
 		}
-
+		timeSMA_map["All"]->add(TimeUtil::timeSince(start)*1000.0);
+		
 		//TimeUtil::setNow(step);
-		//if (updateCount % 100 == 0)
+		if (updateCount % 100 == 0)
 		{
 			PoseDynamics::getInstance().setJointAngles(jointAngles);
 			PoseDynamics::getInstance().update();
@@ -73,6 +81,10 @@ void MotionController::updateController(){
 			taskQueueMutex.unlock();
 		}
 		TimeUtil::assertTime(step,"Task execution");
+
+//		stringstream timeStream;
+//		timeStream << updateCount << "," << TimeUtil::timeSince(start)*1000.0 << endl;
+//		AsyncLogger::getInstance().postLogTask("Timing.csv",timeStream.str());
 		
 		double totalTime = TimeUtil::timeSince(start);
 		long adjustedSleep = updatePeriod - (totalTime*1000000);
@@ -210,6 +222,16 @@ void MotionController::shutdown()
 			cout << "Error while shutting down joint: " << e.what() << endl;
 		}
 	}
+}
+
+void MotionController::printAverageTime()
+{
+	this->postTask([this](){
+		for (auto it = timeSMA_map.begin(); it != timeSMA_map.end(); it++)
+		{
+			cout << it->first << " = " << it->second->avg() << endl;
+		}
+	});
 }
 
 void MotionController::zeroAllJoints()

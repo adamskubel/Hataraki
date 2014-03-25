@@ -170,7 +170,9 @@ void Configuration::loadConfig(std::string configFileName)
 
 	cJSON * dataRecordingConfig = cJSON_GetObjectItem(root,"DataRecording");
 	Configuration::CsvLoggingEnabled = (cJSON_GetObjectItem(dataRecordingConfig,"Enabled")->valueint != 0);
-
+	
+	cJSON * globalConfig = cJSON_GetObjectItem(Configuration::getInstance().getRoot(),"GlobalSettings");
+	Configuration::SamplePeriod = 1.0/cJSON_GetObjectItem(globalConfig,"UpdateFrequency")->valuedouble;
 }
 
 

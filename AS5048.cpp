@@ -8,30 +8,15 @@ int AS5048::PI_STEPS = 8192;
 using namespace std;
 
 int AS5048::getSensorAngleSteps(I2CBus * bus)
-{	
-	unsigned char buf[1] = {AS5048Registers::ANGLE};
-	bus->writeToBus(buf,1);
-	
-	unsigned char result[2] = {0,0};
-	bus->readFromBus(result,2);
-	
-	int angle = ((int)result[0]) << 6;
-	angle += (int)result[1];
-	
+{
+	int angleReverse =  bus->readWord(254);
+	int angle = ((angleReverse & 0x00FF) << 6) + ((angleReverse & 0xFF00) >> 8);
 	return angle;
 }
 
 int AS5048::getSensorMagnitude(I2CBus * bus)
 {
-	unsigned char buf[1] = {AS5048Registers::MAGNITUDE};
-	bus->writeToBus(buf,1);
-	
-	unsigned char result[2] = {0,0};
-	bus->readFromBus(result,2);
-	
-	int mag = ((int)result[0]) << 6;
-	mag += (int)result[1];
-	
+	int mag = bus->readWord(252);
 	return mag;
 }
 
@@ -59,24 +44,26 @@ double AS5048::stepsToRadians(double steps)
 
 unsigned char AS5048::getAutoGainValue(I2CBus* bus)
 {	
-	unsigned char buf[1] = {AS5048Registers::AUTOGAINCNTRL};
-	unsigned char result[1] = {0};
-		
-	bus->writeToBus(buf,1);
-	bus->readFromBus(result,1);
-
-	return result[0];
+//	unsigned char buf[1] = {AS5048Registers::AUTOGAINCNTRL};
+//	unsigned char result[1] = {0};
+//		
+//	bus->writeToBus(buf,1);
+//	bus->readFromBus(result,1);
+//
+//	return result[0];
+	return bus->readByte(250);
 }
 
 unsigned char AS5048::getDiagnosticFlags(I2CBus*bus)
 {
-	unsigned char buf[1] = {AS5048Registers::DIAGNOSTICS};
-	unsigned char result[1] = {0};
-
-	bus->writeToBus(buf,1);	
-	bus->readFromBus(result,1);	
-
-	return result[0];
+//	unsigned char buf[1] = {AS5048Registers::DIAGNOSTICS};
+//	unsigned char result[1] = {0};
+//
+//	bus->writeToBus(buf,1);	
+//	bus->readFromBus(result,1);	
+//
+//	return result[0];
+	return bus->readByte(251);
 }
 
 bool AS5048::isValidStatus(unsigned char diagnosticFlags)

@@ -15,21 +15,10 @@ int PredictiveJointController::getSensorAngleRegisterValue()
 	int result = -1;
 	try 
 	{
-		timespec start;
-		TimeUtil::setNow(start);
+		timespec start = TimeUtil::getNow();
+		
 		bus[servoModel->sensorBus]->selectAddress(servoModel->sensorAddress);
-		
-		TimeUtil::setNow(start);
-		unsigned char buf[1] = {AS5048Registers::ANGLE};
-		bus[servoModel->sensorBus]->writeToBus(buf,1);
-		cSensorWriteTime = TimeUtil::timeSince(start)*1000.0;
-		
-		TimeUtil::setNow(start);
-		unsigned char result[2] = {0,0};
-		bus[servoModel->sensorBus]->readFromBus(result,2);
-		
-		int angle = ((int)result[0]) << 6;
-		angle += (int)result[1];
+		int angle = AS5048::getSensorAngleSteps(bus[servoModel->sensorBus]);
 		cSensorReadTime = TimeUtil::timeSince(start)*1000.0;
 		
 		return angle;

@@ -9,7 +9,7 @@
 
 class ServoUtils {
 public:
-	static bool validateAndPrintJointFunction(I2CBus * bus, JointModel * joint);
+	static bool validateAndPrintJointFunction(I2CBus * driverBus, I2CBus * sensorBus, JointModel * joint);
 	
 };
 

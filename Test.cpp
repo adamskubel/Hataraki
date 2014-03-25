@@ -94,10 +94,12 @@ int main(int argc, char *argv[])
 	
 	ArmModel * armModel = new ArmModel(cJSON_GetObjectItem(Configuration::getInstance().getRoot(),"ArmModel"));
 	PoseDynamics::getInstance().setArmModel(armModel);
+	
+	map<string,I2CBus*> busMap;
 
 	for (int i=0;i<armModel->joints.size();i++)
 	{
-		PredictiveJointController * pjc = new PredictiveJointController(&(armModel->joints.at(i)),NULL);	
+		PredictiveJointController * pjc = new PredictiveJointController(&(armModel->joints.at(i)),busMap);
 		controllers.push_back(pjc);
 	}
 	motionController = new MotionController(controllers,5);

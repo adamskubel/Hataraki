@@ -4,7 +4,7 @@ CXX=arm-none-linux-gnueabi-g++
 #CFLAGS=-c -Wall --sysroot=/usr/local/carlson-minot/crosscompilers/arm-none-linux-gnueabi/libc-2013.05-24-sysroot
 #LDFLAGS=--sysroot=/usr/local/carlson-minot/crosscompilers/arm-none-linux-gnueabi/libc-2013.05-24-sysroot
 
-CXXFLAGS=-g  -std=c++0x --sysroot=/usr/local/carlson-minot/crosscompilers/arm-none-linux-gnueabi/libc-2013.05-24-sysroot
+CXXFLAGS=-g  -O3 -std=c++0x --sysroot=/usr/local/carlson-minot/crosscompilers/arm-none-linux-gnueabi/libc-2013.05-24-sysroot
 
 LIB=rt ncurses tinfo pthread
 LIB_PARAMS=$(foreach d,$(LIB),-l$d)
