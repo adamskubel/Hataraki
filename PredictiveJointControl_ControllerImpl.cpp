@@ -10,8 +10,8 @@ namespace ControllerConfiguration
 	const double MinDisturbanceError = 15;
 	
 	//Speed Control
-	const double MinSpeedControlMeasureDelay = 0.05; //seconds
-	const double MaxSpeedControlMeasureDelay = 0.10; //seconds
+	const double MinSpeedControlMeasureDelay = 0.00; //seconds
+	const double MaxSpeedControlMeasureDelay = 0.05; //seconds
 };
 
 using namespace ControllerConfiguration;
@@ -84,7 +84,7 @@ void PredictiveJointController::setTargetState()
 			cTargetAngle = motionPlan->x(t);
 			cTargetVelocity = motionPlan->dx(t);
 			cTargetAcceleration = 0; // motionPlan->ddx(t);
-			cDynamicTorque = PoseDynamics::getInstance().getTorqueForAcceleration(jointModel->index,AS5048::stepsToRadians(cTargetAcceleration));
+			cDynamicTorque = 0; // PoseDynamics::getInstance().getTorqueForAcceleration(jointModel->index,AS5048::stepsToRadians(cTargetAcceleration));
 			cPlanTargetVelocity = cTargetVelocity;
 		}
 		else
@@ -101,7 +101,8 @@ void PredictiveJointController::performSafetyChecks()
 {
 	if (!jointModel->continuousRotation)
 	{
-		if (cSensorAngle < jointModel->minAngle || cSensorAngle > jointModel->maxAngle)
+		if ((cSensorAngle < jointModel->minAngle || cSensorAngle > jointModel->maxAngle) ||
+			(cRawSensorAngle < jointModel->minAngle || cRawSensorAngle > jointModel->maxAngle))
 		{
 			stringstream ss;
 			ss << jointModel->name << " exceeded angle limits. Angle = " << AS5048::stepsToDegrees(cSensorAngle) << " [" << AS5048::stepsToDegrees(jointModel->minAngle) << "," << AS5048::stepsToDegrees(jointModel->maxAngle) << "]" << endl;
@@ -131,7 +132,7 @@ void PredictiveJointController::emergencyHalt(std::string reason)
 
 void PredictiveJointController::doPositionHoldControl()
 {
-	if (std::abs(cTargetAngleDistance) > MinDisturbanceError)
+	if (config->stepControlEnabled && std::abs(cTargetAngleDistance) > MinDisturbanceError)
 	{
 		staticControlMode = StaticControlMode::Stepping;
 		doStepControl();
@@ -159,12 +160,11 @@ void PredictiveJointController::doDynamicControl()
 	if (dynamicControlMode == DynamicControlMode::Travelling)
 	{
 		double dynamicAngleError = cTargetAngle - cSensorAngle;
-		double errorDerivative = dynamicAngleError - lDynamicPositionError;
+		double errorDerivative = (dynamicAngleError - lDynamicPositionError)/(cTime - lTime);
 		lDynamicPositionError = dynamicAngleError;
 
 		double velocityCorrection = dynamicAngleError * config->velocityCorrectionProportionalGain + errorDerivative * config->velocityCorrectionDerivativeGain;
-		velocityCorrection /= Configuration::SamplePeriod; 
-
+		
 		cTargetVelocity = cPlanTargetVelocity+velocityCorrection;
 		double finalAngleError = motionPlan->finalAngle - cSensorAngle;
 
@@ -204,7 +204,7 @@ void PredictiveJointController::doDynamicControl()
 
 void PredictiveJointController::doStaticControl()
 {	
-	if (staticControlMode == StaticControlMode::Holding)
+	if (!config->stepControlEnabled || staticControlMode == StaticControlMode::Holding)
 	{
 		doPositionHoldControl();	
 	}
@@ -220,7 +220,11 @@ void PredictiveJointController::doStaticControl()
 
 void PredictiveJointController::doSpeedControl()
 {
-	double expectedVelocity = servoModel->getSpeedForTorqueVoltage(cControlTorque,cVoltage);
+	double expectedVelocity;
+	if (config->useTargetFeedback)
+		expectedVelocity = servoModel->getSpeedForTorqueVoltage(cTargetVelocity,cVoltage);
+	else
+		expectedVelocity = servoModel->getSpeedForTorqueVoltage(cControlTorque,cVoltage);
 
 	//Stall check
 //	if (abs(expectedVelocity) > 1.0 && cVelocityApproximationError > 0.95 && abs(cVelocity) < 1.0)

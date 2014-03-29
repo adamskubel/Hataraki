@@ -1,13 +1,13 @@
 {
 	"Version" : "2.0",
 	"DataRecording" : {
-		"Enabled" : 0,
+		"Enabled" : 1,
 		"FilePrefix" : "JointData_"
 	},
 	"GlobalSettings" : {
-		"MaxVoltage" : 2.2,
+		"MaxVoltage" : 3.2,
 		"MotionPlanSteps" : 4,
-		"UpdateFrequency" : 200,
+		"UpdateFrequency" : 500,
 		"DefaultAccel" 	: 2000
 	},
 	"ArmModel" : 
@@ -165,14 +165,15 @@
 	"Controllers" : [		
 		{
 			"Name" : "Default",
-			"MaxAcceleration" : 60,
-			"SetpointPrecisionSteps" : 5,		
+			"MaxAcceleration" : 180,
+			"SetpointPrecisionSteps" : 10,
 			"SpeedControl" : 
 			{ 
-				"ProportionalGain" : 0.1,
+				"ProportionalGain" : 0.5,
 				"IntegralGain" : 0.0,
 				"DerivativeGain" : 0.0,
-				"HistoryLength" : 12
+				"HistoryLength" : 12,
+				"UseTargetFeedback" : 0
 			},
 			"GravityFlipTriggerEnabled" : 0,
 			"ExternalDisturbanceFlipTriggerEnabled" : 0,
@@ -197,12 +198,6 @@
 				"Enabled" : 0,
 				"VoltagePattern" : [ ]
 			},
-			"SavitzkyGolayFilter" : 
-			{
-				"Enabled" : 0,
-				"WindowSize" : 3,
-				"PolynomialDegree" : 2
-			},
 			"SensorFilters" : 
 			{
 				"LowpassPositionFilter" : 
@@ -216,22 +211,28 @@
 			},
 			"DynamicController" :
 			{
-				"VelocityKPForPositionCorrection" : 0.05,
-				"VelocityKDForPositionCorrection" : 0.001,
+				"VelocityKPForPositionCorrection" : 5,
+				"VelocityKDForPositionCorrection" : 0.0,
 				"SetpointApproachVelocity" : 10,
 				"SetpointApproachDistanceThreshold" : 1.5
-			}
+			},
+			 "StepControl" :
+			 {
+			 "Enabled" : 0
+			 }
+			
 		},
 		{
 			"Name" : "HighSpeedMotors",
-			"MaxAcceleration" : 80,
-			"SetpointPrecisionSteps" : 5,	
+			"MaxAcceleration" : 250,
+			"SetpointPrecisionSteps" : 20,
 			"SpeedControl" : 
 			{ 
 				"ProportionalGain" : 0.3,
 				"IntegralGain" : 0.0,
 				"DerivativeGain" : 0.0,
-				"HistoryLength" : 12
+				 "HistoryLength" : 9,
+				 "UseTargetFeedback" : 0
 			},
 			"GravityFlipTriggerEnabled" : 0,
 			"ExternalDisturbanceFlipTriggerEnabled" : 0,
@@ -242,17 +243,11 @@
 				"Enabled" : 0,
 				"VoltagePattern" : [[0.88,10],[1.2,10],[1.6,10]]
 			},
-			"SavitzkyGolayFilter" : 
-			{
-				"Enabled" : 0,
-				"WindowSize" : 3,
-				"PolynomialDegree" : 2
-			},
 			"SensorFilters" : 
 			{
 				"LowpassPositionFilter" : 
 				{
-					"TimeConstant" : 0.01				
+					"TimeConstant" : 0.01
 				},
 				"VelocityApproximation" : 
 				{
@@ -261,11 +256,15 @@
 			},
 			"DynamicController" :
 			{
-				"VelocityKPForPositionCorrection" : 0.05,
-				"VelocityKDForPositionCorrection" : 0.001,
+				"VelocityKPForPositionCorrection" : 5,
+				"VelocityKDForPositionCorrection" : 0.01,
 				"SetpointApproachVelocity" : 10,
 				"SetpointApproachDistanceThreshold" : 1.5
-			}
+			 },
+			 "StepControl" :
+			 {
+			 "Enabled" : 0
+			 }
 		},
 		{
 			"Name" : "Wheels",
@@ -276,7 +275,8 @@
 				"ProportionalGain" : 0.1,
 				"IntegralGain" : 0.0,
 				"DerivativeGain" : 0.001,
-				"HistoryLength" : 12
+				 "HistoryLength" : 12,
+				 "UseTargetFeedback" : 1
 			},
 			"GravityFlipTriggerEnabled" : 0,
 			"ExternalDisturbanceFlipTriggerEnabled" : 0,
@@ -291,7 +291,7 @@
 			{
 				"LowpassPositionFilter" : 
 				{
-					"TimeConstant" : 0.01				
+					"TimeConstant" : 0.01
 				},
 				"VelocityApproximation" : 
 				{
@@ -304,7 +304,11 @@
 				"VelocityKDForPositionCorrection" : 0.0,
 				"SetpointApproachVelocity" : 1,
 				"SetpointApproachDistanceThreshold" : 1.5
-			}
+			 },
+			 "StepControl" :
+			 {
+			 "Enabled" : 0
+			 }
 		}
 	],
 	"WheelDefinitions" : [
@@ -365,7 +369,7 @@
 				"SensorAddress" : 68,
 				"DriverDelay" : 0.0004,
 				"SensorDelay" : 0.0012,
-				"MaxDriverVoltage" : 2.6,
+				"MaxDriverVoltage" : 3.6,
 				"FrictionTorque" : 0.04,
 				"Motor" : "Motors.GM12-1000",
 				"Gearbox" : "Gearboxes.GM12-1000-Bevel",
@@ -387,7 +391,7 @@
 				"SensorAddress" : 75,
 				"DriverDelay" : 0.0004,
 				"SensorDelay" : 0.0,
-				"MaxDriverVoltage" : 2.2,
+				"MaxDriverVoltage" : 3.6,
 				"FrictionTorque" : 0.02,
 				"Motor" : "Motors.GM12-1000",
 				"Gearbox" : "Gearboxes.GM12-1000",
@@ -431,7 +435,7 @@
 				"SensorAddress" : 66,
 				"DriverDelay" : 0.0004,
 				"SensorDelay" : 0.0,
-				"MaxDriverVoltage" : 2.2,
+				"MaxDriverVoltage" : 3.6,
 				"FrictionTorque" : 0.02,
 				"Motor" : "Motors.GM12-1000",
 				"Gearbox" : "Gearboxes.GM12-1000",
@@ -453,7 +457,7 @@
 				"SensorAddress" : 67,
 				"DriverDelay" : 0.0004,
 				"SensorDelay" : 0.0,
-				"MaxDriverVoltage" : 2.2,
+				"MaxDriverVoltage" : 2.6,
 				"FrictionTorque" : 0.0086,
 				"Motor" : "Motors.GM12-298",
 				"Gearbox" : "Gearboxes.GM12-298",

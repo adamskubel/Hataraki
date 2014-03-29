@@ -1,4 +1,5 @@
 .gitignore
+TestMotion
 BasicMotion
 *.sdf
 *.opensdf

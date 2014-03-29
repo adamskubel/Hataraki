@@ -42,6 +42,7 @@ private:
 	{
 		logThread = NULL;
 		running = false;
+		delayedWrite = true;
 	}
 
 public:
@@ -62,12 +63,15 @@ public:
 	
 
 private:
-	std::unordered_map<std::string,std::ofstream*> filemap;
+	std::unordered_map<std::string,std::ostream*> filemap;
 	std::queue<LogTask*> taskQueue;
 	std::mutex taskQueueMutex;
 	std::thread * logThread;
-
+	
+	bool delayedWrite;
 	volatile bool running;
+
+	void writeStreamToFile(std::string filename, std::ostringstream * stream);
 
 	void run();
 	

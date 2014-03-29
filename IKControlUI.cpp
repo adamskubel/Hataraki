@@ -31,6 +31,8 @@ void IKControlUI::init()
 	int columnWidth = 12;
 	directModeActive = false;
 	
+	Favorites = {{10,0,-6},{0,-90,0},{11,0,-6},{0,-90,0}};
+	
 	elements.insert(make_pair("T",new UIElement(3,1,"T:")));
 	elements["T"]->setText("[T]ranslation:");
 	
@@ -371,6 +373,14 @@ void IKControlUI::handleInput()
 				case 'a':
 					setSelected(elements["AngleLabel"]);
 					break;
+				case 'o':
+					setTargetGoal(Favorites[0], Favorites[1]);
+					executePlan();
+					break;
+				case 'p':
+					setTargetGoal(Favorites[2], Favorites[3]);
+					executePlan();
+					break;
 				case 'U':
 					updateArmStatus(true);
 					break;
@@ -457,6 +467,18 @@ void IKControlUI::setSelected(UIElement * element)
 	
 	selectedElement = element;
 	selectedElement->setSelected(true);
+}
+
+void IKControlUI::setTargetGoal(Vector3d position, Vector3d eulerAngles)
+{
+	((NumberBox*)elements["Tx"])->setValue(position.x);
+	((NumberBox*)elements["Ty"])->setValue(position.y);
+	((NumberBox*)elements["Tz"])->setValue(position.z);
+	((NumberBox*)elements["Rx"])->setValue(eulerAngles.x);
+	((NumberBox*)elements["Ry"])->setValue(eulerAngles.y);
+	((NumberBox*)elements["Rz"])->setValue(eulerAngles.z);
+
+	calculatePlan();
 }
 
 void IKControlUI::updateArmStatus(bool copyToInput)

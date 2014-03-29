@@ -76,6 +76,8 @@ public:
 	bool externalDisturbanceFlipTriggerEnabled;
 	bool gravityFlipTriggerEnabled;
 	bool motionStartEnabled;
+	bool useTargetFeedback;
+	bool stepControlEnabled;
 
 	const bool savitzyGolayFilteringEnabled = false;
 	const int savitzyGolayWindowSize = 5;
@@ -115,10 +117,6 @@ public:
 		externalDisturbanceFlipTriggerEnabled = cJSON_GetObjectItem(rawConfig,"ExternalDisturbanceFlipTriggerEnabled")->valueint != 0;
 		gravityFlipTriggerEnabled = cJSON_GetObjectItem(rawConfig,"GravityFlipTriggerEnabled")->valueint != 0;
 
-		//savitzyGolayWindowSize = Configuration::getInstance().getObject(rawConfig,"SavitzkyGolayFilter.WindowSize")->valueint;
-		//savitzyGolayPolyDegree = Configuration::getInstance().getObject(rawConfig,"SavitzkyGolayFilter.PolynomialDegree")->valueint;
-		//savitzyGolayFilteringEnabled = Configuration::getInstance().getObject(rawConfig,"SavitzkyGolayFilter.Enabled")->valueint != 0;
-
 		maxAcceleration = AS5048::degreesToSteps(Configuration::getInstance().getObject(rawConfig,"MaxAcceleration")->valuedouble);
 
 		velocityCorrectionProportionalGain = Configuration::getInstance().getObject(rawConfig,"DynamicController.VelocityKPForPositionCorrection")->valuedouble;
@@ -128,6 +126,10 @@ public:
 		
 		positionHistorySize = Configuration::getInstance().getObject(rawConfig,"SpeedControl.HistoryLength")->valueint;
 		maxSetpointError = get("SetpointPrecisionSteps");
+		
+		useTargetFeedback = (bool)get("SpeedControl.UseTargetFeedback");
+		
+		stepControlEnabled = (bool)get("StepControl.Enabled");
 	}
 
 

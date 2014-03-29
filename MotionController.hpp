@@ -62,6 +62,9 @@ private:
 	long updatePeriod;
 	long updateCount;
 	
+	timespec planStartTime;
+	double planLogTimeOffset;
+	
 	MotionPlanner * motionPlanner;
 
 	DirectControlProvider * controlProvider;
@@ -69,6 +72,8 @@ private:
 	State state;
 	
 	std::map<std::string,SimpleMovingAverage*> timeSMA_map;
+
+	void executeControlTasks();
 	
 public:
 

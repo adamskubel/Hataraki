@@ -70,6 +70,7 @@ void PredictiveJointController::setCurrentState()
 	//Push current to last
 	lStaticModelTorque = cStaticModelTorque;
 	lRawSensorAngle = cRawSensorAngle;
+	lSensorAngle = cSensorAngle;
 	lTime = cTime;
 	
 	//Carry next to current
@@ -91,10 +92,10 @@ void PredictiveJointController::setCurrentState()
 		const double pi = AS5048::PI_STEPS;
 
 		//eg. -175 to 179
-		if (cSensorAngle > (pi/2) && lRawSensorAngle < (-pi/2))		
+		if (cSensorAngle > (pi/2) && lSensorAngle < (-pi/2))
 			cRevolutionCount--;		
 		//eg. 178 to -179
-		else if (cSensorAngle < (-pi/2) && lRawSensorAngle > (pi/2))
+		else if (cSensorAngle < (-pi/2) && lSensorAngle > (pi/2))
 			cRevolutionCount++;
 
 		cSensorAngle += (cRevolutionCount * AS5048::TAU_STEPS);
@@ -174,6 +175,6 @@ double PredictiveJointController::correctAngleForDiscreteErrors(double rawAngle)
 
 double PredictiveJointController::filterAngle(int rawSensorAngle)
 {
-	return rawSensorAngle;
-	//return filter_lowpass_position->next((double)rawSensorAngle);
+	//return rawSensorAngle;
+	return filter_lowpass_position->next((double)rawSensorAngle);
 }

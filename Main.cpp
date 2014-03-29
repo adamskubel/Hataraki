@@ -22,6 +22,8 @@
 #include <stdio.h>
 #include <signal.h>
 #include <execinfo.h>
+#include <pthread.h>
+#include <sched.h>
 
 #include <vector>
 #include <thread>
@@ -57,8 +59,27 @@ volatile bool running;
 MotionController * motionController;
 
 
+void requestPriority(int priority)
+{
+	pthread_t this_thread = pthread_self();
+	
+	struct sched_param params;
+	// We'll set the priority to the maximum.
+	params.sched_priority = sched_get_priority_max(priority);
+	int ret = pthread_setschedparam(this_thread, priority, &params);
+	
+	if (ret != 0) {
+		// Print the error
+		std::cout << "Unsuccessful in setting thread realtime prio" << std::endl;
+		return;
+	}
+}
+
+
 void updateController()
 {
+	requestPriority(SCHED_FIFO);
+	
 	while (running)
 	{
 		motionController->updateController();
@@ -170,12 +191,17 @@ int main(int argc, char *argv[])
 	
 	motionController->prepareAllJoints();		
 		
-	AsyncLogger::getInstance().startThread();
 
 	running = true;
 	std::thread jointUpdate(updateController);
+	
+	requestPriority(SCHED_OTHER);
 
 	cout << std::setbase(10) << 1.0 << endl;
+	
+	
+	
+	AsyncLogger::getInstance().startThread();
 
 	try
 	{
@@ -198,11 +224,15 @@ int main(int argc, char *argv[])
 					cout << "Exit command." << endl;
 					running = false;
 				}
-				else if (command.compare("enable") == 0)
+				else if (command.compare("enable") == 0 || command.compare("ea") == 0)
 				{
 					
 					string enableName;
-					input >> enableName;
+					
+					if (command.compare("ea") == 0)
+						enableName = "all";
+					else
+						input >> enableName;
 
 					if (input.fail()) {
 						cout << "Invalid input. Usage: enable <index|all>" << endl;
@@ -301,13 +331,13 @@ int main(int argc, char *argv[])
 				else if (command.compare("time") == 0)
 				{
 					motionController->printAverageTime();
-					for (auto it = busMap.begin(); it != busMap.end(); it++)
-					{
-						cout << "Bus: " << it->first <<
-							". Read = " << it->second->readTime->avg() << " ms" <<
-							". Write = " << it->second->writeTime->avg() << " ms" <<
-						endl;
-					}
+					//for (auto it = busMap.begin(); it != busMap.end(); it++)
+					//{
+					//	cout << "Bus: " << it->first <<
+					//		". Read = " << it->second->readTime->avg() << " ms" <<
+					//		". Write = " << it->second->writeTime->avg() << " ms" <<
+					//	endl;
+					//}
 				}
 				else
 				{
@@ -333,7 +363,7 @@ int main(int argc, char *argv[])
 	jointUpdate.join();
 	cout << "Done." << endl;
 	
-	motionController->shutdown();	
-		
+	motionController->shutdown();
+	
 	AsyncLogger::getInstance().joinThread();
 }

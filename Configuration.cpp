@@ -1,6 +1,7 @@
 #include "Configuration.hpp"
 
 bool Configuration::CsvLoggingEnabled = false;
+bool Configuration::FastLogging = true;
 char Configuration::CsvSeparator = ',';
 double Configuration::SamplePeriod = 0.01;
 

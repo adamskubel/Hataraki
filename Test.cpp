@@ -55,19 +55,28 @@ double fmt(double d)
 }
 
 
-
-//void handle(int sig) {
-//	void *array[30];
-//	size_t size;
-//
-//	// get void*'s for all entries on the stack
-//	size = backtrace(array, 30);
-//
-//	// print out all the frames to stderr
-//	fprintf(stderr, "Error: signal %d:\n", sig);
-//	backtrace_symbols_fd(array, (int)size, STDERR_FILENO);
-//	exit(1);
-//}
+class FakeJoint : public PredictiveJointController
+{
+public:
+	double Angle;
+	
+	FakeJoint(JointModel *jointModel) :
+		PredictiveJointController(jointModel,map<string,I2CBus*>())
+	{
+		Angle = 0;
+	}
+	
+	FakeJoint(JointModel *jointModel, double Angle) :
+		PredictiveJointController(jointModel,map<string,I2CBus*>())
+	{
+		this->Angle = Angle;
+	}
+	
+	virtual double getCurrentAngle()
+	{
+		return Angle;
+	}
+};
 
 void testMotionPlanning();
 void testQuadRegression();
@@ -99,11 +108,21 @@ int main(int argc, char *argv[])
 
 	for (int i=0;i<armModel->joints.size();i++)
 	{
-		PredictiveJointController * pjc = new PredictiveJointController(&(armModel->joints.at(i)),busMap);
+		PredictiveJointController * pjc = new FakeJoint(&(armModel->joints.at(i)),0);
 		controllers.push_back(pjc);
 	}
 	motionController = new MotionController(controllers,5);
 	
+	
+	LowpassFilter f(0.001);
+	vector<double> testNum = {1,2,3,4,5};
+	for (int i=0;i<testNum.size();i++)
+	{
+		cout << f.next(testNum[i]) << " ";
+		usleep(1000);
+		
+	}
+	cout << endl;
 	
 //	vector<double> lastAngles({1,1,1,1,1,1});
 //	vector<double> initialAnglesConv(6);
@@ -118,10 +137,10 @@ int main(int argc, char *argv[])
 //	testDynamicTorque();
 
 //	cout << endl << endl << " --- MotionPlanning --- " << endl;
-	testMotionPlanning();
+//	testMotionPlanning();
 	
 //	HatarakiTest::testEulerAngleExtraction();
-//	HatarakiTest::testIKRotation();
+	HatarakiTest::testIKRotation();
 //	HatarakiTest::testTMVoltageConverter();
 	
 //	HatarakiTest::testAngleExtractionIK();
@@ -260,32 +279,46 @@ void testServoModel(ServoModel * sm)
 	cout << "V=0.56, T=0, S=" << sm->getSpeedForTorqueVoltage(0,0.56) << endl;
 }
 
+void setAngles(vector<double> angles)
+{
+	for (int i=0;i<6;i++)
+		dynamic_cast<FakeJoint*>(controllers[i])->Angle = angles[i];
+}
+
+void setAnglesDegrees(vector<double> anglesDegrees)
+{
+	for (int i=0;i<6;i++)
+		dynamic_cast<FakeJoint*>(controllers[i])->Angle = AS5048::degreesToSteps(anglesDegrees[i]);
+}
+
+void validatePlan(vector<shared_ptr<MotionPlan>> & motionPlan)
+{
+	cout << "Plan duration = " << motionPlan.front()->getPlanDuration() << endl;
+	
+	for (int c = 0; c < motionPlan.size(); c++)
+	{
+		double f0 = motionPlan[c]->finalAngle;
+		double f1 =	motionPlan[c]->x(10);
+		
+		if (std::abs(f0 - f1) > 1.0)
+		{
+			cout << "Final = " << f0 << ", Final(t) = " <<  f1 << endl;
+		}
+	}
+}
 
 void testMotionPlanning()
 {
 	MotionPlanner * mp = new MotionPlanner(controllers);
 	
-	//	double  initialAngles_deg[] = {0.1,-6.4,0,34,63,0}; //11 0 -6
+	const vector<double> angles1 = {0.1,-6.4,0,34,63,0}; //11 0 -6
+	const vector<double> angles2 = {0,-17,0,53,34,0}; //12 0 -5.5, 0 -70 0
+	const vector<double> angles3  = {0,-22,0,60,41,0}; //11 0 -5.5, 0 -70 0
 	
-	double  initialAngles_deg[] = {0,-17,0,53,34,0}; //12 0 -5.5, 0 -70 0
-	
-	//double  initialAngles_deg[] = {0,-22,0,60,41,0}; //11 0 -5.5, 0 -70 0
-	
-	//double  initialAngles_deg[] = {0,0,0,0,0,0}; //11 0 -6
-	vector<double> intialAngles_rad, initialAngles_step;
-	
-	for (int i=0;i<6;i++) intialAngles_rad.push_back(MathUtil::degreesToRadians(initialAngles_deg[i]));
-	for (int i=0;i<6;i++) initialAngles_step.push_back(AS5048::degreesToSteps(initialAngles_deg[i]));
-	
-	int divisionCount = 1;
-	mp->setPathDivisions(divisionCount);
-	//auto steps = mp->buildMotionSteps(IKGoal(Vector3d(11,0,-5.5)/100.0, Matrix3d::createRotationAroundAxis(0, -70, 0),false));
-	
-	//if (divisionCount != steps.size()) cout << "Division count is " << steps.size() << ", expected " << divisionCount << endl;
 	
 	std::ofstream outFile("/users/adamskubel/desktop/test_motionplanning.csv");
 	int numChannels = 6;
-	outFile << "Time,";
+	outFile << "Time,TipX,TipY,TipZ,LinX,LinY,LinZ,";
 	
 	std::string names[] = {"Roll0","Pitch0","Roll1","Pitch1","Pitch2","Roll2"};
 	
@@ -294,42 +327,51 @@ void testMotionPlanning()
 		std::string name = names[c];
 		outFile << name << ".x," << name << ".dx," << name << ".k," << name << ".ddx" << ",";
 	}
+	outFile << "KeyTipX,KeyTipY,KeyTipZ";
 	outFile << endl;
 	
+	setAnglesDegrees(angles1); //Set with IK?
+	
+	double r[9];
+	Vector3d startPosition;
+	vector<double> a(6);
+	transform(angles1.begin(), angles1.end(), a.begin(), MathUtil::degreesToRadians);
+	ComputeFk(a.data(),startPosition,r);
+	
+	Vector3d endPosition(10,1,-6);
+	endPosition /= 100;
+	
 	mp->setPathInterpolationMode(PathInterpolationMode::FixedStepCount);
-	auto motionPlan = mp->buildPlan(IKGoal(Vector3d(11,0,-5.5)/100.0, Matrix3d::createRotationAroundAxis(0, -70, 0),false));
+	mp->setPathDivisions(20);
+	auto motionPlan = mp->buildPlan(IKGoal(endPosition, Matrix3d::createRotationAroundAxis(0, -90, 0),false));
+		
+	validatePlan(motionPlan);
 	
-	cout << "Plan duration = " << motionPlan.front()->getPlanDuration() << endl;
-	
-	for (int c = 0; c < numChannels; c++)
+	double duration = motionPlan.front()->getPlanDuration();
+	for (double t = 0.0; t < duration; t += 0.001)
 	{
-		double f0 = motionPlan[c]->finalAngle;
-		double f1 =motionPlan[c]->x(10);
+		Vector3d actualTip,linearTip, keyTip;
+		vector<double> jointAngles, kfJointAngles;
 		
-		if (std::abs(f0 - f1) > 1.0)
-		//cout << "Channel " << c << endl;
-			cout << "Final = " << f0 << ", Final(t) = " <<  f1 << endl;
+		for (int c=0;c<numChannels;c++) jointAngles.push_back(AS5048::stepsToRadians(motionPlan[c]->x(t)));
+				
+		linearTip = startPosition + (endPosition-startPosition)*(t/duration);
+		ComputeFk(jointAngles.data(), actualTip, r);
 		
-//		for (auto it = motionPlan[c]->motionIntervals.begin(); it != motionPlan[c]->motionIntervals.end(); it++)
-//		{
-//			cout << it->startSpeed << " - " << it->endSpeed << ", " << it->duration << " s" <<  endl;
-//		}
-//		cout << endl;
-	}
-	
-	for (double t = 0.0; t < motionPlan.front()->getPlanDuration(); t += 0.02)
-	{
-		Vector3d actualPosition,expectedPosition;
+		linearTip *= 100;
+		actualTip *= 100;
 		
+		outFile << t << ",";
 		
-		outFile
-		<< t << ",";
-		//<< "," << actualPosition.x << "," << actualPosition.y << "," << actualPosition.z
-		//<< "," << expectedPosition.x << "," << expectedPosition.y << "," << expectedPosition.z << ",";
+		outFile << actualTip.x << "," << actualTip.y << "," << actualTip.z
+		<< "," << linearTip.x << "," << linearTip.y << "," << linearTip.z << ",";
 		for (int c=0;c<numChannels;c++)
 		{
 			auto kF= motionPlan[c]->keyframes.lower_bound(t);
 			if (kF == motionPlan[c]->keyframes.end()) kF--;
+			
+			
+			kfJointAngles.push_back(AS5048::stepsToRadians(kF->second));
 						
 			outFile
 			<< fmt(motionPlan[c]->x(t)) << ","
@@ -337,7 +379,29 @@ void testMotionPlanning()
 			<< fmt(kF->second) << ","
 			<< fmt((motionPlan[c]->ddx(t)*0.1)) << ",";
 		}
+		
+		ComputeFk(kfJointAngles.data(), keyTip, r);
+		keyTip *= 100.0;
+		outFile << keyTip.x << "," << keyTip.y << "," << keyTip.z;
+		
 		outFile << endl;
 	}
 	outFile.close();	
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

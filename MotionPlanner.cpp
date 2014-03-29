@@ -120,6 +120,11 @@ void MotionPlanner::calculateStep(vector<StepMotionPlan> * stepPlans, std::vecto
 			vF = stepPlans[c].at(i).finalVelocity;
 			enforce = stepPlans[c].at(i).isFinalVelocityEnforced;
 		}
+//		else if (i == steps.size() - 1)
+//		{
+//			vF = 0;
+//			enforce = true;
+//		}
 
 		// *** TEMPORAL ANALYSIS PHASE ***
 		if (phase == 0)
@@ -381,7 +386,7 @@ vector<shared_ptr<MotionPlan> > MotionPlanner::buildPlan(IKGoal goal)
 
 vector<shared_ptr<MotionPlan> > MotionPlanner::buildPlan(vector<Step> & steps)
 {
-	const bool startIntervalEnabled = !true;
+	const bool startIntervalEnabled = false;
 	auto stepMotionPlans = new vector<StepMotionPlan>[6];
 	
 	for (int c=0;c<6;c++)

@@ -184,33 +184,63 @@ void PredictiveJointController::validateMotionPlan(std::shared_ptr<MotionPlan> r
 
 void PredictiveJointController::writeLogHeader()
 {
-	stringstream ss;
-	ss <<
-		"Time"				<< Configuration::CsvSeparator <<
-		"JointStatus"		<< Configuration::CsvSeparator <<
-		"RawSensorAngle"	<< Configuration::CsvSeparator <<
-		"SensorAngle"		<< Configuration::CsvSeparator <<
-		"TargetAngle"		<< Configuration::CsvSeparator <<
-		"Velocity"			<< Configuration::CsvSeparator <<
-		"VelocityR2"		<< Configuration::CsvSeparator << 
-		"TargetVelocity"	<< Configuration::CsvSeparator <<
-		"PredictedTorque"	<< Configuration::CsvSeparator <<
-		"ControlTorque"		<< Configuration::CsvSeparator <<
-		"EffectiveVoltage"	<< Configuration::CsvSeparator <<
-		"TargetVoltage"		<< Configuration::CsvSeparator <<
-		"AppliedVoltage"	<< Configuration::CsvSeparator <<
-		"ControlMode"		<< Configuration::CsvSeparator <<
-		"SecondaryState"	<< Configuration::CsvSeparator <<
-		"SensorWriteTime"	<< Configuration::CsvSeparator <<
-		"SensorReadTime"	<< Configuration::CsvSeparator <<
-		"DriverWriteTime"	<< Configuration::CsvSeparator <<
-		"MotorTorque"		<< Configuration::CsvSeparator <<
-		"RunTime"			<< Configuration::CsvSeparator <<
-		"QuadRegAccel"		<< Configuration::CsvSeparator << 
-		"PlanAccel"			<< Configuration::CsvSeparator <<
-		"PlanVelocity"		<< Configuration::CsvSeparator << 
-		"ExpectedVelocity"	<< Configuration::CsvSeparator << endl;
+	if (Configuration::FastLogging)
+	{
+		//
+	}	
+	else
+	{
+		stringstream ss;
 
+		ss <<
+			"Time"				<< Configuration::CsvSeparator <<
+			"JointStatus"		<< Configuration::CsvSeparator <<
+			"RawSensorAngle"	<< Configuration::CsvSeparator <<
+			"SensorAngle"		<< Configuration::CsvSeparator <<
+			"TargetAngle"		<< Configuration::CsvSeparator <<
+			"Velocity"			<< Configuration::CsvSeparator <<
+			"VelocityR2"		<< Configuration::CsvSeparator << 
+			"TargetVelocity"	<< Configuration::CsvSeparator <<
+			"PredictedTorque"	<< Configuration::CsvSeparator <<
+			"ControlTorque"		<< Configuration::CsvSeparator <<
+			"EffectiveVoltage"	<< Configuration::CsvSeparator <<
+			"TargetVoltage"		<< Configuration::CsvSeparator <<
+			"AppliedVoltage"	<< Configuration::CsvSeparator <<
+			"ControlMode"		<< Configuration::CsvSeparator <<
+			"SecondaryState"	<< Configuration::CsvSeparator <<
+			"SensorWriteTime"	<< Configuration::CsvSeparator <<
+			"SensorReadTime"	<< Configuration::CsvSeparator <<
+			"DriverWriteTime"	<< Configuration::CsvSeparator <<
+			"MotorTorque"		<< Configuration::CsvSeparator <<
+			"RunTime"			<< Configuration::CsvSeparator <<
+			"QuadRegAccel"		<< Configuration::CsvSeparator << 
+			"PlanAccel"			<< Configuration::CsvSeparator <<
+			"PlanVelocity"		<< Configuration::CsvSeparator << 
+		"ExpectedVelocity"	<< Configuration::CsvSeparator << endl;
+		AsyncLogger::getInstance().postLogTask(logfileName,ss.str());
+	}
+
+}
+
+void PredictiveJointController::writeHistoryToLog()
+{
+	stringstream ss;
+	ss << "Time,SensorAngle,TargetAngle,Velocity,TargetVelocity,PlanVelocity" << endl;
+
+	while (!dataHistory.empty())
+	{
+		DataFrame frame = dataHistory.front();
+		dataHistory.pop_front();
+
+		ss
+			<< frame.Time		<< Configuration::CsvSeparator
+			<< frame.Angle		<< Configuration::CsvSeparator
+			<< frame.TargetAngle	<< Configuration::CsvSeparator
+			<< frame.Velocity		<< Configuration::CsvSeparator
+			<< frame.TargetVelocity	<< Configuration::CsvSeparator
+			<< frame.PlanVelocity << Configuration::CsvSeparator << endl;
+		
+	}
 	AsyncLogger::getInstance().postLogTask(logfileName,ss.str());
 }
 
@@ -219,73 +249,80 @@ void PredictiveJointController::logState()
 {
 	if (TimeUtil::timeSince(enableTime) < Configuration::SamplePeriod*3.0) return;
 
-	timespec logStart;
-	TimeUtil::setNow(logStart);
+	if (Configuration::FastLogging)
+	{
+		dataHistory.push_back(DataFrame(cTime,cSensorAngle,cVelocity,cTargetAngle,cTargetVelocity,cPlanTargetVelocity));	
+	}
+	else
+	{
+		timespec logStart;
+		TimeUtil::setNow(logStart);
 
-	const double torqueScale = 100.0;
-	stringstream ss;
+		const double torqueScale = 100.0;
+		stringstream ss;
 
-	ss
-		<< cTime			<< Configuration::CsvSeparator
-		<< jointStatus		<< Configuration::CsvSeparator
-		<< cRawSensorAngle	<< Configuration::CsvSeparator
-		<< cSensorAngle		<< Configuration::CsvSeparator
-		<< cTargetAngle		<< Configuration::CsvSeparator
-		<< cVelocity		<< Configuration::CsvSeparator
-		<< cVelocityApproximationError << Configuration::CsvSeparator
-		<< cTargetVelocity	<< Configuration::CsvSeparator
-		<< cPredictedTorque*torqueScale << Configuration::CsvSeparator
-		<< cControlTorque*torqueScale << Configuration::CsvSeparator
-		<< cVoltage			<< Configuration::CsvSeparator
-		<< nTargetVoltage	<< Configuration::CsvSeparator
-		<< cAppliedVoltage	<< Configuration::CsvSeparator;
+		ss
+			<< cTime			<< Configuration::CsvSeparator
+			<< jointStatus		<< Configuration::CsvSeparator
+			<< cRawSensorAngle	<< Configuration::CsvSeparator
+			<< cSensorAngle		<< Configuration::CsvSeparator
+			<< cTargetAngle		<< Configuration::CsvSeparator
+			<< cVelocity		<< Configuration::CsvSeparator
+			<< cVelocityApproximationError << Configuration::CsvSeparator
+			<< cTargetVelocity	<< Configuration::CsvSeparator
+			<< cPredictedTorque*torqueScale << Configuration::CsvSeparator
+			<< cControlTorque*torqueScale << Configuration::CsvSeparator
+			<< cVoltage			<< Configuration::CsvSeparator
+			<< nTargetVoltage	<< Configuration::CsvSeparator
+			<< cAppliedVoltage	<< Configuration::CsvSeparator;
 
 	
-	if (dynamicControl)
-	{	
-		if (dynamicControlMode == DynamicControlMode::Travelling)
-		{			
-			ss << 1	<< Configuration::CsvSeparator;
-			ss << speedControlState;
+		if (dynamicControl)
+		{	
+			if (dynamicControlMode == DynamicControlMode::Travelling)
+			{			
+				ss << 1	<< Configuration::CsvSeparator;
+				ss << speedControlState;
+			}
+			else
+			{
+				ss << 2	<< Configuration::CsvSeparator;
+				ss << dynamicControlMode;
+			}
 		}
-		else
+		else 
 		{
-			ss << 2	<< Configuration::CsvSeparator;
-			ss << dynamicControlMode;
+			if (staticControlMode == StaticControlMode::Stepping)
+			{			
+				ss << -2	<< Configuration::CsvSeparator;
+				ss << steppingState;
+			}
+			else //if (staticControlMode == StaticControlMode::Holding)
+			{			
+				ss << -1	<< Configuration::CsvSeparator;
+				ss << 0;
+			}
 		}
+
+
+		ss 
+			<< Configuration::CsvSeparator 
+			<< cSensorWriteTime		<< Configuration::CsvSeparator 
+			<< cSensorReadTime		<< Configuration::CsvSeparator 
+			<< cDriverWriteTime		<< Configuration::CsvSeparator 
+			<< cMotorTorque*torqueScale << Configuration::CsvSeparator
+			<< cRunTime				<< Configuration::CsvSeparator
+			<< cQuadRegAcceleration	<< Configuration::CsvSeparator
+			<< cTargetAcceleration	<< Configuration::CsvSeparator
+			<< cPlanTargetVelocity	<< Configuration::CsvSeparator 
+			<< servoModel->getSpeedForTorqueVoltage(cControlTorque,cVoltage);
+
+		ss << endl;
+
+		AsyncLogger::getInstance().postLogTask(logfileName,ss.str());
+
+		TimeUtil::assertTime(logStart,jointModel->name + ".logState()",0.01);
 	}
-	else 
-	{
-		if (staticControlMode == StaticControlMode::Stepping)
-		{			
-			ss << -2	<< Configuration::CsvSeparator;
-			ss << steppingState;
-		}
-		else //if (staticControlMode == StaticControlMode::Holding)
-		{			
-			ss << -1	<< Configuration::CsvSeparator;
-			ss << 0;
-		}
-	}
-
-
-	ss 
-		<< Configuration::CsvSeparator 
-		<< cSensorWriteTime		<< Configuration::CsvSeparator 
-		<< cSensorReadTime		<< Configuration::CsvSeparator 
-		<< cDriverWriteTime		<< Configuration::CsvSeparator 
-		<< cMotorTorque*torqueScale << Configuration::CsvSeparator
-		<< cRunTime				<< Configuration::CsvSeparator
-		<< cQuadRegAcceleration	<< Configuration::CsvSeparator
-		<< cTargetAcceleration	<< Configuration::CsvSeparator
-		<< cPlanTargetVelocity	<< Configuration::CsvSeparator 
-		<< servoModel->getSpeedForTorqueVoltage(cControlTorque,cVoltage);
-
-	ss << endl;
-
-	AsyncLogger::getInstance().postLogTask(logfileName,ss.str());
-
-	TimeUtil::assertTime(logStart,jointModel->name + ".logState()",0.01);
 
 }
 
@@ -309,6 +346,11 @@ JointModel * PredictiveJointController::getJointModel()
 double PredictiveJointController::getCurrentAngle()
 {
 	return cSensorAngle;
+}
+
+double PredictiveJointController::getAngleSetpoint()
+{
+	return cTargetAngle;
 }
 
 double PredictiveJointController::getCurrentVelocity()
@@ -346,6 +388,9 @@ JointStatus PredictiveJointController::getJointStatus()
 }
 
 
-
+bool PredictiveJointController::isDynamicMode()
+{
+	return dynamicControl;
+}
 
 

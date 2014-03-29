@@ -61,7 +61,7 @@ void AsyncLogger::run()
 			if (taskQueue.empty())
 			{
 				taskQueueMutex.unlock();
-				usleep(1000);
+				usleep(10000);
 				//this_thread::sleep_for(std::chrono::milliseconds(1));
 				continue;
 			}
@@ -76,11 +76,15 @@ void AsyncLogger::run()
 			}
 			else
 			{
-				std::ofstream * logFile;
+				std::ostream * logFile;
 				auto it = filemap.find(task->filename);
 				if (it == filemap.end())
 				{
-					logFile = new ofstream(task->filename.c_str(),std::ofstream::out);
+					if (delayedWrite)
+						logFile = new ostringstream(ostringstream::out);
+					else
+						logFile = new ofstream(task->filename.c_str(),std::ofstream::out);
+
 					filemap.insert(std::make_pair(task->filename,logFile));
 				}
 				else
@@ -88,7 +92,8 @@ void AsyncLogger::run()
 
 				*logFile << task->message;
 
-				logFile->flush();
+				//if (!delayedWrite)
+					//logFile->flush();
 			}
 			delete task;
 		}
@@ -99,12 +104,14 @@ void AsyncLogger::run()
 		}
 	}
 
-
 	try
 	{
 		for (auto it = filemap.begin(); it != filemap.end(); it++)
 		{
-			it->second->close();
+			if (delayedWrite)
+				writeStreamToFile(it->first,(ostringstream*)it->second);
+			else
+				((ofstream*)it->second)->close();
 		}
 	}
 	catch (std::exception & e)
@@ -145,4 +152,11 @@ void AsyncLogger::joinThread()
 	{
 		cout << "Log thread not started." << endl;
 	}
+}
+
+void AsyncLogger::writeStreamToFile(string filename, ostringstream * stream)
+{
+	ofstream file(filename,std::ofstream::out);
+	file << stream->str();
+	file.close();
 }

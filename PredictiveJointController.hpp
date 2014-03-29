@@ -73,7 +73,24 @@ enum SpeedControlState {
 
 
 class PredictiveJointController {
-	
+
+	struct DataFrame {
+
+		double Time, Angle, Velocity, TargetAngle, TargetVelocity, PlanVelocity;
+
+		DataFrame(double Time, double Angle, double Velocity, double TargetAngle, double TargetVelocity, double PlanVelocity)
+		{
+			this->Time = Time;
+			this->Angle = Angle;
+			this->Velocity = Velocity;
+			this->TargetAngle = TargetAngle;
+			this->TargetVelocity = TargetVelocity;
+			this->PlanVelocity = PlanVelocity;
+		}
+	};
+
+
+
 private:
 	ServoModel * servoModel;
 	JointModel * jointModel;
@@ -92,13 +109,15 @@ private:
 	QuadraticRegression * quadraticRegressionFilter;
 
 	//Historical data
+	std::list<DataFrame> dataHistory;
 	std::list<std::pair<double,double> > rawSensorAngleHistory;
 
 	int cRevolutionCount;
 
 	//Previous state
 	double lTime;
-	double lRawSensorAngle;	
+	int lRawSensorAngle;
+	double lSensorAngle;	
 	double lStaticModelTorque;
 	double lVelocityError;
 		
@@ -106,6 +125,8 @@ private:
 	std::shared_ptr<MotionPlan> motionPlan;
 	timespec enableTime;
 	bool motionPlanComplete;
+
+
 	
 	//Current state
 	double cTime;
@@ -257,9 +278,13 @@ public:
 	void run();
 
 	double getMaxVelocity();
-	double getCurrentAngle();
+	virtual double getCurrentAngle();
 	double getCurrentVelocity();
 	double getMaxAcceleration();
+	double getAngleSetpoint();
+	bool isDynamicMode();
+
+	void writeHistoryToLog();
 		
 	JointModel * getJointModel();	
 

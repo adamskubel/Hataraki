@@ -13,6 +13,7 @@ MotionController::MotionController(vector<PredictiveJointController*> & _joints,
 	this->planStepCount = _planStepCount;	
 	this->motionPlanner = new MotionPlanner(joints);
 
+	planLogTimeOffset = 0;
 	updateCount = 0;
 	
 	for (auto it = joints.begin(); it != joints.end(); it++)
@@ -20,7 +21,10 @@ MotionController::MotionController(vector<PredictiveJointController*> & _joints,
 	
 	
 	timeSMA_map.insert(make_pair("All",new SimpleMovingAverage(30)));
+	timeSMA_map.insert(make_pair("PoseDynamics",new SimpleMovingAverage(30)));
 	
+	AsyncLogger::getInstance().postLogTask("ik_tracking.csv", "Count,x,y,z,xt,yt,zt,xd,yd,zd\n");
+	AsyncLogger::getInstance().postLogTask("joint_tracking.csv", "Time,Roll0,xRoll0,Pitch0,xPitch0,Roll1,xRoll1,Pitch1,xPitch1,Pitch2,xPitch2,Roll2,xRoll2\n");
 	state = State::Waiting;
 }
 
@@ -32,59 +36,121 @@ PredictiveJointController * MotionController::getJointByIndex(int jointIndex)
 	return joints[jointIndex];
 }
 
+void MotionController::executeControlTasks()
+{
+	timespec step;
+	TimeUtil::setNow(step);
+	if (taskQueueMutex.try_lock()) {		
+		while (!taskQueue.empty()) {
+			try 
+			{
+				taskQueue.front()();
+			}
+			catch (std::runtime_error & e)
+			{
+				stringstream ss;
+				ss << "Exception executing scheduled task: " << e.what();
+				AsyncLogger::log(ss);
+			}
+			taskQueue.pop();
+		}
+		taskQueueMutex.unlock();
+	}
+	TimeUtil::assertTime(step,"Task execution");
+}
+
+
 void MotionController::updateController(){
 
 	if (state == State::Shutdown) return;
-
+	
 	try 
 	{
+		bool jointHasActivePlan = false;
+		bool logIk = false;
+
 		timespec start, step;
 		TimeUtil::setNow(start);
 
-		std::vector<double> jointAngles;
+		std::vector<double> jointAngles, jointTargetAngles;
 
 		for (auto it = joints.begin(); it != joints.end(); it++)
 		{
 			TimeUtil::setNow(step);
-			(*it)->run();
-			jointAngles.push_back(AS5048::stepsToRadians((*it)->getCurrentAngle()));
-			timeSMA_map[(*it)->getJointModel()->name]->add(TimeUtil::timeSince(step)*1000.0);
-			//TimeUtil::assertTime(step,"Joint " + (*it)->getJointModel()->name + " update");
+			auto joint = *it;
+
+			joint->run();
+			
+			jointAngles.push_back(AS5048::stepsToRadians(joint->getCurrentAngle()));
+			jointTargetAngles.push_back(AS5048::stepsToRadians(joint->getAngleSetpoint()));
+
+			jointHasActivePlan = jointHasActivePlan|| joint->isDynamicMode();
+
+			timeSMA_map[joint->getJointModel()->name]->add(TimeUtil::timeSince(step)*1000.0);
 		}
 		timeSMA_map["All"]->add(TimeUtil::timeSince(start)*1000.0);
 		
-		//TimeUtil::setNow(step);
 		if (updateCount % 100 == 0)
 		{
+			TimeUtil::setNow(step);
 			PoseDynamics::getInstance().setJointAngles(jointAngles);
 			PoseDynamics::getInstance().update();
+			timeSMA_map["PoseDynamics"]->add(TimeUtil::timeSince(step)*1000.0);
 		}
-		//TimeUtil::assertTime(step,"Pose dynamics update",10.0/1000.0);
 		
-		updateStreamingMotionPlans();
-
-		TimeUtil::setNow(step);
-		if (taskQueueMutex.try_lock()) {		
-			while (!taskQueue.empty()) {
-				try 
-				{
-					taskQueue.front()();
-				}
-				catch (std::runtime_error & e)
-				{
-					stringstream ss;
-					ss << "Exception executing scheduled task: " << e.what();
-					AsyncLogger::log(ss);
-				}
-				taskQueue.pop();
+		//Update state
+		switch (state)
+		{
+		case State::FinitePlan:
+			if (!jointHasActivePlan)
+			{
+				state = State::Waiting;
+				//On transition, mark the time
+				planLogTimeOffset += TimeUtil::timeSince(planStartTime) + 0.1;
 			}
-			taskQueueMutex.unlock();
+			break;
+		case State::StreamingPlan:
+			updateStreamingMotionPlans();
+			break;
+		default:
+			break;
 		}
-		TimeUtil::assertTime(step,"Task execution");
+				
+		if (state == State::FinitePlan)
+		{
+			if (logIk)
+			{
+				stringstream ss;
+				double r[9];
+				Vector3d t,t2,td;
+				ikfast2::ComputeFk(jointAngles.data(),t,r);
+				ss << updateCount << "," << t.x << "," << t.y << "," << t.z;
+				ikfast2::ComputeFk(jointTargetAngles.data(),t2,r);
+				td = t - t2;
+				ss << "," << t2.x << "," << t2.y << "," << t2.z <<
+					"," << td.x << "," << td.y << "," << td.z << endl;
+			
+				AsyncLogger::getInstance().postLogTask("ik_tracking.csv", ss.str());
+			}
 
-//		stringstream timeStream;
-//		timeStream << updateCount << "," << TimeUtil::timeSince(start)*1000.0 << endl;
-//		AsyncLogger::getInstance().postLogTask("Timing.csv",timeStream.str());
+			//stringstream jointStream;
+			//jointStream << TimeUtil::timeSince(planStartTime) + planLogTimeOffset << ",";
+			//for (auto it = joints.begin(); it != joints.end(); it++)
+			//{
+			//	auto joint = *it;
+			//	jointStream << joint->getCurrentAngle() << "," << joint->getAngleSetpoint << "," << joint->getCurrentVelocity() << ","
+			//}
+			//for (int i=0;i<jointAngles.size();i++)
+			//{
+			//	jointStream << 
+			//	AS5048::radiansToSteps(jointAngles[i]) << "," << AS5048::radiansToSteps(jointTargetAngles[i]) << ",";
+			//}
+			//jointStream << endl;
+			//AsyncLogger::getInstance().postLogTask("joint_tracking.csv", jointStream.str());
+		}
+		
+		
+		executeControlTasks();
 		
 		double totalTime = TimeUtil::timeSince(start);
 		long adjustedSleep = updatePeriod - (totalTime*1000000);
@@ -106,40 +172,37 @@ void MotionController::updateController(){
 
 void MotionController::updateStreamingMotionPlans()
 {
-	if (state == State::StreamingPlan)
+	bool complete = false;
+	for (auto it=currentPlan.begin(); it != currentPlan.end(); it++)
 	{
-		bool complete = false;
-		for (auto it=currentPlan.begin(); it != currentPlan.end(); it++)
+		if (TimeUtil::timeUntil((*it)->endTime) < 0)
 		{
-			if (TimeUtil::timeUntil((*it)->endTime) < 0)
-			{
-				complete = true;
-				break;
-			}
+			complete = true;
+			break;
 		}
-		
-		if (complete)
+	}
+
+	if (complete)
+	{
+		AsyncLogger::log("Plan complete, reading next goal");
+		currentPlan.clear();
+		IKGoal goal = controlProvider->nextGoal();
+		try
 		{
-			AsyncLogger::log("Plan complete, reading next goal");
-			currentPlan.clear();
-			IKGoal goal = controlProvider->nextGoal();
-			try
-			{
-				currentPlan = motionPlanner->buildPlan(goal);
-			}
-			catch (std::runtime_error & e)
-			{
-				stringstream ss;
-				ss << "Exception building plan for streaming goal." << e.what();
-				AsyncLogger::log(ss.str());
-				controlProvider->motionOutOfRange();
-				controlProvider->revokeControl();
-				currentPlan = motionPlanner->buildPlan(IKGoal::stopGoal());
-			}
-			
-			std::for_each(currentPlan.begin(),currentPlan.end(),[](shared_ptr<MotionPlan> p){p->startNow();});
-			for (int i=0;i<6;i++) joints.at(i)->joinMotionPlan(currentPlan.at(i));			
+			currentPlan = motionPlanner->buildPlan(goal);
 		}
+		catch (std::runtime_error & e)
+		{
+			stringstream ss;
+			ss << "Exception building plan for streaming goal." << e.what();
+			AsyncLogger::log(ss.str());
+			controlProvider->motionOutOfRange();
+			controlProvider->revokeControl();
+			currentPlan = motionPlanner->buildPlan(IKGoal::stopGoal());
+		}
+
+		std::for_each(currentPlan.begin(),currentPlan.end(),[](shared_ptr<MotionPlan> p){p->startNow();});
+		for (int i=0;i<6;i++) joints.at(i)->joinMotionPlan(currentPlan.at(i));			
 	}
 }
 
@@ -222,6 +285,9 @@ void MotionController::shutdown()
 			cout << "Error while shutting down joint: " << e.what() << endl;
 		}
 	}
+	
+	for (auto it = joints.begin(); it != joints.end(); it++)
+		(*it)->writeHistoryToLog();
 }
 
 void MotionController::printAverageTime()
@@ -267,6 +333,11 @@ void MotionController::executeMotionPlan(vector<shared_ptr<MotionPlan> > newPlan
 
 	this->postTask([this,newPlan](){
 		
+		if (state != State::Waiting)
+			throw std::runtime_error("ASYNC: Must be in waiting state to execute plans");			
+
+		state = State::FinitePlan;
+
 		this->currentPlan.clear();
 		this->currentPlan = newPlan;
 		
@@ -280,11 +351,14 @@ void MotionController::executeMotionPlan(vector<shared_ptr<MotionPlan> > newPlan
 		{
 			joints.at(i)->validateMotionPlan(currentPlan.at(i));
 		}
+
 		//Simultaneous start
 		for (int i=0;i<6;i++)
 		{
 			currentPlan.at(i)->startNow();
 		}
+		planStartTime = TimeUtil::getNow();
+
 		for (int i=0;i<6;i++)
 		{
 			joints.at(i)->executeMotionPlan(currentPlan.at(i));

@@ -8,6 +8,7 @@ class LowpassFilter {
 private:
 	double timeConstant;
 	double lastValue;
+	bool hasLast;
 	struct timespec lastTime;
 	
 
@@ -15,6 +16,7 @@ private:
 public:
 	LowpassFilter(double _timeConstant) : timeConstant(_timeConstant) {
 		lastValue = 0;
+		hasLast = false;
 	}
 
 	static double filter(double previous, double input, double RC, double dT)
@@ -25,9 +27,20 @@ public:
 	
 	double next(double next) {
 		
-		double value = filter(lastValue,next,timeConstant,TimeUtil::timeSince(lastTime));
-		TimeUtil::setNow(lastTime);
-		return value;
+		if (hasLast)
+		{
+			double value = filter(lastValue,next,timeConstant,TimeUtil::timeSince(lastTime));
+			lastValue = value;
+			TimeUtil::setNow(lastTime);
+			return value;
+		}
+		else
+		{
+			TimeUtil::setNow(lastTime);
+			lastValue = next;
+			hasLast = true;
+			return next;
+		}
 	}
 	
 	

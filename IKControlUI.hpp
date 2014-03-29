@@ -76,14 +76,18 @@ private:
 	//Numeric input/output
 	std::vector<NumberBox*> actualAngles, inputAngles;
 	vmath::Vector3d getVectorFromElements(std::vector<std::string> elementNames);
-	void updateArmStatus(bool copyToInput);		
+	void updateArmStatus(bool copyToInput);
+	
+	std::vector<vmath::Vector3d> Favorites;
 	
 	//Motion planning
 	MotionController * motionController;
 	std::vector<std::shared_ptr<MotionPlan> > pendingMotionPlan;	
 	
 	void calculatePlan();
-	void executePlan();	
+	void executePlan();
+	
+	void setTargetGoal(vmath::Vector3d position, vmath::Vector3d eulerAngles);
 	
 public:
 	IKControlUI(MotionController * motionController);

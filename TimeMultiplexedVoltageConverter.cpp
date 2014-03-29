@@ -28,7 +28,8 @@ void TimeMultiplexedVoltageConverter::reset()
 
 double TimeMultiplexedVoltageConverter::nextVoltage(double elapsedTime, double targetVoltage)
 {
-	/*
+	elapsedTime = 0.05;
+	
 	const double ResetThreshold = 0.5;
 	
 	if (abs(targetVoltage - lastVoltage) > ResetThreshold)
@@ -78,7 +79,7 @@ double TimeMultiplexedVoltageConverter::nextVoltage(double elapsedTime, double t
 		//Start with the voltage closest to target
 		appliedVoltage = (stepError > 0) ? lower : upper;
 	}
-	*/
+	
 
 	//}
 	//else
@@ -127,7 +128,7 @@ double TimeMultiplexedVoltageConverter::nextVoltage(double elapsedTime, double t
 	//	}
 	//}
 
-	double appliedVoltage = DRV8830::getNearestVoltage(targetVoltage);
+//	double appliedVoltage = DRV8830::getNearestVoltage(targetVoltage);
 	if (appliedVoltage > maxVoltage) appliedVoltage = maxVoltage;
 	if (appliedVoltage < -maxVoltage) appliedVoltage = -maxVoltage;
 	
@@ -141,6 +142,13 @@ double TimeMultiplexedVoltageConverter::getAverageVoltage()
 //	if (voltageHistory.size() > 0)
 //		return std::accumulate(voltageHistory.begin(), voltageHistory.end(), 0.0)/voltageHistory.size();
 //	else
-		//return 0;
-	return lastVoltage;
+//		return 0;
+//	return lastVoltage;
+	
+	double vSum = 0;
+	for (auto it = voltageHistory.begin(); it != voltageHistory.end(); it++)
+	{
+		vSum += it->second;
+	}
+	return vSum / (voltageHistory.size());
 }
