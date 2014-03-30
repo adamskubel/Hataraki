@@ -113,16 +113,7 @@ int main(int argc, char *argv[])
 	}
 	motionController = new MotionController(controllers,5);
 	
-	
-	LowpassFilter f(0.001);
-	vector<double> testNum = {1,2,3,4,5};
-	for (int i=0;i<testNum.size();i++)
-	{
-		cout << f.next(testNum[i]) << " ";
-		usleep(1000);
-		
-	}
-	cout << endl;
+
 	
 //	vector<double> lastAngles({1,1,1,1,1,1});
 //	vector<double> initialAnglesConv(6);
@@ -140,13 +131,27 @@ int main(int argc, char *argv[])
 //	testMotionPlanning();
 	
 //	HatarakiTest::testEulerAngleExtraction();
-	HatarakiTest::testIKRotation();
-//	HatarakiTest::testTMVoltageConverter();
+//	HatarakiTest::testIKRotation();
+	HatarakiTest::testTMVoltageConverter();
 	
 //	HatarakiTest::testAngleExtractionIK();
 //	testKinematicPerformance();
 	
-	//testServoModel(&(controllers[0]->getJointModel()->servoModel));
+//	testServoModel(&(controllers[0]->getJointModel()->servoModel));
+}
+
+void testLowPassFilter()
+{
+	
+	LowpassFilter f(0.001);
+	vector<double> testNum = {1,2,3,4,5};
+	for (int i=0;i<testNum.size();i++)
+	{
+		cout << f.next(testNum[i]) << " ";
+		usleep(1000);
+		
+	}
+	cout << endl;
 }
 
 void testKinematicPerformance()
@@ -261,15 +266,15 @@ void testQuadRegressionWithData()
 
 void testServoModel(ServoModel * sm)
 {
-	double torque = sm->getTorqueForVoltageSpeed(1.2,1000);
-	cout << "V=1.2, S=1000, T=" << torque << endl;
-	cout << "V=1.2, T=" << torque << ", S=" << sm->getSpeedForTorqueVoltage(torque,1.2) << endl;
+	double torque = sm->getTorqueForVoltageSpeed(1.8,1000);
+	cout << "V=1.8, S=1000, T=" << torque << endl;
+	cout << "V=1.8, T=" << torque << ", S=" << sm->getSpeedForTorqueVoltage(torque,1.8) << endl;
 	cout << "T=" << torque << ", S=1000, V=" << sm->getVoltageForTorqueSpeed(torque,1000) << endl;
 	
 	cout << endl;
-	torque = sm->getTorqueForVoltageSpeed(-1.2,-1000);
-	cout << "V=-1.2, S=-1000, T=" << torque << endl;
-	cout << "V=-1.2, T=" << torque << ", S=" << sm->getSpeedForTorqueVoltage(torque,-1.2) << endl;
+	torque = sm->getTorqueForVoltageSpeed(-1.8,-1000);
+	cout << "V=-1.8, S=-1000, T=" << torque << endl;
+	cout << "V=-1.8, T=" << torque << ", S=" << sm->getSpeedForTorqueVoltage(torque,-1.8) << endl;
 	cout << "T=" << torque << ", S=-1000, V=" << sm->getVoltageForTorqueSpeed(torque,-1000) << endl;
 	
 	cout << endl;

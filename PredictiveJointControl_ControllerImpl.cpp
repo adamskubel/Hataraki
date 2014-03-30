@@ -11,7 +11,7 @@ namespace ControllerConfiguration
 	
 	//Speed Control
 	const double MinSpeedControlMeasureDelay = 0.00; //seconds
-	const double MaxSpeedControlMeasureDelay = 0.05; //seconds
+	const double MaxSpeedControlMeasureDelay = 0.01; //seconds
 };
 
 using namespace ControllerConfiguration;
@@ -217,69 +217,79 @@ void PredictiveJointController::doStaticControl()
 		}
 	}
 }
-
+/*
 void PredictiveJointController::doSpeedControl()
 {
 	double expectedVelocity;
 	if (config->useTargetFeedback)
-		expectedVelocity = servoModel->getSpeedForTorqueVoltage(cTargetVelocity,cVoltage);
+		expectedVelocity = cTargetVelocity;
 	else
 		expectedVelocity = servoModel->getSpeedForTorqueVoltage(cControlTorque,cVoltage);
-
-	//Stall check
-//	if (abs(expectedVelocity) > 1.0 && cVelocityApproximationError > 0.95 && abs(cVelocity) < 1.0)
-//	{		
-//		double voltageAdjust = 0.08 * sgn(cVoltage);
-//		commandDriver(cVoltage+voltageAdjust,DriverMode::TMVoltage);	
-//		speedControlState = SpeedControlState::Stalled;
-//	}
-//	else if (speedControlState == SpeedControlState::Stalled)
-//	{
-//		cControlTorque = servoModel->getTorqueForVoltageSpeed(cVoltage,cTargetVelocity);
-//		speedControlState = SpeedControlState::Measuring;
-//	}
-//
-//	if (speedControlState != SpeedControlState::Stalled)
+	
+	double cVelocityError = expectedVelocity - cVelocity;	
+	double dVError = (cVelocityError - lVelocityError)/(cTime - lTime);
+		
+	//if (!cDriverCommanded && speedControlState == SpeedControlState::Adjusting)
 	{
-		double cVelocityError = expectedVelocity - cVelocity;
-		velocityErrorIntegral += cVelocityError * (cTime - lTime);
-
-		double dVError = (cVelocityError - lVelocityError)/(cTime - lTime);
-
-		if (speedControlState == SpeedControlState::Measuring)
-		{
-			if (TimeUtil::timeSince(speedControlMeasureStart) > MinSpeedControlMeasureDelay && cVelocityApproximationError < 0.7) //MinVelocityRValue)
-			{
-				speedControlState = SpeedControlState::Adjusting;
-			}
-			else if (TimeUtil::timeSince(speedControlMeasureStart) > MaxSpeedControlMeasureDelay)
-			{
-				speedControlState = SpeedControlState::Adjusting;
-			}
-			else
-			{
-				commandDriver(servoModel->getVoltageForTorqueSpeed(cControlTorque,cTargetVelocity),DriverMode::TMVoltage);	
-			}
-		}
-
-		if (!cDriverCommanded && speedControlState == SpeedControlState::Adjusting)
-		{
-			double velocityError = ((cVelocityError * speedControlProportionalGain) + (velocityErrorIntegral * speedControlIntegralGain) + (dVError * config->speedControlDerivativeGain));
-
-			cControlTorque -= velocityError/servoModel->getTorqueSpeedSlope();
-			if (sgn(cControlTorque) != sgn(cTargetVelocity))
-				cControlTorque = 0;
-
-			commandDriver(servoModel->getVoltageForTorqueSpeed(cControlTorque,cTargetVelocity),DriverMode::TMVoltage);	
-			speedControlState = SpeedControlState::Measuring;
-			TimeUtil::setNow(speedControlMeasureStart);
-		}
-
-		velocityErrorIntegral *= 0.95;
-		lVelocityError = cVelocityError;
+		double velocityError = ((cVelocityError * speedControlProportionalGain) + (dVError * config->speedControlDerivativeGain));
+		
+		cControlTorque -= velocityError/servoModel->getTorqueSpeedSlope();
+		if (sgn(cControlTorque) != sgn(cTargetVelocity))
+			cControlTorque = 0;
+		
+		commandDriver(servoModel->getVoltageForTorqueSpeed(cControlTorque,cTargetVelocity),DriverMode::TMVoltage);
 	}
-}
 
+	lVelocityError = cVelocityError;
+}
+*/
+
+void PredictiveJointController::doSpeedControl()
+{
+	if (config->useTargetFeedback)
+		cExpectedVelocity = cTargetVelocity;
+	else
+		cExpectedVelocity = servoModel->getSpeedForTorqueVoltage(cControlTorque,cVoltage);
+
+	double cVelocityError = cExpectedVelocity - cVelocity;
+//	velocityErrorIntegral += cVelocityError * (cTime - lTime);
+
+//	double dVError = (cVelocityError - lVelocityError)/(cTime - lTime);
+
+	if (speedControlState == SpeedControlState::Measuring)
+	{
+		if (TimeUtil::timeSince(speedControlMeasureStart) > MinSpeedControlMeasureDelay && cVelocityApproximationError < 0.7) //MinVelocityRValue)
+		{
+			speedControlState = SpeedControlState::Adjusting;
+		}
+		else if (TimeUtil::timeSince(speedControlMeasureStart) > MaxSpeedControlMeasureDelay)
+		{
+			speedControlState = SpeedControlState::Adjusting;
+		}
+		else
+		{
+			commandDriver(servoModel->getVoltageForTorqueSpeed(cControlTorque,cTargetVelocity),DriverMode::TMVoltage);
+		}
+	}
+
+	if (!cDriverCommanded && speedControlState == SpeedControlState::Adjusting)
+	{
+		double torqueCorrection = -(cVelocityError * speedControlProportionalGain)/servoModel->getTorqueSpeedSlope();
+		 
+		cControlTorque += torqueCorrection;
+		
+		if (sgn(cControlTorque) != sgn(cTargetVelocity))
+			cControlTorque = 0;
+
+		commandDriver(servoModel->getVoltageForTorqueSpeed(cControlTorque,cTargetVelocity),DriverMode::TMVoltage);
+		speedControlState = SpeedControlState::Measuring;
+		TimeUtil::setNow(speedControlMeasureStart);
+	}
+
+	velocityErrorIntegral *= 0.95;
+	lVelocityError = cVelocityError;
+	
+}
 
 bool PredictiveJointController::doStepControl()
 {
@@ -453,15 +463,12 @@ void PredictiveJointController::commitCommands()
 				return;
 			}
 			
-			timespec startTime;
-			TimeUtil::setNow(startTime);
 			if (cDriverCommand != driverCommand)
 			{
 				bus[servoModel->driverBus]->selectAddress(servoModel->driverAddress);
 				DRV8830::writeCommand(bus[servoModel->driverBus],driverCommand);
 				cDriverCommand = driverCommand;
 			}
-			cDriverWriteTime = TimeUtil::timeSince(startTime)*1000.0;
 		}
 	}
 	catch (std::runtime_error & e)

@@ -39,7 +39,7 @@ public:
 		armatureResistance, //Ohms
 		stallCurrent, //Amps
 		stallTorque, // N*m
-		noLoadTorque, //Friction torque
+		//noLoadTorque, //Friction torque
 		noLoadCurrent,
 		noLoadSpeed; //RPM -> steps/second
 
@@ -51,11 +51,10 @@ public:
 		backEmfConstant = MathUtil::stepsPerSecondToRPM(cJSON_GetObjectItem(rawConfig,"BackEmfConstant")->valuedouble);
 		armatureResistance = cJSON_GetObjectItem(rawConfig,"ArmatureResistance")->valuedouble;
 		stallTorque = cJSON_GetObjectItem(rawConfig,"StallTorque")->valuedouble;
-		noLoadTorque = cJSON_GetObjectItem(rawConfig,"NoLoadTorque")->valuedouble;
 		noLoadSpeed = MathUtil::rpmToStepsPerSecond(cJSON_GetObjectItem(rawConfig,"NoLoadSpeed")->valuedouble);		
 		noLoadCurrent = cJSON_GetObjectItem(rawConfig,"NoLoadCurrent")->valuedouble;
 		
-		noLoadTorque = torqueConstant * noLoadCurrent;
+	//	noLoadTorque = torqueConstant * noLoadCurrent;
 
 		stallCurrent = stallTorque/torqueConstant;
 	}
@@ -170,9 +169,6 @@ public:
 		maxDriverVoltage = cJSON_GetObjectItem(rawConfig,"MaxDriverVoltage")->valuedouble;
 		frictionTorque = cJSON_GetObjectItem(rawConfig,"FrictionTorque")->valuedouble;
 	}
-
-	//These functions are here because they incorporate both gearbox and motor parameters
-	double getNoLoadSpeedForVoltage(double voltage);
 		
 	double getTorqueSpeedSlope();
 

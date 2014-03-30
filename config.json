@@ -5,7 +5,7 @@
 		"FilePrefix" : "JointData_"
 	},
 	"GlobalSettings" : {
-		"MaxVoltage" : 3.2,
+		"MaxVoltage" : 2.2,
 		"MotionPlanSteps" : 4,
 		"UpdateFrequency" : 500,
 		"DefaultAccel" 	: 2000
@@ -169,10 +169,10 @@
 			"SetpointPrecisionSteps" : 10,
 			"SpeedControl" : 
 			{ 
-				"ProportionalGain" : 0.5,
+				"ProportionalGain" : 0.2,
 				"IntegralGain" : 0.0,
 				"DerivativeGain" : 0.0,
-				"HistoryLength" : 12,
+				"HistoryLength" : 10,
 				"UseTargetFeedback" : 0
 			},
 			"GravityFlipTriggerEnabled" : 0,
@@ -202,7 +202,7 @@
 			{
 				"LowpassPositionFilter" : 
 				{
-					"TimeConstant" : 0.01				
+					"TimeConstant" : 0.005
 				},
 				"VelocityApproximation" : 
 				{
@@ -228,10 +228,10 @@
 			"SetpointPrecisionSteps" : 20,
 			"SpeedControl" : 
 			{ 
-				"ProportionalGain" : 0.3,
+				"ProportionalGain" : 0.2,
 				"IntegralGain" : 0.0,
 				"DerivativeGain" : 0.0,
-				 "HistoryLength" : 9,
+				 "HistoryLength" : 10,
 				 "UseTargetFeedback" : 0
 			},
 			"GravityFlipTriggerEnabled" : 0,
@@ -247,7 +247,7 @@
 			{
 				"LowpassPositionFilter" : 
 				{
-					"TimeConstant" : 0.01
+					"TimeConstant" : 0.005
 				},
 				"VelocityApproximation" : 
 				{

@@ -12,32 +12,34 @@ namespace HatarakiTest
 	
 	void testTMVoltageConverter()
 	{
-		TimeMultiplexedVoltageConverter * tm = new TimeMultiplexedVoltageConverter(2,2.4);
+		TimeMultiplexedVoltageConverter * tm = new TimeMultiplexedVoltageConverter(3,2.4);
 		
 		double t0 = 0.1;
 		assertEquals(0,tm->nextVoltage(t0, 0));
 		assertEquals(0,tm->nextVoltage(t0,0));
 		//
-		assertEquals(volts(11),tm->nextVoltage(t0,volts(10.4)));
+		tm->reset();
+		assertEquals(volts(10),tm->nextVoltage(t0,volts(10.4)));
 		assertEquals(volts(11),tm->nextVoltage(t0,volts(10.4)));
 		
-		assertEquals(volts(10),tm->nextVoltage(t0,volts(10.6)));
 		assertEquals(volts(11),tm->nextVoltage(t0,volts(10.6)));
+		assertEquals(volts(10),tm->nextVoltage(t0,volts(10.6)));
+		
+		cout << "2" << endl;
 		
 		tm->reset();
 		assertEquals(volts(10),tm->nextVoltage(t0,volts(10.4)));
 		assertEquals(volts(11),tm->nextVoltage(t0,volts(10.4)));
 		
-		tm->reset();
-		assertEquals(0.40, tm->nextVoltage(t0,0.32));
-		assertEquals(0.24, tm->nextVoltage(t0,0.32));
-		assertEquals(0.40, tm->nextVoltage(t0,0.32));
+		
+		cout << "3" << endl;
 		
 		tm->reset();
-		assertEquals(0.40, tm->nextVoltage(t0,0.12));
-		assertEquals(0.24, tm->nextVoltage(t0,0.12));
-		assertEquals(0.24, tm->nextVoltage(t0,0.12));
-		
+		assertEquals("A",0.72,tm->nextVoltage(t0,0.69));
+		assertEquals("B",0.64,tm->nextVoltage(t0,0.69));
+		assertEquals("C",0.72,tm->nextVoltage(t0,0.69));
+		assertEquals("D",0.64,tm->nextVoltage(t0,0.69));
+		assertEquals("E",0.72,tm->nextVoltage(t0,0.69));
 		
 	}
 	

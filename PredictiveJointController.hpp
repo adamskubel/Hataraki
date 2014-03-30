@@ -77,8 +77,10 @@ class PredictiveJointController {
 	struct DataFrame {
 
 		double Time, Angle, Velocity, TargetAngle, TargetVelocity, PlanVelocity;
+		double TargetVoltage, ActualVoltage;
+		double ControlTorque, ExpectedVelocity;
 
-		DataFrame(double Time, double Angle, double Velocity, double TargetAngle, double TargetVelocity, double PlanVelocity)
+		DataFrame(double Time, double Angle, double Velocity, double TargetAngle, double TargetVelocity, double PlanVelocity, double TargetVoltage, double ActualVoltage, double ControlTorque, double ExpectedVelocity)
 		{
 			this->Time = Time;
 			this->Angle = Angle;
@@ -86,6 +88,10 @@ class PredictiveJointController {
 			this->TargetAngle = TargetAngle;
 			this->TargetVelocity = TargetVelocity;
 			this->PlanVelocity = PlanVelocity;
+			this->TargetVoltage = TargetVoltage;
+			this->ActualVoltage = ActualVoltage;
+			this->ControlTorque = ControlTorque;
+			this->ExpectedVelocity = ExpectedVelocity;
 		}
 	};
 
@@ -149,6 +155,7 @@ private:
 	double cTargetVelocity;
 	double cPlanTargetVelocity;
 	double cTargetAcceleration;
+	double cExpectedVelocity;
 	
 	DynamicControlMode dynamicControlMode;
 	bool dynamicControl;

@@ -5,19 +5,11 @@
 
 #include <list>
 #include <cmath>
-#include <numeric>  
+#include <numeric>
+#include <algorithm>
 
 #include "DRV8830.hpp"
 #include "MathUtils.hpp"
-
-//#include "cJSON.h"
-
-//struct TMVoltageConfig
-//{
-//	TMVoltageConfig(cJSON * rawConfig);
-//
-//	double cutoff
-//};
 
 class TimeMultiplexedVoltageConverter {
 

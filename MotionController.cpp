@@ -90,7 +90,7 @@ void MotionController::updateController(){
 		}
 		timeSMA_map["All"]->add(TimeUtil::timeSince(start)*1000.0);
 		
-		if (updateCount % 100 == 0)
+//		if (updateCount % 10 == 0)
 		{
 			TimeUtil::setNow(step);
 			PoseDynamics::getInstance().setJointAngles(jointAngles);

@@ -8,7 +8,7 @@ void PredictiveJointController::init()
 {
 	filter_lowpass_position	=	new LowpassFilter(config->get("SensorFilters.LowpassPositionFilter.TimeConstant"));
 
-	voltageConverter = new TimeMultiplexedVoltageConverter(2,servoModel->maxDriverVoltage);
+	voltageConverter = new TimeMultiplexedVoltageConverter(3,servoModel->maxDriverVoltage);
 
 	quadraticRegressionFilter = new QuadraticRegression((int)config->get("SensorFilters.VelocityApproximation.WindowSize"));
 
@@ -225,7 +225,7 @@ void PredictiveJointController::writeLogHeader()
 void PredictiveJointController::writeHistoryToLog()
 {
 	stringstream ss;
-	ss << "Time,SensorAngle,TargetAngle,Velocity,TargetVelocity,PlanVelocity" << endl;
+	ss << "Time,SensorAngle,TargetAngle,Velocity,TargetVelocity,PlanVelocity,TargetVoltage,ActualVoltage,ControlTorque" << endl;
 
 	while (!dataHistory.empty())
 	{
@@ -238,8 +238,11 @@ void PredictiveJointController::writeHistoryToLog()
 			<< frame.TargetAngle	<< Configuration::CsvSeparator
 			<< frame.Velocity		<< Configuration::CsvSeparator
 			<< frame.TargetVelocity	<< Configuration::CsvSeparator
-			<< frame.PlanVelocity << Configuration::CsvSeparator << endl;
-		
+			<< frame.PlanVelocity << Configuration::CsvSeparator 
+			<< frame.TargetVoltage << Configuration::CsvSeparator
+			<< frame.ActualVoltage << Configuration::CsvSeparator
+			<< frame.ControlTorque << Configuration::CsvSeparator
+			<< frame.ExpectedVelocity << endl;
 	}
 	AsyncLogger::getInstance().postLogTask(logfileName,ss.str());
 }
@@ -251,7 +254,7 @@ void PredictiveJointController::logState()
 
 	if (Configuration::FastLogging)
 	{
-		dataHistory.push_back(DataFrame(cTime,cSensorAngle,cVelocity,cTargetAngle,cTargetVelocity,cPlanTargetVelocity));	
+		dataHistory.push_back(DataFrame(cTime,cSensorAngle,cVelocity,cTargetAngle,cTargetVelocity,cPlanTargetVelocity, cTargetVoltage, cAppliedVoltage,cControlTorque,cExpectedVelocity));
 	}
 	else
 	{
