@@ -34,16 +34,7 @@ bool MotionPlanner::checkSolutionValid(const double * solution)
 
 vector<double> MotionPlanner::getJointAnglesRadians()
 {
-	//double  initialAngles_deg[] = {0,-17,0,53,34,0};
-	vector<double> angles;
-	//int i =0;
-	for (auto it = joints.begin(); it != joints.end(); it++)
-	{
-	//	angles.push_back(MathUtil::degreesToRadians(initialAngles_deg[i]));
-	//	i++;
-		angles.push_back(AS5048::stepsToRadians((*it)->getCurrentAngle()));
-	}
-	return angles;
+	return armState.getJointAnglesRadians();
 }
 
 
@@ -67,21 +58,6 @@ vector<shared_ptr<MotionPlan> > MotionPlanner::buildPlanForSmoothStop()
 	return plans;
 }
 
-
-void MotionPlanner::setPathDivisions(int _pathDivisionCount)
-{
-	this->pathDivisionCount = _pathDivisionCount;
-}
-
-void MotionPlanner::setPathInterpolationDistance(double pathInterpolationDistance)
-{
-	this->pathInterpolationDistance = pathInterpolationDistance;
-}
-
-void MotionPlanner::setPathInterpolationMode(PathInterpolationMode pathInterpolationMode)
-{
-	this->pathInterpolationMode = pathInterpolationMode;
-}
 
 /*
  1. A set of final velocities is stored in the step plan
@@ -578,73 +554,9 @@ shared_ptr<MotionPlan> MotionPlanner::buildMotionPlan(const double startAngle,co
 	return plan;
 }
 
-vector<Step> MotionPlanner::buildMotionSteps(IKGoal goal)
+vector<Step> MotionPlanner::buildMotionSteps(vector<OpSpaceState> goal)
 {	
-	Vector3d targetPosition;
-	Matrix3d targetRotation;
 
-		
-	Vector3d currentPosition;
-	double rotationMatrix[9];	
-	vector<double> lastAngles = getJointAnglesRadians();
-	
-	ComputeFk(lastAngles.data(),currentPosition,rotationMatrix);
-	
-	
-	switch (goal.action)
-	{
-		case IKGoal::Action::Position:
-			targetPosition = goal.Position;
-			targetRotation = Matrix3d::fromRowMajorArray(rotationMatrix);
-			break;
-		case IKGoal::Action::PositionRotation:
-			targetPosition = goal.Position;
-			targetRotation = goal.Rotation;
-			break;
-		case IKGoal::Action::Rotation:
-			targetPosition = currentPosition;
-			targetRotation = goal.Rotation;
-			break;
-		case IKGoal::Action::Stop:
-		default:
-			throw std::logic_error("Cannot build steps for stop goal");
-			break;
-	}
-	
-	if (goal.relative)
-	{
-		targetPosition = currentPosition + targetPosition;
-		//How do I added rotations?
-	}
-
-	Vector3d delta = targetPosition - currentPosition;
-	
-	if (delta.length() < 0.001)
-	{
-		throw std::runtime_error("Goal does not change position");
-	}
-
-	
-	vector<double> initialAnglesConv(6);
-	std::transform(lastAngles.begin(),lastAngles.end(),initialAnglesConv.begin(),AS5048::radiansToSteps);
-		
-	vector<Step> steps;
-	steps.push_back(Step(initialAnglesConv));
-	
-	int numDivisions;
-	switch (pathInterpolationMode)
-	{
-	case PathInterpolationMode::FixedStepCount:
-		numDivisions = pathDivisionCount;
-		break;
-	case PathInterpolationMode::FixedStepDistance:
-		numDivisions = std::round(delta.length()/pathInterpolationDistance);
-		break;
-	case PathInterpolationMode::SingleStep:
-	default:
-		numDivisions = 1;
-		break;
-	}
 
 	for (int i=1;i<=numDivisions;i++)
 	{

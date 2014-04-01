@@ -8,74 +8,12 @@
 #include "MotionPlan.hpp"
 #include "PredictiveJointController.hpp"
 #include "KinematicSolver.hpp"
+#include "MathUtils.hpp"
+#include "OpSpaceState.hpp"
 
-#define VMATH_NAMESPACE vmath
-#include "vmath.h"
 #include "ikfast.h"
 	
 
-
-struct IKGoal {
-
-	enum class Action {
-		Position,
-		PositionRotation,
-		Rotation,
-		Stop
-	};
-
-	vmath::Vector3d Position;
-	vmath::Matrix3d Rotation;
-
-	Action action;
-	bool relative;
-	
-	IKGoal()
-	{
-		
-	}
-	
-	IKGoal(vmath::Vector3d _Position, bool relative)
-	{
-		this->Position = _Position;
-		this->relative = relative;
-		
-		action = Action::Position;
-	}
-	
-	IKGoal(vmath::Vector3d _Position, vmath::Matrix3d _Rotation, bool relative)
-	{
-		this->Position = _Position;
-		this->Rotation = _Rotation;
-		this->relative = relative;
-
-		action = Action::PositionRotation;
-	}
-
-//	IKGoal(vmath::Matrix3d _Rotation, bool relative)
-//	{
-//		this->Rotation = _Rotation;
-//		this->relative = relative;
-//
-//		action = Action::Rotation;
-//	}
-
-public:
-	static IKGoal stopGoal() {
-		IKGoal g;
-		g.action = Action::Stop;
-		return g;
-	}
-	
-	std::string toString()
-	{
-		std::stringstream ss;
-		if (relative) ss << "[R]";
-		ss << "Target = " << Position.toString();
-		return ss.str();
-	}
-	
-};
 
 
 struct Step {
@@ -147,21 +85,11 @@ public:
 	}
 };
 
-enum PathInterpolationMode {
-	
-	SingleStep,
-	FixedStepCount,
-	FixedStepDistance
-};
-
 class MotionPlanner {
 	
 private:
 	std::vector<PredictiveJointController*> joints;
 	
-	double pathInterpolationDistance;	
-	int pathDivisionCount;
-	PathInterpolationMode pathInterpolationMode;
 		
 	std::vector<std::shared_ptr<MotionPlan> > compileStepMotionPlans(std::vector<StepMotionPlan> * stepPlans, std::vector<Step> & steps);
 
@@ -170,27 +98,23 @@ private:
 	bool checkSolutionValid(const double * solution);
 	double calculateMotionEffort(const double * solution0, const double * solution1);
 		
-	std::vector<double> getJointAnglesRadians();
 
 	std::vector<std::shared_ptr<MotionPlan> > buildPlanForSmoothStop();
 	
-	void validatePlan(IKGoal goal, std::vector<std::shared_ptr<MotionPlan> > plan);
+	void validatePlan(std::vector<OpSpaceState> goal, std::vector<std::shared_ptr<MotionPlan> > plan);
 	
 	static std::shared_ptr<MotionPlan> buildMotionPlan(const double startPosition,const double endPosition, const double totalTime, const double approachVelocity, const double maxAccel);
 	std::vector<std::shared_ptr<MotionPlan> > createClosedSolutionMotionPlanFromSteps(std::vector<Step> & steps, bool coastPhase);
 	
 	std::vector<std::shared_ptr<MotionPlan> > buildPlan(std::vector<Step> & steps);
 	void calculateStep(std::vector<StepMotionPlan> * stepPlans, std::vector<Step> & steps, int stepNumber);
-	std::vector<Step> buildMotionSteps(IKGoal goal);
+	std::vector<Step> buildMotionSteps(std::vector<OpSpaceState> goal);
 	
 public:
 	MotionPlanner(std::vector<PredictiveJointController*> joints);
 	
-	void setPathDivisions(int divisionCount);
-	void setPathInterpolationDistance(double pathInterpolationDistance);
-	void setPathInterpolationMode(PathInterpolationMode pathInterpolationMode);
 		
-	std::vector<std::shared_ptr<MotionPlan> > buildPlan(IKGoal goal);
+	std::vector<std::shared_ptr<MotionPlan> > buildPlan(std::vector<OpSpaceState> goal);
 	std::shared_ptr<MotionPlan> buildOptimalMotionPlan(int jointIndex, const double targetAngle);
 	
 };

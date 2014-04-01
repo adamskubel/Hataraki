@@ -4,10 +4,7 @@
 #define __GCC_HAVE_SYNC_COMPARE_AND_SWAP_8
 
 //#define IKFAST_CLIBRARY
-#define IKFAST_NO_MAIN
-#define IKFAST_HAS_LIBRARY
-#define IKFAST_NAMESPACE ikfast2
-#include "ikfast.h"
+#include "IKFast.hpp"
 
 //#include <errno.h>
 //#include <string.h>

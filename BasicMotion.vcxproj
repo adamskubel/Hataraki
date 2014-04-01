@@ -90,12 +90,14 @@
     <ClCompile Include="Test.cpp" />
     <ClCompile Include="TimeMultiplexedVoltageConverter.cpp" />
     <ClCompile Include="TimeUtil.cpp" />
+    <ClCompile Include="TrajectoryPlanner.cpp" />
     <ClCompile Include="UIElement.cpp" />
     <ClCompile Include="vmath.cpp" />
     <ClCompile Include="VoltageTesting.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AngleUtil.hpp" />
+    <ClInclude Include="ArmState.hpp" />
     <ClInclude Include="AS5048.hpp" />
     <ClInclude Include="AsyncLogger.hpp" />
     <ClInclude Include="Configuration.hpp" />
@@ -105,6 +107,7 @@
     <ClInclude Include="I2CBus.hpp" />
     <ClInclude Include="IKControlUI.hpp" />
     <ClInclude Include="ikfast.h" />
+    <ClInclude Include="IKFast.hpp" />
     <ClInclude Include="IKPlanner.hpp" />
     <ClInclude Include="KinematicSolver.hpp" />
     <ClInclude Include="LowpassFilter.hpp" />
@@ -113,6 +116,7 @@
     <ClInclude Include="MotionController.hpp" />
     <ClInclude Include="MotionPlan.hpp" />
     <ClInclude Include="MotionPlanner.hpp" />
+    <ClInclude Include="OpSpaceState.hpp" />
     <ClInclude Include="PoseDynamics.hpp" />
     <ClInclude Include="PredictiveJointController.hpp" />
     <ClInclude Include="QuadraticRegression.hpp" />
@@ -123,6 +127,7 @@
     <ClInclude Include="StepController.hpp" />
     <ClInclude Include="TimeMultiplexedVoltageConverter.hpp" />
     <ClInclude Include="TimeUtil.hpp" />
+    <ClInclude Include="TrajectoryPlanner.hpp" />
     <ClInclude Include="UIElement.hpp" />
     <ClInclude Include="vmath.h" />
   </ItemGroup>

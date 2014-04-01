@@ -203,92 +203,93 @@ void IKControlUI::updateAll()
 	//}
 }
 
-IKGoal UIControlProvider::nextGoal()
-{	
-	std::lock_guard<std::mutex> locks(goalMutex);	
-	IKGoal g = currentGoal;
-	currentGoal = IKGoal::stopGoal(); //Default to stop unless current goal is replaced before next call
-	return g;
-}
-
-void UIControlProvider::setGoal(IKGoal goal)
-{	
-	std::lock_guard<std::mutex> locks(goalMutex);	
-	currentGoal = goal;
-}
-
-
-void UIControlProvider::motionComplete()
-{
-	
-}
-
-void UIControlProvider::motionOutOfRange()
-{
-	this->hasError = true;
-	this->errorText = "Out of range";
-}
+//IKGoal UIControlProvider::nextGoal()
+//{	
+//	std::lock_guard<std::mutex> locks(goalMutex);	
+//	IKGoal g = currentGoal;
+//	currentGoal = IKGoal::stopGoal(); //Default to stop unless current goal is replaced before next call
+//	return g;
+//}
+//
+//void UIControlProvider::setGoal(IKGoal goal)
+//{	
+//	std::lock_guard<std::mutex> locks(goalMutex);	
+//	currentGoal = goal;
+//}
+//
+//
+//void UIControlProvider::motionComplete()
+//{
+//	
+//}
+//
+//void UIControlProvider::motionOutOfRange()
+//{
+//	this->hasError = true;
+//	this->errorText = "Out of range";
+//}
 
 bool IKControlUI::doDirectControl(int c)
 {
-	if (!directModeActive) return false;
+	return false;
+	//if (!directModeActive) return false;
 
-	Vector3d dir;
-	switch (c)
-	{
-		case KEY_PPAGE:
-			dir = Vector3d(0,0,1);
-			break;
-		case KEY_NPAGE:
-			dir = Vector3d(0,0,-1);
-			break;
-		case KEY_RIGHT:
-			dir = Vector3d(0,1,0);
-			break;
-		case KEY_LEFT:
-			dir = Vector3d(0,-1,0);
-			break;
-		case KEY_UP:
-			dir = Vector3d(1,0,0);
-			break;
-		case KEY_DOWN:
-			dir = Vector3d(-1,0,0);
-			break;
-		case 'k':
-			directModeActive = false;
-			controlProvider->hasControl = false;
-			return false;
-		case 'x':
-			directModeActive = false;
-			controlProvider->hasControl = false;
-			break;
-	}
-	
-	if (dir.length() == 0 || !directModeActive)
-	{		
-		controlProvider->setGoal(IKGoal::stopGoal());
-	}
-	else
-	{
-		if (controlProvider->hasError)
-		{
-			elements["StatusLog"]->setText(controlProvider->errorText);
-			controlProvider->hasError = false;
-		}
-		else
-		{
-			dir = dir * ((NumberBox*)elements["PathStepLength"])->getValue()/100.0;
-			controlProvider->setGoal(IKGoal(dir,true));
-			
-			if (!controlProvider->hasControl)
-			{
-				AsyncLogger::log("Requesting control");
-				motionController->getMotionPlanner()->setPathInterpolationMode(PathInterpolationMode::SingleStep);
-				motionController->requestDirectControl(controlProvider->currentGoal,controlProvider);
-			}
-		}
-	}	
-	return true;
+	//Vector3d dir;
+	//switch (c)
+	//{
+	//	case KEY_PPAGE:
+	//		dir = Vector3d(0,0,1);
+	//		break;
+	//	case KEY_NPAGE:
+	//		dir = Vector3d(0,0,-1);
+	//		break;
+	//	case KEY_RIGHT:
+	//		dir = Vector3d(0,1,0);
+	//		break;
+	//	case KEY_LEFT:
+	//		dir = Vector3d(0,-1,0);
+	//		break;
+	//	case KEY_UP:
+	//		dir = Vector3d(1,0,0);
+	//		break;
+	//	case KEY_DOWN:
+	//		dir = Vector3d(-1,0,0);
+	//		break;
+	//	case 'k':
+	//		directModeActive = false;
+	//		controlProvider->hasControl = false;
+	//		return false;
+	//	case 'x':
+	//		directModeActive = false;
+	//		controlProvider->hasControl = false;
+	//		break;
+	//}
+	//
+	//if (dir.length() == 0 || !directModeActive)
+	//{		
+	//	controlProvider->setGoal(IKGoal::stopGoal());
+	//}
+	//else
+	//{
+	//	if (controlProvider->hasError)
+	//	{
+	//		elements["StatusLog"]->setText(controlProvider->errorText);
+	//		controlProvider->hasError = false;
+	//	}
+	//	else
+	//	{
+	//		dir = dir * ((NumberBox*)elements["PathStepLength"])->getValue()/100.0;
+	//		controlProvider->setGoal(IKGoal(dir,true));
+	//		
+	//		if (!controlProvider->hasControl)
+	//		{
+	//			AsyncLogger::log("Requesting control");
+	//			motionController->getMotionPlanner()->setPathInterpolationMode(PathInterpolationMode::SingleStep);
+	//			motionController->requestDirectControl(controlProvider->currentGoal,controlProvider);
+	//		}
+	//	}
+	//}	
+	//return true;
 }
 
 void IKControlUI::drawDirectControlWindow()
@@ -403,10 +404,10 @@ void IKControlUI::handleInput()
 				case 'h':
 					motionController->postTask([this](){motionController->zeroAllJoints();});
 					break;
-				case 'd':
-					elements["StatusLog"]->setText("Direct mode enabled");
-					directModeActive = true;
-					break;
+				//case 'd':
+				//	elements["StatusLog"]->setText("Direct mode enabled");
+				//	directModeActive = true;
+				//	break;
 			}
 		}
 	}

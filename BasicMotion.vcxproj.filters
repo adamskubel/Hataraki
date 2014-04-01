@@ -55,6 +55,12 @@
     <Filter Include="Source Files\Model">
       <UniqueIdentifier>{7e69a73c-5104-4ce7-aeca-3f1feb130b29}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\MotionPlanning">
+      <UniqueIdentifier>{ebe2938f-3b68-4981-96fd-a0a4dfea17b0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\MotionPlanning">
+      <UniqueIdentifier>{ac9f7379-24fd-489d-a270-466763fcb44d}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="I2CBus.cpp">
@@ -123,14 +129,8 @@
     <ClCompile Include="IJointControl.hpp">
       <Filter>Header Files\Predictive</Filter>
     </ClCompile>
-    <ClCompile Include="MotionPlan.cpp">
-      <Filter>Source Files\Predictive</Filter>
-    </ClCompile>
     <ClCompile Include="IKPlanner.cpp">
       <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="MotionPlanner.cpp">
-      <Filter>Source Files\Predictive</Filter>
     </ClCompile>
     <ClCompile Include="KinematicSolver.cpp">
       <Filter>Source Files\Math</Filter>
@@ -149,6 +149,15 @@
     </ClCompile>
     <ClCompile Include="VoltageTesting.cpp">
       <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="MotionPlan.cpp">
+      <Filter>Source Files\MotionPlanning</Filter>
+    </ClCompile>
+    <ClCompile Include="MotionPlanner.cpp">
+      <Filter>Source Files\MotionPlanning</Filter>
+    </ClCompile>
+    <ClCompile Include="TrajectoryPlanner.cpp">
+      <Filter>Source Files\MotionPlanning</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -218,14 +227,8 @@
     <ClInclude Include="StepController.hpp">
       <Filter>Header Files\Predictive</Filter>
     </ClInclude>
-    <ClInclude Include="MotionPlan.hpp">
-      <Filter>Header Files\Predictive</Filter>
-    </ClInclude>
     <ClInclude Include="IKPlanner.hpp">
       <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="MotionPlanner.hpp">
-      <Filter>Header Files\Predictive</Filter>
     </ClInclude>
     <ClInclude Include="KinematicSolver.hpp">
       <Filter>Header Files\Math</Filter>
@@ -241,6 +244,24 @@
     </ClInclude>
     <ClInclude Include="MathUtilTests.hpp">
       <Filter>Header Files\Test</Filter>
+    </ClInclude>
+    <ClInclude Include="TrajectoryPlanner.hpp">
+      <Filter>Header Files\MotionPlanning</Filter>
+    </ClInclude>
+    <ClInclude Include="MotionPlan.hpp">
+      <Filter>Header Files\MotionPlanning</Filter>
+    </ClInclude>
+    <ClInclude Include="MotionPlanner.hpp">
+      <Filter>Header Files\MotionPlanning</Filter>
+    </ClInclude>
+    <ClInclude Include="OpSpaceState.hpp">
+      <Filter>Header Files\MotionPlanning</Filter>
+    </ClInclude>
+    <ClInclude Include="IKFast.hpp">
+      <Filter>Header Files\IK</Filter>
+    </ClInclude>
+    <ClInclude Include="ArmState.hpp">
+      <Filter>Header Files\Model</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
