@@ -1,7 +1,7 @@
 {
 	"Version" : "2.0",
 	"DataRecording" : {
-		"Enabled" : 1,
+		"Enabled" : 0,
 		"FilePrefix" : "JointData_"
 	},
 	"GlobalSettings" : {
@@ -175,29 +175,6 @@
 				"HistoryLength" : 10,
 				"UseTargetFeedback" : 0
 			},
-			"GravityFlipTriggerEnabled" : 0,
-			"ExternalDisturbanceFlipTriggerEnabled" : 0,
-			"GravityFlipPattern" : [				
-				[0.48,30],
-				[0.56,20],
-				[0.72,30],
-				[0.88,40],
-				[0.72,20],
-				[0.56,30],
-				[0.48,20]	
-			],
-			"ExternalDisturbanceFlipPattern" : [				
-				[0.48,20],
-				[0.56,20],
-				[0.72,10],
-				[0.88,10],
-				[1.40,30]
-			],
-			"MotionStart" : 
-			{
-				"Enabled" : 0,
-				"VoltagePattern" : [ ]
-			},
 			"SensorFilters" : 
 			{
 				"LowpassPositionFilter" : 
@@ -231,17 +208,8 @@
 				"ProportionalGain" : 0.2,
 				"IntegralGain" : 0.0,
 				"DerivativeGain" : 0.0,
-				 "HistoryLength" : 10,
-				 "UseTargetFeedback" : 0
-			},
-			"GravityFlipTriggerEnabled" : 0,
-			"ExternalDisturbanceFlipTriggerEnabled" : 0,
-			"GravityFlipPattern" : [],
-			"ExternalDisturbanceFlipPattern" : [],
-			"MotionStart" : 
-			{
-				"Enabled" : 0,
-				"VoltagePattern" : [[0.88,10],[1.2,10],[1.6,10]]
+				"HistoryLength" : 10,
+				"UseTargetFeedback" : 0
 			},
 			"SensorFilters" : 
 			{
@@ -275,17 +243,8 @@
 				"ProportionalGain" : 0.1,
 				"IntegralGain" : 0.0,
 				"DerivativeGain" : 0.001,
-				 "HistoryLength" : 12,
-				 "UseTargetFeedback" : 1
-			},
-			"GravityFlipTriggerEnabled" : 0,
-			"ExternalDisturbanceFlipTriggerEnabled" : 0,
-			"GravityFlipPattern" : [],
-			"ExternalDisturbanceFlipPattern" : [],
-			"MotionStart" : 
-			{
-				"Enabled" : 0,
-				"VoltagePattern" : [ ]
+				"HistoryLength" : 12,
+				"UseTargetFeedback" : 1
 			},
 			"SensorFilters" : 
 			{
@@ -368,7 +327,7 @@
 				"SensorBus"		: "i2c-1",
 				"SensorAddress" : 68,
 				"DriverDelay" : 0.0004,
-				"SensorDelay" : 0.0012,
+				"SensorDelay" : 0.0002,
 				"MaxDriverVoltage" : 3.6,
 				"FrictionTorque" : 0.04,
 				"Motor" : "Motors.GM12-1000",
@@ -390,7 +349,7 @@
 				"SensorBus"		: "i2c-1",
 				"SensorAddress" : 75,
 				"DriverDelay" : 0.0004,
-				"SensorDelay" : 0.0,
+				"SensorDelay" : 0.0002,
 				"MaxDriverVoltage" : 3.6,
 				"FrictionTorque" : 0.02,
 				"Motor" : "Motors.GM12-1000",
@@ -412,7 +371,7 @@
 				"SensorBus"		: "i2c-1",
 				"SensorAddress" : 65,				
 				"DriverDelay" : 0.0004,
-				"SensorDelay" : 0.0,
+				"SensorDelay" : 0.0002,
 				"MaxDriverVoltage" : 3.6,
 				"FrictionTorque" : 0.02,
 				"Motor" : "Motors.GM12-1000",
@@ -434,7 +393,7 @@
 				"SensorBus"		: "i2c-1",
 				"SensorAddress" : 66,
 				"DriverDelay" : 0.0004,
-				"SensorDelay" : 0.0,
+				"SensorDelay" : 0.0002,
 				"MaxDriverVoltage" : 3.6,
 				"FrictionTorque" : 0.02,
 				"Motor" : "Motors.GM12-1000",
@@ -456,7 +415,7 @@
 				"SensorBus"		: "i2c-1",
 				"SensorAddress" : 67,
 				"DriverDelay" : 0.0004,
-				"SensorDelay" : 0.0,
+				"SensorDelay" : 0.0002,
 				"MaxDriverVoltage" : 2.6,
 				"FrictionTorque" : 0.0086,
 				"Motor" : "Motors.GM12-298",
@@ -466,7 +425,7 @@
 		},
 		{
 			"Name" : "Roll_2",
-			"ZeroPosition" : 144,
+			"ZeroPosition" : 139,
 			"ContinuousRotation" : 0,
 			"MinAngle" : -170,
 			"MaxAngle" : 170,
@@ -478,7 +437,7 @@
 				"SensorBus"		: "i2c-1",
 				"SensorAddress" : 64,
 				"DriverDelay" : 0.0004,
-				"SensorDelay" : 0.0,
+				"SensorDelay" : 0.0002,
 				"MaxDriverVoltage" : 3.6,
 				"FrictionTorque" : 0.01,
 				"Motor" : "Motors.GM12-298",

@@ -2,7 +2,7 @@
 
 namespace ControllerConfiguration 
 {
-	const double MaximumStopTime = 0.03;
+	const double MaximumStopTime = 0.005;
 	const double SteppingModeReadDelay = 0.03; //seconds
 	const double MaxMotionForValidStep = 5;//steps
 
@@ -168,29 +168,42 @@ void PredictiveJointController::doDynamicControl()
 		cTargetVelocity = cPlanTargetVelocity+velocityCorrection;
 		double finalAngleError = motionPlan->finalAngle - cSensorAngle;
 
-		//Approaching, stick to plan velocity
+		//Approaching, check for shutdown time
 		if (std::abs(finalAngleError) < config->approachDistanceThreshold)
 		{			
-			dynamicControlMode = DynamicControlMode::Approaching;
+//			dynamicControlMode = DynamicControlMode::Approaching;
+			
+			double stopIn = estimateTimeToPosition(motionPlan->finalAngle) - servoModel->driverDelay;
+			if (stopIn < MaximumStopTime)
+			{
+				dynamicControlMode = DynamicControlMode::Stopping;
+				commandDriver(0,DriverMode::Coast);
+			}
+			else
+			{
+				doSpeedControl();
+			}
 		}
 	}
 	
-	if (dynamicControlMode == DynamicControlMode::Approaching)
-	{
-		cTargetVelocity = cPlanTargetVelocity;
-
-		double stopIn = estimateTimeToPosition(motionPlan->finalAngle) - servoModel->driverDelay;
-		if (stopIn < MaximumStopTime)
-		{
-			dynamicControlMode = DynamicControlMode::Stopping;
-			commandDriver(0,DriverMode::Coast);
-		}	
-		else
-		{
-			doSpeedControl();
-		}
-	}	
-	else if (dynamicControlMode == DynamicControlMode::Stopping)
+//	if (dynamicControlMode == DynamicControlMode::Approaching)
+//	{
+//		cTargetVelocity = cPlanTargetVelocity;
+//
+//		double stopIn = estimateTimeToPosition(motionPlan->finalAngle) - servoModel->driverDelay;
+//		if (stopIn < MaximumStopTime)
+//		{
+//			dynamicControlMode = DynamicControlMode::Stopping;
+//			commandDriver(0,DriverMode::Coast);
+//		}	
+//		else
+//		{
+//			doSpeedControl();
+//		}
+//	}	
+//	else
+		
+	if (dynamicControlMode == DynamicControlMode::Stopping)
 	{
 		commandDriver(0,DriverMode::Brake);
 		motionPlanComplete = true;
@@ -278,9 +291,6 @@ void PredictiveJointController::doSpeedControl()
 		 
 		cControlTorque += torqueCorrection;
 		
-		if (sgn(cControlTorque) != sgn(cTargetVelocity))
-			cControlTorque = 0;
-
 		commandDriver(servoModel->getVoltageForTorqueSpeed(cControlTorque,cTargetVelocity),DriverMode::TMVoltage);
 		speedControlState = SpeedControlState::Measuring;
 		TimeUtil::setNow(speedControlMeasureStart);

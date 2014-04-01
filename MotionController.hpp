@@ -61,6 +61,7 @@ private:
 	std::mutex taskQueueMutex;
 	long updatePeriod;
 	long updateCount;
+	std::stringstream ikLogStream;
 	
 	timespec planStartTime;
 	double planLogTimeOffset;

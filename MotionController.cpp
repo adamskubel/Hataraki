@@ -23,8 +23,10 @@ MotionController::MotionController(vector<PredictiveJointController*> & _joints,
 	timeSMA_map.insert(make_pair("All",new SimpleMovingAverage(30)));
 	timeSMA_map.insert(make_pair("PoseDynamics",new SimpleMovingAverage(30)));
 	
-	AsyncLogger::getInstance().postLogTask("ik_tracking.csv", "Count,x,y,z,xt,yt,zt,xd,yd,zd\n");
-	AsyncLogger::getInstance().postLogTask("joint_tracking.csv", "Time,Roll0,xRoll0,Pitch0,xPitch0,Roll1,xRoll1,Pitch1,xPitch1,Pitch2,xPitch2,Roll2,xRoll2\n");
+	ikLogStream << "Count,x,y,z,xt,yt,zt,xd,yd,zd" << endl;
+	
+	//AsyncLogger::getInstance().postLogTask("ik_tracking.csv", "Count,x,y,z,xt,yt,zt,xd,yd,zd\n");
+	//AsyncLogger::getInstance().postLogTask("joint_tracking.csv", "Time,Roll0,xRoll0,Pitch0,xPitch0,Roll1,xRoll1,Pitch1,xPitch1,Pitch2,xPitch2,Roll2,xRoll2\n");
 	state = State::Waiting;
 }
 
@@ -90,14 +92,8 @@ void MotionController::updateController(){
 		}
 		timeSMA_map["All"]->add(TimeUtil::timeSince(start)*1000.0);
 		
-//		if (updateCount % 10 == 0)
-		{
-			TimeUtil::setNow(step);
-			PoseDynamics::getInstance().setJointAngles(jointAngles);
-			PoseDynamics::getInstance().update();
-			timeSMA_map["PoseDynamics"]->add(TimeUtil::timeSince(step)*1000.0);
-		}
-		
+		PoseDynamics::getInstance().setJointAngles(jointAngles);
+			
 		//Update state
 		switch (state)
 		{
@@ -130,7 +126,8 @@ void MotionController::updateController(){
 				ss << "," << t2.x << "," << t2.y << "," << t2.z <<
 					"," << td.x << "," << td.y << "," << td.z << endl;
 			
-				AsyncLogger::getInstance().postLogTask("ik_tracking.csv", ss.str());
+				ikLogStream << ss.str();
+				//AsyncLogger::getInstance().postLogTask("ik_tracking.csv", ss.str());
 			}
 
 			//stringstream jointStream;
@@ -285,6 +282,10 @@ void MotionController::shutdown()
 			cout << "Error while shutting down joint: " << e.what() << endl;
 		}
 	}
+	cout << "Writing ik2 file " << endl;
+	ofstream logIK("ik_tracking.csv",std::ofstream::out);
+	logIK << ikLogStream.str();
+	logIK.close();
 	
 	for (auto it = joints.begin(); it != joints.end(); it++)
 		(*it)->writeHistoryToLog();

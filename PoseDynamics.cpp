@@ -6,7 +6,7 @@ using namespace std;
 
 PoseDynamics::PoseDynamics() 
 {
-
+	updateNeeded = true;
 }
 
 void PoseDynamics::setArmModel(ArmModel * _armModel)
@@ -140,9 +140,8 @@ Vector3d PoseDynamics::computeTorqueFromForces(int targetJoint)
 	//torque = r x F
 	//F = gravity vector ([0,0,-9.8]*mass)
 	//r = distance to CoG
-	
 	const Vector3d Gravity(0,0,-9.8);
-
+	
 	Vector3d position = segmentTransforms[targetJoint].Translation;
 
 	Vector3d r = childPointMassPosition[targetJoint] - position;
@@ -157,6 +156,7 @@ Vector3d PoseDynamics::computeTorqueFromForces(int targetJoint)
 double PoseDynamics::getTorqueForAcceleration(int targetJoint, double accelRadians)
 {
 	if (!(targetJoint >= 0 && targetJoint < armModel->joints.size())) throw std::runtime_error("Joint index out of range");
+	update();
 
 	double momentOfInertia = segmentTransforms[targetJoint].MomentOfInertia;
 
@@ -166,6 +166,7 @@ double PoseDynamics::getTorqueForAcceleration(int targetJoint, double accelRadia
 double PoseDynamics::computeJointTorque(int targetJoint)
 {
 	if (!(targetJoint >= 0 && targetJoint < armModel->joints.size())) throw std::runtime_error("Joint index out of range");
+	update();
 	
 	Vector3d tGravity = computeTorqueFromForces(targetJoint);
 
@@ -178,31 +179,36 @@ double PoseDynamics::computeJointTorque(int targetJoint)
 
 void PoseDynamics::update()
 {
-	segmentTransforms.clear();
-	childPointMassPosition.clear();
-	childPointMassValue.clear();
+	if (updateNeeded)
+	{
+		segmentTransforms.clear();
+		childPointMassPosition.clear();
+		childPointMassValue.clear();
 
-	for (int i=0;i<JointCount;i++)
-	{		
-		Matrix3d rotation;
-		Vector3d translation;
-		computeSegmentTransform(i,translation,rotation);
-		segmentTransforms.push_back(SegmentTransform(translation,rotation));
-	}
+		for (int i=0;i<JointCount;i++)
+		{		
+			Matrix3d rotation;
+			Vector3d translation;
+			computeSegmentTransform(i,translation,rotation);
+			segmentTransforms.push_back(SegmentTransform(translation,rotation));
+		}
 
-	for (int i=0;i<JointCount;i++)
-	{	
-		Vector3d pointMassPosition;
-		double massValue;
+		for (int i=0;i<JointCount;i++)
+		{	
+			Vector3d pointMassPosition;
+			double massValue;
 
-		computeChildPointMass(i,pointMassPosition,massValue);
+			computeChildPointMass(i,pointMassPosition,massValue);
 
-		childPointMassPosition.push_back(pointMassPosition);
-		childPointMassValue.push_back(massValue);
+			childPointMassPosition.push_back(pointMassPosition);
+			childPointMassValue.push_back(massValue);
+		}
+		updateNeeded = false;
 	}
 }
 
 void PoseDynamics::setJointAngles(vector<double> _jointAngles)
 {
+	this->updateNeeded = true;
 	this->jointAngles = _jointAngles;
 }

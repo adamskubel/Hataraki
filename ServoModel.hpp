@@ -70,17 +70,8 @@ public:
 	double speedControlIntegralGain;
 	double speedControlDerivativeGain;
 
-	std::vector<double> gravityFlipVoltagePattern, externalDisturbanceFlipVoltagePattern, startVoltagePattern;
-
-	bool externalDisturbanceFlipTriggerEnabled;
-	bool gravityFlipTriggerEnabled;
-	bool motionStartEnabled;
 	bool useTargetFeedback;
 	bool stepControlEnabled;
-
-	const bool savitzyGolayFilteringEnabled = false;
-	const int savitzyGolayWindowSize = 5;
-	const int savitzyGolayPolyDegree = 5;
 	
 	double velocityCorrectionProportionalGain,velocityCorrectionDerivativeGain;
 	double approachVelocity;
@@ -105,21 +96,12 @@ public:
 		speedControlProportionalGain = Configuration::getInstance().getObject(rawConfig,"SpeedControl.ProportionalGain")->valuedouble;
 		speedControlIntegralGain = Configuration::getInstance().getObject(rawConfig,"SpeedControl.IntegralGain")->valuedouble;
 		speedControlDerivativeGain = Configuration::getInstance().getObject(rawConfig,"SpeedControl.DerivativeGain")->valuedouble;
-
-		gravityFlipVoltagePattern = Configuration::getVoltagePatternFromJSON(cJSON_GetObjectItem(rawConfig,"GravityFlipPattern"));
 		
-		startVoltagePattern = Configuration::getVoltagePatternFromJSON(Configuration::getInstance().getObject(rawConfig,"MotionStart.VoltagePattern"));
-		motionStartEnabled = get("MotionStart.Enabled") != 0.0;
-
-		externalDisturbanceFlipVoltagePattern = Configuration::getVoltagePatternFromJSON(cJSON_GetObjectItem(rawConfig,"ExternalDisturbanceFlipPattern"));
-
-		externalDisturbanceFlipTriggerEnabled = cJSON_GetObjectItem(rawConfig,"ExternalDisturbanceFlipTriggerEnabled")->valueint != 0;
-		gravityFlipTriggerEnabled = cJSON_GetObjectItem(rawConfig,"GravityFlipTriggerEnabled")->valueint != 0;
-
 		maxAcceleration = AS5048::degreesToSteps(Configuration::getInstance().getObject(rawConfig,"MaxAcceleration")->valuedouble);
 
 		velocityCorrectionProportionalGain = Configuration::getInstance().getObject(rawConfig,"DynamicController.VelocityKPForPositionCorrection")->valuedouble;
 		velocityCorrectionDerivativeGain = Configuration::getInstance().getObject(rawConfig,"DynamicController.VelocityKDForPositionCorrection")->valuedouble;
+
 		approachVelocity = AS5048::degreesToSteps(Configuration::getInstance().getObject(rawConfig,"DynamicController.SetpointApproachVelocity")->valuedouble);
 		approachDistanceThreshold = AS5048::degreesToSteps(Configuration::getInstance().getObject(rawConfig,"DynamicController.SetpointApproachDistanceThreshold")->valuedouble);
 		

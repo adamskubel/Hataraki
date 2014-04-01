@@ -128,11 +128,11 @@ int main(int argc, char *argv[])
 //	testDynamicTorque();
 
 //	cout << endl << endl << " --- MotionPlanning --- " << endl;
-//	testMotionPlanning();
+	testMotionPlanning();
 	
 //	HatarakiTest::testEulerAngleExtraction();
 //	HatarakiTest::testIKRotation();
-	HatarakiTest::testTMVoltageConverter();
+//	HatarakiTest::testTMVoltageConverter();
 	
 //	HatarakiTest::testAngleExtractionIK();
 //	testKinematicPerformance();
@@ -319,6 +319,7 @@ void testMotionPlanning()
 	const vector<double> angles1 = {0.1,-6.4,0,34,63,0}; //11 0 -6
 	const vector<double> angles2 = {0,-17,0,53,34,0}; //12 0 -5.5, 0 -70 0
 	const vector<double> angles3  = {0,-22,0,60,41,0}; //11 0 -5.5, 0 -70 0
+	const vector<double> angles4  = {0.2,-20,1.1,64.1,45.7,-0.5}; //10 0 -6
 	
 	
 	std::ofstream outFile("/users/adamskubel/desktop/test_motionplanning.csv");
@@ -335,7 +336,7 @@ void testMotionPlanning()
 	outFile << "KeyTipX,KeyTipY,KeyTipZ";
 	outFile << endl;
 	
-	setAnglesDegrees(angles1); //Set with IK?
+	setAnglesDegrees(angles4); //Set with IK?
 	
 	double r[9];
 	Vector3d startPosition;
@@ -343,10 +344,10 @@ void testMotionPlanning()
 	transform(angles1.begin(), angles1.end(), a.begin(), MathUtil::degreesToRadians);
 	ComputeFk(a.data(),startPosition,r);
 	
-	Vector3d endPosition(10,1,-6);
+	Vector3d endPosition(11,0,-6);
 	endPosition /= 100;
 	
-	mp->setPathInterpolationMode(PathInterpolationMode::FixedStepCount);
+	mp->setPathInterpolationMode(PathInterpolationMode::SingleStep);
 	mp->setPathDivisions(20);
 	auto motionPlan = mp->buildPlan(IKGoal(endPosition, Matrix3d::createRotationAroundAxis(0, -90, 0),false));
 		

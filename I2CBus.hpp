@@ -47,6 +47,9 @@ public:
 	int readWord(int address);
 	int readByte(int address);
 	
+	void writeByte(int address, int data);
+	void writeWord(int address, int data);
+	
 	void setRegister(unsigned char regAddr, unsigned char regValue);
 	int getRegisterValue(unsigned char regAddr);	
 

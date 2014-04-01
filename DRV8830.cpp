@@ -159,14 +159,15 @@ void DRV8830::writeVoltage(I2CBus * bus, double voltage)
 
 void DRV8830::writeVoltageMode(I2CBus * bus, double voltage, int mode)
 {
-	unsigned char command = buildCommand(voltage,mode);
-
-	unsigned char buffer[2] = {static_cast<unsigned char>(DRV8830Registers::CONTROL),command};
-	bus->writeToBus(buffer,2);
+	writeCommand(bus,buildCommand(voltage,mode));
+//
+//	unsigned char buffer[2] = {static_cast<unsigned char>(DRV8830Registers::CONTROL),command};
+//	bus->writeToBus(buffer,2);
 }
 
 void DRV8830::writeCommand(I2CBus * bus,unsigned char command)
 {
-	unsigned char buffer[2] = {static_cast<unsigned char>(DRV8830Registers::CONTROL),command};
-	bus->writeToBus(buffer,2);
+//	unsigned char buffer[2] = {static_cast<unsigned char>(DRV8830Registers::CONTROL),command};
+	//	bus->writeToBus(buffer,2);
+	bus->writeByte(DRV8830Registers::CONTROL, command);
 }

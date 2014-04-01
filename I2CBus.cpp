@@ -162,11 +162,22 @@ int i2c_smbus_read_word_data(int file, unsigned char command)
 		return 0x0FFFF & data.word;
 }
 
-int i2c_smbus_write_word_data(int file, unsigned char command, unsigned char value)
+int i2c_smbus_write_word_data(int file, unsigned char command, unsigned short value)
 {
 	union i2c_smbus_data data;
 	data.word = value;
 	return i2c_smbus_access(file, I2C_SMBUS_WRITE, command,I2C_SMBUS_WORD_DATA, &data);
+}
+
+
+void I2CBus::writeWord(int registerAddress, int data)
+{
+	i2c_smbus_write_byte_data(file,(unsigned char)registerAddress,(unsigned short)data);
+}
+
+void I2CBus::writeByte(int registerAddress, int data)
+{
+	i2c_smbus_write_byte_data(file,(unsigned char)registerAddress,(unsigned char)data);
 }
 
 int I2CBus::readWord(int registerAddress)
@@ -234,6 +245,15 @@ int I2CBus::readWord(int registerAddress)
 int I2CBus::readByte(int registerAddress)
 {
 	return 0;
+}
+
+void I2CBus::writeWord(int registerAddress, int data)
+{
+}
+
+void I2CBus::writeByte(int registerAddress, int data)
+{
+
 }
 
 void I2CBus::selectAddress(int addr)

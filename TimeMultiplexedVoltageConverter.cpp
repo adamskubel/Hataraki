@@ -33,25 +33,25 @@ double TimeMultiplexedVoltageConverter::nextVoltage(double elapsedTime, double t
 	
 	const double ResetThreshold = 0.5;
 	
-	if (abs(targetVoltage - lastVoltage) > ResetThreshold)
+	//if (abs(targetVoltage - lastVoltage) > ResetThreshold)
+	//{
+	//	totalTime = 0;
+	//	voltageHistory.clear();
+	//}
+	//else
+	//{
+	if (lastVoltage != 0)
 	{
-		totalTime = 0;
-		voltageHistory.clear();
+		totalTime += elapsedTime;
+		voltageHistory.push_back(make_pair(elapsedTime, lastVoltage));
 	}
-	else
+
+	if (voltageHistory.size() > maxMultiplexPeriods)
 	{
-		if (lastVoltage != 0)
-		{
-			totalTime += elapsedTime;
-			voltageHistory.push_back(make_pair(elapsedTime, lastVoltage));
-		}
-		
-		if (voltageHistory.size() > maxMultiplexPeriods)
-		{
-			totalTime -= voltageHistory.front().first;
-			voltageHistory.pop_front();
-		}
+		totalTime -= voltageHistory.front().first;
+		voltageHistory.pop_front();
 	}
+	//}
 	
 	//lol
 	totalTime = elapsedTime * voltageHistory.size();
@@ -114,5 +114,5 @@ double TimeMultiplexedVoltageConverter::getAverageVoltage()
 	{
 		vSum += it->second;
 	}
-	return vSum / (voltageHistory.size());
+	return (vSum + lastVoltage) / (voltageHistory.size()+1);
 }

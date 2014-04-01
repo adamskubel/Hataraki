@@ -1,6 +1,8 @@
 CXX_BB=g++
 CXX=arm-none-linux-gnueabi-g++
 
+#OUTPUT_DIR=
+
 #CFLAGS=-c -Wall --sysroot=/usr/local/carlson-minot/crosscompilers/arm-none-linux-gnueabi/libc-2013.05-24-sysroot
 #LDFLAGS=--sysroot=/usr/local/carlson-minot/crosscompilers/arm-none-linux-gnueabi/libc-2013.05-24-sysroot
 

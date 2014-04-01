@@ -156,6 +156,7 @@ void AsyncLogger::joinThread()
 
 void AsyncLogger::writeStreamToFile(string filename, ostringstream * stream)
 {
+	cout << "Writing stream " << filename << endl;
 	ofstream file(filename,std::ofstream::out);
 	file << stream->str();
 	file.close();

@@ -62,8 +62,7 @@ private:
 	double cTime;
 	double nTime;
 
-	//std::vector<double> jointTorques;
-	
+	bool updateNeeded;
 
 public:
 	std::vector<vmath::Vector3d> childPointMassPosition;

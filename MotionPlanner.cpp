@@ -373,10 +373,10 @@ vector<shared_ptr<MotionPlan> > MotionPlanner::buildPlan(IKGoal goal)
 	else
 	{
 		vector<Step> steps = buildMotionSteps(goal);
-		//if (steps.size() > 2)
-		newPlan = buildPlan(steps);
-		//else
-		//	newPlan = createClosedSolutionMotionPlanFromSteps(steps);
+		if (steps.size() > 2)
+			newPlan = buildPlan(steps);
+		else
+			newPlan = createClosedSolutionMotionPlanFromSteps(steps,false);
 	}
 	
 	validatePlan(goal,newPlan);
@@ -686,7 +686,7 @@ vector<Step> MotionPlanner::buildMotionSteps(IKGoal goal)
 }
 
 
-vector<shared_ptr<MotionPlan> > MotionPlanner::createClosedSolutionMotionPlanFromSteps(vector<Step> & steps)
+vector<shared_ptr<MotionPlan> > MotionPlanner::createClosedSolutionMotionPlanFromSteps(vector<Step> & steps, bool coastPhase)
 {
 	const double CoastDistance = 150;
 	
@@ -706,17 +706,25 @@ vector<shared_ptr<MotionPlan> > MotionPlanner::createClosedSolutionMotionPlanFro
 	double stepTime = 0;
 	for (int i=0;i<6;i++)
 	{						
-		double lastVelocity = 0;
+		double v0 = 0, vF = 0;
 
 		double delta = step->Positions[i] - s1->Positions[i];
 
 		double direction = sgn(delta);
-		double maxSpeed = joints.at(i)->getMaxVelocity() * direction;
+		double maxSpeed = joints.at(i)->getMaxVelocity();
 		double maxAccel = joints.at(i)->getMaxAcceleration();
 		double coastVelocity = joints.at(i)->getJointModel()->servoModel.controllerConfig.approachVelocity*direction;
 
-		double v1,jointTime;
-		jointTime = KinematicSolver::fourPart_minimumTime(maxAccel,CoastDistance * direction,delta,lastVelocity,coastVelocity,maxSpeed,v1);
+		double v1,jointTime = 0;
+		
+		if (coastPhase)
+		{
+			jointTime = KinematicSolver::fourPart_minimumTime(maxAccel,CoastDistance * direction,delta,v0,coastVelocity,maxSpeed,v1);
+		}
+		else
+		{
+			jointTime = KinematicSolver::threePart_minimumTime(maxAccel, maxSpeed, v0, vF, delta);
+		}
 		jointTime += 0.0001; //Ensure no non-real results due to imprecision errors
 
 		stepTime = std::max(stepTime,jointTime);
@@ -724,24 +732,36 @@ vector<shared_ptr<MotionPlan> > MotionPlanner::createClosedSolutionMotionPlanFro
 
 	for (int i=0;i<6;i++) 
 	{	
-		double lastVelocity = 0;		
+		double v0 = 0, vF = 0;
 		double delta = step->Positions[i] - s1->Positions[i];
 		double direction = sgn(delta);
 		double coastVelocity = joints.at(i)->getJointModel()->servoModel.controllerConfig.approachVelocity*direction;
 		double maxAccel = joints.at(i)->getMaxAcceleration();
 
 		PlanSolution sol;
-		KinematicSolver::fourPart_calculate(maxAccel,CoastDistance*direction,stepTime,delta,lastVelocity,coastVelocity,sol);
 		
-		motionPlan.at(i)->motionIntervals.push_back(MotionInterval(lastVelocity,sol.v1,sol.t0));
-
-		if (sol.t1 >= Configuration::SamplePeriod) 
+		if (coastPhase)
 		{
-			motionPlan.at(i)->motionIntervals.push_back(MotionInterval(sol.v1,sol.t1));					
-		}
+			KinematicSolver::fourPart_calculate(maxAccel,CoastDistance*direction,stepTime,delta,v0,coastVelocity,sol);
+			
+			motionPlan.at(i)->motionIntervals.push_back(MotionInterval(v0,sol.v1,sol.t0));
 
-		motionPlan.at(i)->motionIntervals.push_back(MotionInterval(sol.v1,coastVelocity,sol.t2));
-		motionPlan.at(i)->motionIntervals.push_back(MotionInterval(coastVelocity,sol.t3));
+			if (sol.t1 >= Configuration::SamplePeriod) 
+			{
+				motionPlan.at(i)->motionIntervals.push_back(MotionInterval(sol.v1,sol.t1));					
+			}
+
+			motionPlan.at(i)->motionIntervals.push_back(MotionInterval(sol.v1,coastVelocity,sol.t2));
+			motionPlan.at(i)->motionIntervals.push_back(MotionInterval(coastVelocity,sol.t3));
+		}
+		else
+		{
+			KinematicSolver::threePart_calculate(maxAccel, v0, vF, delta, stepTime, sol);
+			
+			if (sol.t0 > 0) motionPlan.at(i)->motionIntervals.push_back(MotionInterval(v0,sol.v1,sol.t0));
+			if (sol.t1 > 0) motionPlan.at(i)->motionIntervals.push_back(MotionInterval(sol.v1,sol.t1));
+			if (sol.t2 > 0) motionPlan.at(i)->motionIntervals.push_back(MotionInterval(sol.v1,vF,sol.t2));
+		}
 	}
 
 	for (int i=0;i<6;i++)

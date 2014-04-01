@@ -254,7 +254,7 @@ void PredictiveJointController::logState()
 
 	if (Configuration::FastLogging)
 	{
-		dataHistory.push_back(DataFrame(cTime,cSensorAngle,cVelocity,cTargetAngle,cTargetVelocity,cPlanTargetVelocity, cTargetVoltage, cAppliedVoltage,cControlTorque,cExpectedVelocity));
+		dataHistory.push_back(DataFrame(cTime,cSensorAngle,cVelocity,cTargetAngle,cTargetVelocity,cPlanTargetVelocity, cTargetVoltage, cVoltage,cControlTorque,cExpectedVelocity));
 	}
 	else
 	{
@@ -331,7 +331,7 @@ void PredictiveJointController::logState()
 
 double PredictiveJointController::getMaxVelocity()
 {
-	const double AverageTorque = 0;
+	const double AverageTorque = 0.03;
 
 	return servoModel->getSpeedForTorqueVoltage(AverageTorque,DRV8830::stepsToVoltage(getMaxVoltageSteps()));
 }

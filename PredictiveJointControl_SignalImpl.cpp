@@ -33,27 +33,26 @@ int PredictiveJointController::getSensorAngleRegisterValue()
 
 void PredictiveJointController::setCurrentTorqueStates()
 {
-	double direction = sgn(cPlanTargetVelocity);
-	//Need to invert this for some reason
-	cStaticModelTorque = -PoseDynamics::getInstance().computeJointTorque(jointModel->index);
-	//cStaticModelRotatum = (cStaticModelTorque - lStaticModelTorque)/(cTime-lTime);
-
-	double frictionTorque = (servoModel->frictionTorque * -direction);
-
-	cPredictedTorque = cStaticModelTorque + frictionTorque;
-	
-	//Then flip back around to get motor torque. 
-	cPredictedTorque = -cPredictedTorque;
-	
-	//Make sure torque is the same sign as motion
-	if (direction > 0)
-		cPredictedTorque = std::max<double>(MinimumPredictedTorque,cPredictedTorque);
-	else
-		cPredictedTorque = std::min<double>(-MinimumPredictedTorque,cPredictedTorque);
-
-	if (!isControlTorqueValid) 
+	if (!isControlTorqueValid)
 	{
-		velocityErrorIntegral = 0;
+		double direction = sgn(cPlanTargetVelocity);
+		//Need to invert this for some reason
+		cStaticModelTorque = -PoseDynamics::getInstance().computeJointTorque(jointModel->index);
+		//cStaticModelRotatum = (cStaticModelTorque - lStaticModelTorque)/(cTime-lTime);
+
+		double frictionTorque = (servoModel->frictionTorque * -direction);
+
+		cPredictedTorque = cStaticModelTorque + frictionTorque;
+		
+		//Then flip back around to get motor torque. 
+		cPredictedTorque = -cPredictedTorque;
+		
+		//Make sure torque is the same sign as motion
+		if (direction > 0)
+			cPredictedTorque = std::max<double>(MinimumPredictedTorque,cPredictedTorque);
+		else
+			cPredictedTorque = std::min<double>(-MinimumPredictedTorque,cPredictedTorque);
+
 		cControlTorque = cPredictedTorque;
 		isControlTorqueValid = true;
 	}
