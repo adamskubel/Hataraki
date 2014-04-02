@@ -31,6 +31,7 @@ private:
 	
 public:
 	static std::string get_file_contents(const char *filename);
+	static cJSON * loadJsonFile(std::string filename);
 
 	static bool CsvLoggingEnabled;
 	static bool FastLogging;

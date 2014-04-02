@@ -62,6 +62,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="ArmState.cpp" />
     <ClCompile Include="AS5048.cpp" />
     <ClCompile Include="AsyncLogger.cpp" />
     <ClCompile Include="Configuration.cpp" />
@@ -85,7 +86,6 @@
     <ClCompile Include="QuadraticRegression.cpp" />
     <ClCompile Include="ServoModel.cpp" />
     <ClCompile Include="ServoUtil.cpp" />
-    <ClCompile Include="SavitzkyGolaySmooth.cpp" />
     <ClCompile Include="StepController.cpp" />
     <ClCompile Include="Test.cpp" />
     <ClCompile Include="TimeMultiplexedVoltageConverter.cpp" />
@@ -122,7 +122,6 @@
     <ClInclude Include="QuadraticRegression.hpp" />
     <ClInclude Include="ServoModel.hpp" />
     <ClInclude Include="ServoUtil.hpp" />
-    <ClInclude Include="SavitzkyGolaySmooth.hpp" />
     <ClInclude Include="SimpleMovingAverage.hpp" />
     <ClInclude Include="StepController.hpp" />
     <ClInclude Include="TimeMultiplexedVoltageConverter.hpp" />

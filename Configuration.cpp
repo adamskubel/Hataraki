@@ -25,6 +25,13 @@ Configuration & Configuration::getInstance()
 	return instance;
 }
 
+
+cJSON * Configuration::loadJsonFile(string filename)
+{
+	std::string configString = get_file_contents(filename.c_str());
+	return cJSON_Parse(configString.c_str());
+}
+
 Vector3d Configuration::getVectorFromJSON(cJSON * vectorObj)
 {
 	if (cJSON_GetArraySize(vectorObj) != 3)

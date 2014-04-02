@@ -2,6 +2,7 @@
 
 using namespace vmath;
 using namespace std;
+using namespace ikfast;
 
 
 PoseDynamics::PoseDynamics() 
@@ -36,7 +37,7 @@ void PoseDynamics::computeSegmentTransform(int targetJoint, Vector3d & segmentPo
 		
 
 	double r[9]; Vector3d translation;
-	ikfast2::ComputeFk(fkAngles,translation,r);	
+	ComputeFk(fkAngles,translation,r);
 	Matrix3d rotationMatrix = Matrix3d::fromRowMajorArray(r);	
 	
 		
@@ -94,46 +95,6 @@ void PoseDynamics::computeChildPointMass(int targetJoint, Vector3d & pointMassPo
 	segmentTransforms[targetJoint].PointMassValue = pointMassValue;
 	segmentTransforms[targetJoint].MomentOfInertia = momentOfInteria;
 }
-
-
-//Compute moment of inertia and position of each segment
-//JointControllers provide current angular velocities
-//Thus determining the angular momentum of a point mass rotating about each joint
-//There will be two sources of torque:
-// - Change of angular momentum resulting from joint angles changing
-// - Result of force applied on point mass due to gravity
-//Summing the two torque vectors provides the net torque
-//I THINK this net torque vector is then projected onto the axis of rotation to determine the relevant
-//the torque about the joint
-//Return current torque and predicted torque for a given input (or return angular momentum?)
-
-//Step 1: Compute CoG of each segment <-- done
-//Step 2: Determine angular momentum using velocities
-//Step 3: Determine torque due to forces
-
-//Vector3d PoseDynamics::computeTorqueFromAngularAcceleration(int targetJoint)
-//{
-//	//torque = dL/dt
-//	//L = r x p
-//	//L = I*dP
-//	//p0 = inertia * angularVelocity0
-//	//p1 = inertia * angularVelocity1
-//	
-////	SegmentModel * segment = &(armModel->segments[targetJoint]);
-//	JointModel * joint = &(armModel->joints[targetJoint]);
-//		
-//	Matrix3d segmentRotation = segmentTransforms[targetJoint].Rotation;
-//	Vector3d segmentPosition = segmentTransforms[targetJoint].Translation;
-//	double momentOfIntertia =  segmentTransforms[targetJoint].MomentOfInertia;
-//
-//	double dT = nTime - cTime;
-//	
-//	Vector3d angularAcceleration = joint->axisOfRotation * (nJointVelocities.at(targetJoint) - cJointVelocities.at(targetJoint))/dT;
-//	
-//	Vector3d dL =  angularAcceleration * momentOfIntertia;
-//	
-//	return dL;
-//}
 
 Vector3d PoseDynamics::computeTorqueFromForces(int targetJoint)
 {
@@ -207,8 +168,8 @@ void PoseDynamics::update()
 	}
 }
 
-void PoseDynamics::setJointAngles(vector<double> _jointAngles)
+void PoseDynamics::setArmState(ArmState armState)
 {
 	this->updateNeeded = true;
-	this->jointAngles = _jointAngles;
+	this->jointAngles = armState.getJointAnglesRadians();
 }

@@ -20,9 +20,9 @@ INC_PARAMS=$(foreach d, $(INC),-I$d)
 MAINFILE=Main.cpp
 TESTFILE=VoltageTesting.cpp
 
-CLEAN=Main.cpp DRV8830.cpp AS5048.cpp I2CBus.cpp PredictiveJointController.cpp Configuration.cpp MotionController.cpp TimeMultiplexedVoltageConverter.cpp MathUtils.cpp ServoUtil.cpp PoseDynamics.cpp TimeUtil.cpp AsyncLogger.cpp FlipIdentifier.cpp PredictiveJointControl_ControllerImpl.cpp PredictiveJointControl_SignalImpl.cpp MotionPlan.cpp MotionPlanner.cpp KinematicSolver.cpp PathPlanner.cpp QuadraticRegression.cpp IKControlUI.cpp UIElement.cpp NumberSpinner.cpp ServoModel.cpp
+CLEAN=Main.cpp DRV8830.cpp AS5048.cpp I2CBus.cpp PredictiveJointController.cpp Configuration.cpp MotionController.cpp TimeMultiplexedVoltageConverter.cpp MathUtils.cpp ServoUtil.cpp PoseDynamics.cpp TimeUtil.cpp AsyncLogger.cpp FlipIdentifier.cpp PredictiveJointControl_ControllerImpl.cpp PredictiveJointControl_SignalImpl.cpp MotionPlan.cpp MotionPlanner.cpp KinematicSolver.cpp PathPlanner.cpp QuadraticRegression.cpp IKControlUI.cpp UIElement.cpp NumberSpinner.cpp ServoModel.cpp TrajectoryPlanner.cpp ArmState.cpp
 
-SOURCES=DRV8830.cpp AS5048.cpp I2CBus.cpp PredictiveJointController.cpp Configuration.cpp MotionController.cpp TimeMultiplexedVoltageConverter.cpp MathUtils.cpp ServoUtil.cpp PoseDynamics.cpp TimeUtil.cpp AsyncLogger.cpp FlipIdentifier.cpp PredictiveJointControl_ControllerImpl.cpp PredictiveJointControl_SignalImpl.cpp vmath.cpp ikfastsolution.cpp cJSON.cpp MotionPlan.cpp MotionPlanner.cpp KinematicSolver.cpp QuadraticRegression.cpp IKControlUI.cpp UIElement.cpp NumberSpinner.cpp ServoModel.cpp
+SOURCES=DRV8830.cpp AS5048.cpp I2CBus.cpp PredictiveJointController.cpp Configuration.cpp MotionController.cpp TimeMultiplexedVoltageConverter.cpp MathUtils.cpp ServoUtil.cpp PoseDynamics.cpp TimeUtil.cpp AsyncLogger.cpp FlipIdentifier.cpp PredictiveJointControl_ControllerImpl.cpp PredictiveJointControl_SignalImpl.cpp vmath.cpp ikfastsolution.cpp cJSON.cpp MotionPlan.cpp MotionPlanner.cpp KinematicSolver.cpp QuadraticRegression.cpp IKControlUI.cpp UIElement.cpp NumberSpinner.cpp ServoModel.cpp TrajectoryPlanner.cpp ArmState.cpp
 
 OBJECTS=$(SOURCES:.cpp=.o)
 CLEANOBJ=$(CLEAN:.cpp=.o)

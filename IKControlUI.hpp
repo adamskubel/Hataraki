@@ -14,39 +14,39 @@
 #include "UIElement.hpp"
 #include "MotionPlan.hpp"
 
-class UIControlProvider : public DirectControlProvider
-{
-public:
-	UIControlProvider() :
-		currentGoal(IKGoal::stopGoal())
-	{
-		hasControl = false;
-	}
-		
-	void grantControl()
-	{
-		hasControl = true;
-	}
-	
-	void revokeControl()
-	{
-		hasControl = false;
-	}
-	
-	void setGoal(IKGoal goal);
-	
-	IKGoal nextGoal();
-	void motionComplete();
-	void motionOutOfRange();
-
-	IKGoal currentGoal;
-
-	bool hasControl, hasError;
-	std::string errorText;
-
-	std::mutex goalMutex;
-
-};
+//class UIControlProvider : public DirectControlProvider
+//{
+//public:
+//	UIControlProvider() :
+//		currentGoal(IKGoal::stopGoal())
+//	{
+//		hasControl = false;
+//	}
+//		
+//	void grantControl()
+//	{
+//		hasControl = true;
+//	}
+//	
+//	void revokeControl()
+//	{
+//		hasControl = false;
+//	}
+//	
+//	void setGoal(IKGoal goal);
+//	
+//	IKGoal nextGoal();
+//	void motionComplete();
+//	void motionOutOfRange();
+//
+//	IKGoal currentGoal;
+//
+//	bool hasControl, hasError;
+//	std::string errorText;
+//
+//	std::mutex goalMutex;
+//
+//};
 
 class IKControlUI {
 	
@@ -68,7 +68,7 @@ private:
 	//Direct control
 	WINDOW * directControlWindow;
 	bool directModeActive;
-	UIControlProvider * controlProvider;
+//	UIControlProvider * controlProvider;
 
 	bool doDirectControl(int c);	
 	void drawDirectControlWindow();

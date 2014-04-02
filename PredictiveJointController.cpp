@@ -31,6 +31,9 @@ void PredictiveJointController::init()
 	cTargetAngle = 0;
 	cTargetAngleDistance =0;
 	cTargetVelocity = 0;
+	cPlanTargetVelocity = 0;
+	cExpectedVelocity = 0;
+	cControlTorque = 0;
 
 	cTargetVoltage = 0;
 	cAppliedVoltage = 0;
@@ -46,9 +49,6 @@ void PredictiveJointController::init()
 	cRevolutionCount = 0;
 	cRunTime = 0;
 	isControlTorqueValid = false;
-
-	speedControlProportionalGain = servoModel->controllerConfig.speedControlProportionalGain;
-	speedControlIntegralGain = servoModel->controllerConfig.speedControlIntegralGain;
 
 	if (Configuration::CsvLoggingEnabled)
 	{		
@@ -150,6 +150,8 @@ void PredictiveJointController::executeMotionPlan(std::shared_ptr<MotionPlan> re
 	//Make sure speed controller starts off in adjusting state
 	speedControlState = SpeedControlState::Adjusting;
 	lDynamicPositionError = 0;
+	
+	AsyncLogger::log(jointModel->name + " - Executing motion plan of duration " + to_string(motionPlan->getPlanDuration()));
 
 	//while (rawSensorAngleHistory.size() > 1)
 	//	rawSensorAngleHistory.pop_front();
@@ -224,8 +226,10 @@ void PredictiveJointController::writeLogHeader()
 
 void PredictiveJointController::writeHistoryToLog()
 {
-	stringstream ss;
-	ss << "Time,SensorAngle,TargetAngle,Velocity,TargetVelocity,PlanVelocity,TargetVoltage,ActualVoltage,ControlTorque" << endl;
+//	stringstream ss;
+	
+	ofstream ss(logfileName,std::ofstream::out);
+	ss << "Time,SensorAngle,TargetAngle,Velocity,TargetVelocity,PlanVelocity,TargetVoltage,ActualVoltage,ControlTorque,ExpectedVelocity" << endl;
 
 	while (!dataHistory.empty())
 	{
@@ -244,7 +248,11 @@ void PredictiveJointController::writeHistoryToLog()
 			<< frame.ControlTorque << Configuration::CsvSeparator
 			<< frame.ExpectedVelocity << endl;
 	}
-	AsyncLogger::getInstance().postLogTask(logfileName,ss.str());
+	
+//	logFile << ss.str();
+	ss.close();
+	
+	//AsyncLogger::getInstance().postLogTask(logfileName,ss.str());
 }
 
 

@@ -120,9 +120,6 @@
     <ClCompile Include="PredictiveJointControl_SignalImpl.cpp">
       <Filter>Source Files\Predictive</Filter>
     </ClCompile>
-    <ClCompile Include="SavitzkyGolaySmooth.cpp">
-      <Filter>Source Files\Math</Filter>
-    </ClCompile>
     <ClCompile Include="StepController.cpp">
       <Filter>Source Files\Predictive</Filter>
     </ClCompile>
@@ -158,6 +155,9 @@
     </ClCompile>
     <ClCompile Include="TrajectoryPlanner.cpp">
       <Filter>Source Files\MotionPlanning</Filter>
+    </ClCompile>
+    <ClCompile Include="ArmState.cpp">
+      <Filter>Source Files\Model</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -220,9 +220,6 @@
     </ClInclude>
     <ClInclude Include="FlipIdentifier.hpp">
       <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="SavitzkyGolaySmooth.hpp">
-      <Filter>Header Files\Math</Filter>
     </ClInclude>
     <ClInclude Include="StepController.hpp">
       <Filter>Header Files\Predictive</Filter>

@@ -5,9 +5,9 @@
 		"FilePrefix" : "JointData_"
 	},
 	"GlobalSettings" : {
-		"MaxVoltage" : 2.2,
+		"MaxVoltage" : 3.4,
 		"MotionPlanSteps" : 4,
-		"UpdateFrequency" : 500,
+		"UpdateFrequency" : 400,
 		"DefaultAccel" 	: 2000
 	},
 	"ArmModel" : 
@@ -169,11 +169,11 @@
 			"SetpointPrecisionSteps" : 10,
 			"SpeedControl" : 
 			{ 
-				"ProportionalGain" : 0.2,
+				"ProportionalGain" : 0.1,
 				"IntegralGain" : 0.0,
 				"DerivativeGain" : 0.0,
-				"HistoryLength" : 10,
-				"UseTargetFeedback" : 0
+				"HistoryLength" : 15,
+					 "MaxMeasureDelay" : 0.01
 			},
 			"SensorFilters" : 
 			{
@@ -188,8 +188,8 @@
 			},
 			"DynamicController" :
 			{
-				"VelocityKPForPositionCorrection" : 5,
-				"VelocityKDForPositionCorrection" : 0.0,
+				"VelocityKPForPositionCorrection" : 0,
+				"VelocityKDForPositionCorrection" : 0.01,
 				"SetpointApproachVelocity" : 10,
 				"SetpointApproachDistanceThreshold" : 1.5
 			},
@@ -205,11 +205,11 @@
 			"SetpointPrecisionSteps" : 20,
 			"SpeedControl" : 
 			{ 
-				"ProportionalGain" : 0.2,
+				"ProportionalGain" : 0.1,
 				"IntegralGain" : 0.0,
 				"DerivativeGain" : 0.0,
-				"HistoryLength" : 10,
-				"UseTargetFeedback" : 0
+					 "HistoryLength" : 15,
+					 "MaxMeasureDelay" : 0.01
 			},
 			"SensorFilters" : 
 			{
@@ -243,8 +243,8 @@
 				"ProportionalGain" : 0.1,
 				"IntegralGain" : 0.0,
 				"DerivativeGain" : 0.001,
-				"HistoryLength" : 12,
-				"UseTargetFeedback" : 1
+					 "HistoryLength" : 12,
+					 "MaxMeasureDelay" : 0.01
 			},
 			"SensorFilters" : 
 			{

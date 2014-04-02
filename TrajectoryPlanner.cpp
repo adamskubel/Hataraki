@@ -2,21 +2,64 @@
 
 using namespace vmath;
 using namespace std;
-
 using namespace ikfast;
+
+#include "AsyncLogger.hpp"
+
+
+vector<OpSpaceState> TrajectoryPlanner::interpolateBetweenStates(OpSpaceState start, OpSpaceState end, int subdivisions)
+{	
+	vector<OpSpaceState> trajectory;
+
+	Vector3d subDivisionOffset = (end.Position - start.Position) * (1.0/(double)subdivisions);
+
+	for (int i=0;i<=subdivisions;i++)
+	{
+		Vector3d stepPosition = start.Position + subDivisionOffset*(double)i;
+		Matrix3d stepRotation = (i == 0) ? start.Rotation : end.Rotation;
+
+		trajectory.push_back(OpSpaceState(stepPosition,stepRotation));
+		
+//		cout << "Step: " << trajectory.back().toString() << endl;
+	}
+	return trajectory;
+}
+
+vector<OpSpaceState> TrajectoryPlanner::buildTrajectory(cJSON * trajectoryDefinition, bool relative)
+{
+	OpSpaceState initialState = cArmState.getOpSpaceState();
+
+	vector<OpSpaceState> roughTrajectory;
+
+	roughTrajectory.push_back(initialState);
+
+	for (int i=0;i<cJSON_GetArraySize(trajectoryDefinition);i++)
+	{
+		cJSON * pathStep = cJSON_GetArrayItem(trajectoryDefinition,i);
+		
+		Vector3d position = Configuration::getVectorFromJSON(cJSON_GetObjectItem(pathStep,"Position"));	
+		position /= 100.0; //cm -> m
+
+		if (relative)
+			position += initialState.Position;
+
+		Vector3d eulerAngles = Configuration::getVectorFromJSON(cJSON_GetObjectItem(pathStep,"EulerRotation"));
+		Matrix3d rotation = Matrix3d::createRotationAroundAxis(eulerAngles.x,eulerAngles.y,eulerAngles.z);
+		
+		roughTrajectory.push_back(OpSpaceState(position,rotation));
+	}
+
+	return roughTrajectory;
+}
 
 vector<OpSpaceState> TrajectoryPlanner::buildTrajectory(IKGoal goal)
 {
 	Vector3d targetPosition;
 	Matrix3d targetRotation;
-
-		
-	Vector3d currentPosition;
-	double r[9];	
-	vector<double> lastAngles = currentArmState.getJointAnglesRadians();
 	
-	ComputeFk(lastAngles.data(),currentPosition,r);
-	Matrix3d currentRotation = Matrix3d::fromRowMajorArray(r);
+	OpSpaceState initialState = cArmState.getOpSpaceState();
+	Vector3d currentPosition = initialState.Position;
+	Matrix3d currentRotation = initialState.Rotation;
 	
 	switch (goal.action)
 	{
@@ -66,17 +109,8 @@ vector<OpSpaceState> TrajectoryPlanner::buildTrajectory(IKGoal goal)
 		numDivisions = 1;
 		break;
 	}
-
-	vector<OpSpaceState> trajectory;
-
-	for (int i=0;i<numDivisions;i++)
-	{
-		Vector3d stepPosition = currentPosition + delta*((double)i/(double)numDivisions);
-		Matrix3d stepRotation = (i == 0) ? currentRotation : targetRotation;
-
-		trajectory.push_back(OpSpaceState(stepPosition,stepRotation));
-	}
-	return trajectory;
+	
+	return interpolateBetweenStates(initialState,OpSpaceState(targetPosition,targetRotation),numDivisions);
 }
 
 
@@ -96,3 +130,19 @@ void TrajectoryPlanner::setPathInterpolationMode(PathInterpolationMode pathInter
 {
 	this->pathInterpolationMode = pathInterpolationMode;
 }
+
+
+void TrajectoryPlanner::setArmState(ArmState newState)
+{
+	cArmState = newState;
+}
+
+
+
+
+
+
+
+
+
+

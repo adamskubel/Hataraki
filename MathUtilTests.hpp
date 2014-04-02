@@ -9,16 +9,12 @@
 #define VMATH_NAMESPACE vmath
 #include "vmath.h"
 
-#define IKFAST_NO_MAIN
-#define IKFAST_HAS_LIBRARY
-#define IKFAST_NAMESPACE ikfast2
-#include "ikfast.h"
+#include "IKFast.hpp"
 
 #include "TestUtil.hpp"
 
 
 using namespace ikfast;
-using namespace ikfast2;
 using namespace vmath;
 using namespace std;
 
@@ -49,7 +45,7 @@ namespace HatarakiTest
 		
 		double r[9];
 		double translation[3];
-		ikfast2::ComputeFk(angleRad,translation,r);
+		ComputeFk(angleRad,translation,r);
 		Matrix3d rotation = Matrix3d::fromRowMajorArray(r);
 		
 		double xR,yR,zR;

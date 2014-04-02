@@ -137,7 +137,7 @@ void printPositionForAngles(double * jointAngles) {
 	IkReal translationMatrix[3];
 	IkReal rotationMatrix[9];
 	
-	ikfast2::ComputeFk(radAngles,translationMatrix,rotationMatrix);
+	ComputeFk(radAngles,translationMatrix,rotationMatrix);
 	
 	cout << "Endpoint position is " << translationMatrix[0]*100.0 << "," << translationMatrix[1]*100.0 << "," << translationMatrix[2]*100.0 <<endl;
 	cout << "Rotation matrix is: ";

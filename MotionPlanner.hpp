@@ -10,8 +10,9 @@
 #include "KinematicSolver.hpp"
 #include "MathUtils.hpp"
 #include "OpSpaceState.hpp"
+#include "ArmState.hpp"
 
-#include "ikfast.h"
+#include "IKFast.hpp"
 	
 
 
@@ -89,12 +90,13 @@ class MotionPlanner {
 	
 private:
 	std::vector<PredictiveJointController*> joints;
+	ArmState cArmState;
 	
 		
 	std::vector<std::shared_ptr<MotionPlan> > compileStepMotionPlans(std::vector<StepMotionPlan> * stepPlans, std::vector<Step> & steps);
 
 	//IK stuff
-	bool getEasiestSolution(const double * currentAngles, vmath::Vector3d targetPosition, vmath::Matrix3d targetRotation, double * result);
+	bool getEasiestSolution(const double * currentAngles, vmath::Vector3d targetPosition, vmath::Matrix3d targetRotation, std::vector<double> & result);
 	bool checkSolutionValid(const double * solution);
 	double calculateMotionEffort(const double * solution0, const double * solution1);
 		
@@ -114,8 +116,10 @@ public:
 	MotionPlanner(std::vector<PredictiveJointController*> joints);
 	
 		
-	std::vector<std::shared_ptr<MotionPlan> > buildPlan(std::vector<OpSpaceState> goal);
+	std::vector<std::shared_ptr<MotionPlan> > buildPlan(std::vector<OpSpaceState> trajectory);
 	std::shared_ptr<MotionPlan> buildOptimalMotionPlan(int jointIndex, const double targetAngle);
+
+	void setArmState(ArmState newArmState);
 	
 };
 

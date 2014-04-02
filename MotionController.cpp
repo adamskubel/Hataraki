@@ -1,17 +1,17 @@
 #include "MotionController.hpp"
 
 using namespace std;
-using namespace ikfast2;
 using namespace ikfast;
 using namespace vmath;
 
 #define MathDebug true
 
-MotionController::MotionController(vector<PredictiveJointController*> & _joints, int _planStepCount) {
-	this->joints = _joints;
+MotionController::MotionController(vector<PredictiveJointController*> joints) {
+	this->joints = joints;
 	this->updatePeriod = (long)(Configuration::SamplePeriod*1000000.0); //seconds to microseconds
-	this->planStepCount = _planStepCount;	
-	this->motionPlanner = new MotionPlanner(joints);
+	
+	motionPlanner = new MotionPlanner(joints);
+	trajectoryPlanner = new TrajectoryPlanner();
 
 	planLogTimeOffset = 0;
 	updateCount = 0;
@@ -69,91 +69,37 @@ void MotionController::updateController(){
 	try 
 	{
 		bool jointHasActivePlan = false;
-		bool logIk = false;
 
 		timespec start, step;
 		TimeUtil::setNow(start);
 
-		std::vector<double> jointAngles, jointTargetAngles;
-
+		vector<double> jointAngles;
 		for (auto it = joints.begin(); it != joints.end(); it++)
 		{
 			TimeUtil::setNow(step);
+
 			auto joint = *it;
 
-			joint->run();
-			
-			jointAngles.push_back(AS5048::stepsToRadians(joint->getCurrentAngle()));
-			jointTargetAngles.push_back(AS5048::stepsToRadians(joint->getAngleSetpoint()));
-
+			joint->run();			
 			jointHasActivePlan = jointHasActivePlan|| joint->isDynamicMode();
+			jointAngles.push_back(joint->getCurrentAngle());
 
 			timeSMA_map[joint->getJointModel()->name]->add(TimeUtil::timeSince(step)*1000.0);
 		}
 		timeSMA_map["All"]->add(TimeUtil::timeSince(start)*1000.0);
 		
-		PoseDynamics::getInstance().setJointAngles(jointAngles);
-			
-		//Update state
-		switch (state)
-		{
-		case State::FinitePlan:
-			if (!jointHasActivePlan)
-			{
-				state = State::Waiting;
-				//On transition, mark the time
-				planLogTimeOffset += TimeUtil::timeSince(planStartTime) + 0.1;
-			}
-			break;
-		case State::StreamingPlan:
-			updateStreamingMotionPlans();
-			break;
-		default:
-			break;
-		}
-				
-		if (state == State::FinitePlan)
-		{
-			if (logIk)
-			{
-				stringstream ss;
-				double r[9];
-				Vector3d t,t2,td;
-				ikfast2::ComputeFk(jointAngles.data(),t,r);
-				ss << updateCount << "," << t.x << "," << t.y << "," << t.z;
-				ikfast2::ComputeFk(jointTargetAngles.data(),t2,r);
-				td = t - t2;
-				ss << "," << t2.x << "," << t2.y << "," << t2.z <<
-					"," << td.x << "," << td.y << "," << td.z << endl;
-			
-				ikLogStream << ss.str();
-				//AsyncLogger::getInstance().postLogTask("ik_tracking.csv", ss.str());
-			}
-
-			//stringstream jointStream;
-			//jointStream << TimeUtil::timeSince(planStartTime) + planLogTimeOffset << ",";
-			//for (auto it = joints.begin(); it != joints.end(); it++)
-			//{
-			//	auto joint = *it;
-			//	jointStream << joint->getCurrentAngle() << "," << joint->getAngleSetpoint << "," << joint->getCurrentVelocity() << ","
-			//}
-			//for (int i=0;i<jointAngles.size();i++)
-			//{
-			//	jointStream << 
-			//	AS5048::radiansToSteps(jointAngles[i]) << "," << AS5048::radiansToSteps(jointTargetAngles[i]) << ",";
-			//}
-			//jointStream << endl;
-			//AsyncLogger::getInstance().postLogTask("joint_tracking.csv", jointStream.str());
-		}
+		cArmState.setJointAngles(jointAngles);
 		
-		
+		updateControllerState(jointHasActivePlan);				
+		updateChildState();
 		executeControlTasks();
 		
 		double totalTime = TimeUtil::timeSince(start);
 		long adjustedSleep = updatePeriod - (totalTime*1000000);
 		if (adjustedSleep > 0 && adjustedSleep <= updatePeriod)
+		{
 			usleep(static_cast<unsigned int>(adjustedSleep));
-		
+		}		
 		updateCount++;
 	}
 	catch (std::runtime_error & e)
@@ -166,63 +112,95 @@ void MotionController::updateController(){
 	}
 }
 
+void MotionController::updateChildState()
+{	
+	PoseDynamics::getInstance().setArmState(cArmState);
+	motionPlanner->setArmState(cArmState);
+	trajectoryPlanner->setArmState(cArmState);
+}
+
+void MotionController::updateControllerState(bool jointHasActivePlan)
+{
+	bool logIk = false;
+	switch (state)
+	{
+	case State::FinitePlan:
+		if (!jointHasActivePlan)
+		{
+			state = State::Waiting;
+			//On transition, mark the time
+			planLogTimeOffset += TimeUtil::timeSince(planStartTime) + 0.1;
+		}
+		break;
+	case State::StreamingPlan:
+		updateStreamingMotionPlans();
+		break;
+	default:
+		break;
+	}
+				
+	if (state == State::FinitePlan)
+	{
+		if (logIk)
+		{
+//			stringstream ss;
+//			double r[9];
+//			Vector3d t,t2,td;
+//			ComputeFk(cArmState.JointAngles.data(),t,r);
+//			ss << updateCount << "," << t.x << "," << t.y << "," << t.z;
+//			ComputeFk(jointTargetAngles.data(),t2,r);
+//			td = t - t2;
+//			ss << "," << t2.x << "," << t2.y << "," << t2.z <<
+//				"," << td.x << "," << td.y << "," << td.z << endl;
+//			
+//			ikLogStream << ss.str();
+		}
+	}
+}
 
 void MotionController::updateStreamingMotionPlans()
 {
-	bool complete = false;
-	for (auto it=currentPlan.begin(); it != currentPlan.end(); it++)
-	{
-		if (TimeUtil::timeUntil((*it)->endTime) < 0)
-		{
-			complete = true;
-			break;
-		}
-	}
-
-	if (complete)
-	{
-		AsyncLogger::log("Plan complete, reading next goal");
-		currentPlan.clear();
-		IKGoal goal = controlProvider->nextGoal();
-		try
-		{
-			currentPlan = motionPlanner->buildPlan(goal);
-		}
-		catch (std::runtime_error & e)
-		{
-			stringstream ss;
-			ss << "Exception building plan for streaming goal." << e.what();
-			AsyncLogger::log(ss.str());
-			controlProvider->motionOutOfRange();
-			controlProvider->revokeControl();
-			currentPlan = motionPlanner->buildPlan(IKGoal::stopGoal());
-		}
-
-		std::for_each(currentPlan.begin(),currentPlan.end(),[](shared_ptr<MotionPlan> p){p->startNow();});
-		for (int i=0;i<6;i++) joints.at(i)->joinMotionPlan(currentPlan.at(i));			
-	}
+//	bool complete = false;
+//	for (auto it=currentPlan.begin(); it != currentPlan.end(); it++)
+//	{
+//		if (TimeUtil::timeUntil((*it)->endTime) < 0)
+//		{
+//			complete = true;
+//			break;
+//		}
+//	}
+//
+//	if (complete)
+//	{
+//		AsyncLogger::log("Plan complete, reading next goal");
+//		currentPlan.clear();
+//		IKGoal goal = controlProvider->nextGoal();
+//		try
+//		{
+//			currentPlan = motionPlanner->buildPlan(goal);
+//		}
+//		catch (std::runtime_error & e)
+//		{
+//			stringstream ss;
+//			ss << "Exception building plan for streaming goal." << e.what();
+//			AsyncLogger::log(ss.str());
+//			controlProvider->motionOutOfRange();
+//			controlProvider->revokeControl();
+//			currentPlan = motionPlanner->buildPlan(IKGoal::stopGoal());
+//		}
+//
+//		std::for_each(currentPlan.begin(),currentPlan.end(),[](shared_ptr<MotionPlan> p){p->startNow();});
+//		for (int i=0;i<6;i++) joints.at(i)->joinMotionPlan(currentPlan.at(i));			
+//	}
 }
 
 void MotionController::requestDirectControl(IKGoal initialGoal, DirectControlProvider * controlProvider)
 {
-	auto plan = motionPlanner->buildPlan(initialGoal);
-	this->controlProvider = controlProvider;	
-	executeMotionPlan(plan);		
-	state = State::StreamingPlan;
-	controlProvider->grantControl();
-}
-
-
-double getAccelDistFromTime(double initialSpeed, double accel, double time)
-{
-	return time*initialSpeed + (std::pow(time,2) * accel)/2.0;
-}
-
-double getAccelDistFromSpeed(double initialSpeed, double endSpeed, double accel)
-{
-	double time = (endSpeed - initialSpeed)/accel;
-
-	return time*initialSpeed + (std::pow(time,2) * accel)/2.0;
+	//auto plan = motionPlanner->buildPlan(initialGoal);
+	//this->controlProvider = controlProvider;	
+	//executeMotionPlan(plan);		
+	//state = State::StreamingPlan;
+	//controlProvider->grantControl();
 }
 
 void MotionController::setJointVelocity(int jointIndex, double targetVelocity, double runTime)
@@ -327,44 +305,39 @@ void MotionController::enableAllJoints()
 
 void MotionController::executeMotionPlan(vector<shared_ptr<MotionPlan> > newPlan)
 {
-	AsyncLogger::getInstance().postLogTask("motion.log", "Executing motion plan\n");
+	AsyncLogger::getInstance().log("Executing motion plan with duration " + to_string(newPlan.front()->getPlanDuration()));
 	
 	if (state != State::Waiting)
+	{
 		throw std::runtime_error("Must be in waiting state to execute plans");
+	}
 
-	this->postTask([this,newPlan](){
-		
-		if (state != State::Waiting)
-			throw std::runtime_error("ASYNC: Must be in waiting state to execute plans");			
+	state = State::FinitePlan;
 
-		state = State::FinitePlan;
+	this->currentPlan.clear();
+	this->currentPlan = newPlan;
+	
+	//Simultaneous start
+	for (int i=0;i<6;i++)
+	{
+		currentPlan.at(i)->startNow();
+	}
+	for (int i=0;i<6;i++)
+	{
+		joints.at(i)->validateMotionPlan(currentPlan.at(i));
+	}
 
-		this->currentPlan.clear();
-		this->currentPlan = newPlan;
-		
-		
-		//Simultaneous start
-		for (int i=0;i<6;i++)
-		{
-			currentPlan.at(i)->startNow();
-		}
-		for (int i=0;i<6;i++)
-		{
-			joints.at(i)->validateMotionPlan(currentPlan.at(i));
-		}
+	//Simultaneous start
+	for (int i=0;i<6;i++)
+	{
+		currentPlan.at(i)->startNow();
+	}
+	planStartTime = TimeUtil::getNow();
 
-		//Simultaneous start
-		for (int i=0;i<6;i++)
-		{
-			currentPlan.at(i)->startNow();
-		}
-		planStartTime = TimeUtil::getNow();
-
-		for (int i=0;i<6;i++)
-		{
-			joints.at(i)->executeMotionPlan(currentPlan.at(i));
-		}
-	});
+	for (int i=0;i<6;i++)
+	{
+		joints.at(i)->executeMotionPlan(currentPlan.at(i));
+	}
 }
 
 bool MotionController::confirmMotionPlan(vector<shared_ptr<MotionPlan> > & newPlan)
@@ -405,18 +378,6 @@ bool MotionController::confirmMotionPlan(vector<shared_ptr<MotionPlan> > & newPl
 	}
 }
 
-void MotionController::moveToPosition(Vector3d targetPosition, Matrix3d targetRotation, int pathDivisionCount, bool interactive)
-{
-	motionPlanner->setPathDivisions(pathDivisionCount);
-	auto newPlan = motionPlanner->buildPlan(IKGoal(targetPosition,targetRotation,false));
-
-	if (!interactive || confirmMotionPlan(newPlan))
-	{
-		executeMotionPlan(newPlan);
-	}
-}
-
-
 void MotionController::postTask(std::function<void()> task)
 {
 	std::lock_guard<std::mutex> locks(taskQueueMutex);
@@ -435,28 +396,13 @@ void MotionController::getTransform(std::vector<double> & anglesDegrees, vmath::
 	}
 	
 	double r[9];
-	ikfast2::ComputeFk(anglesRad,translation,r);
+	ComputeFk(anglesRad,translation,r);
 	rotation = Matrix3d::fromRowMajorArray(r);	
 }
 
-vector<double> MotionController::getJointAnglesRadians()
+TrajectoryPlanner * MotionController::getTrajectoryPlanner()
 {
-	vector<double> angles;
-	for (auto it = joints.begin(); it != joints.end(); it++)
-	{					
-		angles.push_back(AS5048::stepsToRadians((*it)->getCurrentAngle()));
-	}
-	return angles;
-}
-
-vector<double> MotionController::getJointAnglesSteps()
-{
-	vector<double> angles;
-	for (auto it = joints.begin(); it != joints.end(); it++)
-	{					
-		angles.push_back((*it)->getCurrentAngle());
-	}
-	return angles;
+	return trajectoryPlanner;
 }
 
 MotionPlanner * MotionController::getMotionPlanner()

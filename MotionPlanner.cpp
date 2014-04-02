@@ -2,7 +2,6 @@
 
 using namespace std;
 using namespace vmath;
-using namespace ikfast2;
 using namespace ikfast;
 
 #define MotionPlanDebug false
@@ -12,10 +11,6 @@ const double DynamicMovementThreshold = AS5048::degreesToSteps(1.5);
 MotionPlanner::MotionPlanner(vector<PredictiveJointController*> joints)
 {
 	this->joints = joints;
-
-	this->pathInterpolationDistance =1.0;
-	this->pathDivisionCount = 1;
-	this->pathInterpolationMode = PathInterpolationMode::SingleStep;
 }
 
 //TODO: Move this to IK planner
@@ -31,12 +26,6 @@ bool MotionPlanner::checkSolutionValid(const double * solution)
 	}
 	return true;
 }
-
-vector<double> MotionPlanner::getJointAnglesRadians()
-{
-	return armState.getJointAnglesRadians();
-}
-
 
 vector<shared_ptr<MotionPlan> > MotionPlanner::buildPlanForSmoothStop()
 {
@@ -308,54 +297,54 @@ vector<shared_ptr<MotionPlan> > MotionPlanner::compileStepMotionPlans(vector<Ste
 	return motionPlan;
 }
 
-void MotionPlanner::validatePlan(IKGoal goal, vector<shared_ptr<MotionPlan> > plans)
+void MotionPlanner::validatePlan(vector<OpSpaceState> stateVector, vector<shared_ptr<MotionPlan> > plans)
 {
-	if (goal.action == IKGoal::Action::Stop)
+	//if (goal.action == IKGoal::Action::Stop)
+	//{
+	//	
+	//}
+	//else
+	//{
+	const double timeError = 0.1;
+
+	double minTime = std::numeric_limits<double>::infinity();
+	double maxTime = 0;
+	for (auto p = plans.begin(); p != plans.end(); p++)
 	{
-		
+		minTime = std::min(minTime,(*p)->getPlanDuration());
+		maxTime = std::max(maxTime,(*p)->getPlanDuration());
 	}
-	else
+
+	if (minTime < 0)
 	{
-		const double timeError = 0.1;
-		
-		double minTime = std::numeric_limits<double>::infinity();
-		double maxTime = 0;
-		for (auto p = plans.begin(); p != plans.end(); p++)
-		{
-			minTime = std::min(minTime,(*p)->getPlanDuration());
-			maxTime = std::max(maxTime,(*p)->getPlanDuration());
-		}
-		
-		if (minTime < 0)
-		{
-			stringstream ss;
-			ss << "Negative or zero time in plan: " << minTime;
-			throw std::runtime_error(ss.str());
-		}
-		
-		if (abs(minTime - maxTime) > timeError)
-			throw std::logic_error("Differences in plan duration exceed allowable error");
+		stringstream ss;
+		ss << "Negative or zero time in plan: " << minTime;
+		throw std::runtime_error(ss.str());
 	}
+
+	if (abs(minTime - maxTime) > timeError)
+		throw std::logic_error("Differences in plan duration exceed allowable error");
+	//}
 }
 
-vector<shared_ptr<MotionPlan> > MotionPlanner::buildPlan(IKGoal goal)
+vector<shared_ptr<MotionPlan> > MotionPlanner::buildPlan(vector<OpSpaceState> stateVector)
 {
 	vector<shared_ptr<MotionPlan> > newPlan;
 
-	if (goal.action == IKGoal::Action::Stop)
+	//if (goal.action == IKGoal::Action::Stop)
+	//{
+	//	newPlan = buildPlanForSmoothStop();
+	//}
+	//else
 	{
-		newPlan = buildPlanForSmoothStop();
-	}
-	else
-	{
-		vector<Step> steps = buildMotionSteps(goal);
+		vector<Step> steps = buildMotionSteps(stateVector);
 		if (steps.size() > 2)
 			newPlan = buildPlan(steps);
 		else
 			newPlan = createClosedSolutionMotionPlanFromSteps(steps,false);
 	}
 	
-	validatePlan(goal,newPlan);
+	validatePlan(stateVector,newPlan);
 	
 	return newPlan;
 }
@@ -430,7 +419,7 @@ double MotionPlanner::calculateMotionEffort(const double * currentSolution, cons
 }
 
 //TODO: Move this to IK/Trajectory planner
-bool MotionPlanner::getEasiestSolution(const double * currentAngles, Vector3d targetPosition, Matrix3d rotationMatrix, double * result) {
+bool MotionPlanner::getEasiestSolution(const double * currentAngles, Vector3d targetPosition, Matrix3d rotationMatrix, vector<double> & result) {
 	
 	double targetRotation[9];
 	MathUtil::getRowMajorData(rotationMatrix,targetRotation);
@@ -472,9 +461,8 @@ shared_ptr<MotionPlan> MotionPlanner::buildOptimalMotionPlan(int jointIndex, con
 	auto joint = joints.at(jointIndex);	
 
 	double v0 = 0;
-	double startAngle = joint->getCurrentAngle();
+	double startAngle = cArmState.getJointAngles()[jointIndex];
 	double delta = targetAngle - startAngle;
-	double dir = sgn(delta);
 	double vF = 0; //joint->getJointModel()->servoModel.controllerConfig.approachVelocity * dir;
 	
 	double minTime = KinematicSolver::threePart_minimumTime(joint->getMaxAcceleration(),joint->getMaxVelocity(),v0,vF,delta);
@@ -554,45 +542,45 @@ shared_ptr<MotionPlan> MotionPlanner::buildMotionPlan(const double startAngle,co
 	return plan;
 }
 
-vector<Step> MotionPlanner::buildMotionSteps(vector<OpSpaceState> goal)
+vector<Step> MotionPlanner::buildMotionSteps(vector<OpSpaceState> stateVector)
 {	
-
-
-	for (int i=1;i<=numDivisions;i++)
+	vector<Step> steps;
+	vector<double> lastAngles = cArmState.getJointAnglesRadians();
+	
+	int stepCount = 0;
+	for (auto it = stateVector.begin(); it != stateVector.end(); it++)
 	{
-		Vector3d stepPosition = currentPosition + delta*((double)i/(double)numDivisions);
+		Vector3d stepPosition = it->Position;
+		Matrix3d stepRotation = it->Rotation;
 		
-		double stepAngles[6];
-		bool solutionExists = getEasiestSolution(lastAngles.data(),stepPosition,targetRotation,stepAngles);
+		vector<double> angles(6);
+		bool solutionExists = getEasiestSolution(lastAngles.data(),stepPosition,stepRotation,angles);
 		
 		if (!solutionExists) {
 			stringstream ss;
-			ss << "Solution could not be found for position: " << (stepPosition*100.0).toString() << endl;
+			ss << "Step #" << stepCount << " - solution could not be found for position: " << (stepPosition*100.0).toString() << endl;
 			throw std::runtime_error(ss.str());
 		}
+				
+		vector<double> anglesSteps(6);
+		std::transform(angles.begin(),angles.end(),anglesSteps.begin(),AS5048::radiansToSteps);						
+		steps.push_back(Step(anglesSteps));
+
+		lastAngles = angles;
+		stepCount++;
 		
-		vector<double> convAngles(6);
-		
+		stringstream ss;
+		ss << "Building plan for goal: " << it->toString();
+		ss << endl;
+		ss << "Final angles = ";
 		for (int c=0;c<6;c++)
 		{
-			convAngles[c] = AS5048::radiansToSteps(stepAngles[c]);
-			lastAngles[c] = stepAngles[c];
+			ss << AS5048::stepsToDegrees(steps.back().Positions[c]) << " ";
 		}
-		
-		
-		steps.push_back(Step(convAngles));
+		AsyncLogger::log(ss);
 	}
+		
 
-	
-	stringstream ss;
-	ss << "Building plan for goal: " << goal.toString();
-	ss << endl;
-	ss << "Final angles = ";
-	for (int c=0;c<6;c++)
-	{
-		ss << AS5048::stepsToDegrees(steps.back().Positions[c]) << " ";
-	}
-	AsyncLogger::log(ss);
 
 	return steps;
 }
@@ -683,5 +671,11 @@ vector<shared_ptr<MotionPlan> > MotionPlanner::createClosedSolutionMotionPlanFro
 	}
 
 	return motionPlan;
+}
+
+
+void MotionPlanner::setArmState(ArmState newState)
+{
+	cArmState = newState;
 }
 

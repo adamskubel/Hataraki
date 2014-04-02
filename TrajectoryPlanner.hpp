@@ -3,11 +3,15 @@
 
 #include <vector>
 
+//#include "cJSON.h"
+
 #include "MathUtils.hpp"
 #include "OpSpaceState.hpp"
 
 #include "IKFast.hpp"
 #include "ArmState.hpp"
+
+#include "Configuration.hpp"
 
 struct IKGoal {
 
@@ -87,7 +91,9 @@ private:
 	int pathDivisionCount;
 	PathInterpolationMode pathInterpolationMode;
 
-	ArmState currentArmState;
+	ArmState cArmState;
+
+	std::vector<OpSpaceState> interpolateBetweenStates(OpSpaceState start, OpSpaceState end, int subdivisions);
 
 public:
 	
@@ -96,8 +102,11 @@ public:
 	void setPathInterpolationMode(PathInterpolationMode pathInterpolationMode);
 
 	std::vector<OpSpaceState> buildTrajectory(IKGoal goal);
+	std::vector<OpSpaceState> buildTrajectory(cJSON * trajectoryDefinition, bool relative);
 
-	void setState(ArmState state);
+	void setArmState(ArmState state);
+
+
 
 };
 

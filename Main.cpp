@@ -3,11 +3,9 @@
 #define __GCC_HAVE_SYNC_COMPARE_AND_SWAP_4
 #define __GCC_HAVE_SYNC_COMPARE_AND_SWAP_8
 
-//#define IKFAST_CLIBRARY
+
 #include "IKFast.hpp"
 
-//#include <errno.h>
-//#include <string.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <sys/ioctl.h>
@@ -48,7 +46,7 @@
 
 
 using namespace std;
-using namespace ikfast2;
+using namespace ikfast;
 using namespace vmath;
 
 volatile bool running;
@@ -96,7 +94,7 @@ void printPositionForAngles(IkReal * jointAngles) {
 	IkReal t[3];
 	IkReal r[9];
 	
-	ikfast2::ComputeFk(jointAngles,t,r);
+	ComputeFk(jointAngles,t,r);
 		
 	Matrix3d rotationMatrix = Matrix3d::fromRowMajorArray(r);	
 	Vector3d tipPos = Vector3d(t[0],t[1],t[2])*100.0;
@@ -149,29 +147,25 @@ int main(int argc, char *argv[])
 	}
 
 	//Configuration
-
 	try
 	{
-
 		Configuration::getInstance().loadConfig(configFileName);
-
 		globalConfig = cJSON_GetObjectItem(Configuration::getInstance().getRoot(),"GlobalSettings");	
 
-		cout << "Operating with period of " << Configuration::SamplePeriod << " seconds. " <<endl;
-
 		DRV8830::MaxVoltageStep = DRV8830::voltageToSteps(cJSON_GetObjectItem(globalConfig,"MaxVoltage")->valuedouble);	
-		cout << "Setting maximum voltage to " << DRV8830::stepsToVoltage(DRV8830::MaxVoltageStep) << " V (Step=0x" << hex << DRV8830::MaxVoltageStep << ")" << endl;
-
-		armModel = new ArmModel(cJSON_GetObjectItem(Configuration::getInstance().getRoot(),"ArmModel"));
-
+				
 		busMap.insert(make_pair("i2c-1",new I2CBus("/dev/i2c-1")));
 		busMap.insert(make_pair("i2c-2",new I2CBus("/dev/i2c-2")));
 
+		armModel = new ArmModel(cJSON_GetObjectItem(Configuration::getInstance().getRoot(),"ArmModel"));
 		for (int i=0;i<armModel->joints.size();i++)
 		{
 			PredictiveJointController * pjc = new PredictiveJointController(&(armModel->joints.at(i)),busMap);		
 			controllers.push_back(pjc);
 		}
+				
+		motionController = new MotionController(controllers);	
+		PoseDynamics::getInstance().setArmModel(armModel);
 	}
 	catch (ConfigurationException & confEx)
 	{
@@ -180,24 +174,13 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 	
-	double defaultAccel = cJSON_GetObjectItem(globalConfig,"DefaultAccel")->valuedouble;
-
-	PoseDynamics::getInstance().setArmModel(armModel);
+	motionController->prepareAllJoints();	
+	cout << std::setbase(10) << 1.0 << endl;	
 		
-	motionController = new MotionController(controllers,cJSON_GetObjectItem(globalConfig,"MotionPlanSteps")->valueint);
-	
-	motionController->prepareAllJoints();		
-		
-
 	running = true;
-	std::thread jointUpdate(updateController);
-	
+	std::thread jointUpdate(updateController);	
 	requestPriority(SCHED_OTHER);
 
-	cout << std::setbase(10) << 1.0 << endl;
-	
-	
-	
 	AsyncLogger::getInstance().startThread();
 
 	try
@@ -324,6 +307,28 @@ int main(int argc, char *argv[])
 				else if (command.compare("ik") == 0)
 				{
 					ikControl();
+				}
+				else if (command.compare("path") == 0)
+				{
+					string filename;
+					input >> filename;
+					if (input.fail()) {
+						cout << "Usage: path <pathfile>" << endl;
+					} else {
+						cJSON * pathObject = Configuration::loadJsonFile(filename);
+						
+						if (pathObject) {
+							cout << "Loaded path of " << cJSON_GetArraySize(pathObject) << " length" << endl;
+							
+							motionController->postTask([pathObject,motionController](){
+								auto trajectory = motionController->getTrajectoryPlanner()->buildTrajectory(pathObject,false);
+								cout << "Created trajectory with " << trajectory.size() << " states" << endl;
+								auto motionPlan = motionController->getMotionPlanner()->buildPlan(trajectory);
+								cout << "Created plan of duration " << motionPlan.front()->getPlanDuration() << " s " << endl;
+								motionController->executeMotionPlan(motionPlan);
+							});
+						}
+					}
 				}
 				else if (command.compare("time") == 0)
 				{

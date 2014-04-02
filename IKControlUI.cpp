@@ -21,7 +21,7 @@ IKControlUI::IKControlUI(MotionController * motionController)
 {
 	this->motionController = motionController;
 	this->selectedElement = NULL;
-	this->controlProvider = new UIControlProvider();
+//	this->controlProvider = new UIControlProvider();
 	init();
 }
 
@@ -31,7 +31,7 @@ void IKControlUI::init()
 	int columnWidth = 12;
 	directModeActive = false;
 	
-	Favorites = {{10,0,-6},{0,-90,0},{11,0,-6},{0,-90,0}};
+	Favorites = {{10,0,-6},{0,-90,0},{11,0,-6},{0,-90,0},{10,1,-6},{0,-90,0},{10,-1,-6},{0,-90,0}};
 	
 	elements.insert(make_pair("T",new UIElement(3,1,"T:")));
 	elements["T"]->setText("[T]ranslation:");
@@ -365,21 +365,20 @@ void IKControlUI::handleInput()
 		{
 			switch (c)
 			{
-				case 't':
-					setSelected(elements["T"]);
-					break;
-				case 'r':
-					setSelected(elements["R"]);
-					break;
-				case 'a':
-					setSelected(elements["AngleLabel"]);
-					break;
-				case 'o':
+				case 'w':
 					setTargetGoal(Favorites[0], Favorites[1]);
 					executePlan();
 					break;
-				case 'p':
+				case 's':
 					setTargetGoal(Favorites[2], Favorites[3]);
+					executePlan();
+					break;
+				case 'a':
+					setTargetGoal(Favorites[4], Favorites[5]);
+					executePlan();
+					break;
+				case 'd':
+					setTargetGoal(Favorites[6], Favorites[7]);
 					executePlan();
 					break;
 				case 'U':
@@ -390,6 +389,10 @@ void IKControlUI::handleInput()
 					break;
 				case 'x':
 					running = false;
+					break;
+				case 'q':
+					calculatePlan();
+					executePlan();
 					break;
 				case 'c':
 					calculatePlan();
@@ -429,23 +432,21 @@ Vector3d IKControlUI::getVectorFromElements(vector<string> elementNames)
 
 void IKControlUI::calculatePlan()
 {
-	int divisionCount = (int)((NumberBox*)elements["DivisionNumBox"])->getValue();
-	
-	if (divisionCount < 1 || divisionCount > 20) throw std::runtime_error("Invalid value for division count");
+	int divisionCount = (int)((NumberBox*)elements["DivisionNumBox"])->getValue();	
+	if (divisionCount < 1 || divisionCount > 100) throw std::runtime_error("Invalid value for division count");
 	
 	Vector3d targetPosition = getVectorFromElements({"Tx","Ty","Tz"}) / 100.0;
 	Vector3d targetEulerAngles = getVectorFromElements({"Rx","Ry","Rz"});
 	
 	Matrix3d targetRotation = Matrix3d::createRotationAroundAxis(targetEulerAngles.x, targetEulerAngles.y,targetEulerAngles.z);
-	//targetRotation = targetRotation.transpose();
 
-	motionController->getMotionPlanner()->setPathDivisions(divisionCount);
-	if (divisionCount > 1)
-		motionController->getMotionPlanner()->setPathInterpolationMode(PathInterpolationMode::FixedStepCount);
-	else
-		motionController->getMotionPlanner()->setPathInterpolationMode(PathInterpolationMode::SingleStep);
+
+	motionController->getTrajectoryPlanner()->setPathDivisions(divisionCount);
+	motionController->getTrajectoryPlanner()->setPathInterpolationMode(PathInterpolationMode::FixedStepCount);
 	
-	pendingMotionPlan = motionController->getMotionPlanner()->buildPlan(IKGoal(targetPosition, targetRotation, false));
+	auto trajectory = motionController->getTrajectoryPlanner()->buildTrajectory(IKGoal(targetPosition, targetRotation, false));
+
+	pendingMotionPlan = motionController->getMotionPlanner()->buildPlan(trajectory);
 	
 	for (int i=0;i<6;i++)
 	{
@@ -555,7 +556,7 @@ UIElement * IKControlUI::getNextElementFrom(int x, int y, int xDirection, int yD
 	}
 	else
 	{
-		int tolerance = 2;
+		int tolerance = 4;
 		for (auto it = elements.begin(); it != elements.end(); it++)
 		{
 			if (it->second->isActive() && abs(it->second->getX() - x) < tolerance && sgn(it->second->getY() - y) == sgn(yDirection))

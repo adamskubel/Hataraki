@@ -2,20 +2,35 @@
 #define HATARAKI_BASICMOTION_ARM_STATE_HPP_
 
 #include <vector>
+#include <algorithm>
 
+#include "IKFast.hpp"
+
+#include "MathUtils.hpp"
 #include "AS5048.hpp"
+#include "OpSpaceState.hpp"
 
-struct ArmState {
+class ArmState {
 
+private:
 	std::vector<double> JointAngles;
+	bool opSpaceStateComputed;
+	OpSpaceState computedOperationalSpaceState;
 
-public:	
-	std::vector<double> getJointAnglesRadians()
-	{
-		std::vector<double> jointAnglesRadians(JointAngles.size());		
-		std::transform(JointAngles.begin(),JointAngles.end(),jointAnglesRadians.begin(),AS5048::stepsToRadians);
-		return jointAnglesRadians;
-	}
+	void calculateOpSpaceState();
+
+public:
+	ArmState();	
+	ArmState (std::vector<double> initialAngles);	
+
+	void setJointAngles(std::vector<double> initialAngles);
+
+	std::vector<double> getJointAnglesRadians();
+	std::vector<double> getJointAngles();
+	
+	OpSpaceState getOpSpaceState();
+
+
 };
 
 #endif

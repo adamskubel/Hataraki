@@ -1,10 +1,7 @@
 #ifndef HATARAKI_BASICMOTION_MOTIONCONTROLLER_HPP_
 #define HATARAKI_BASICMOTION_MOTIONCONTROLLER_HPP_
 
-#define IKFAST_NO_MAIN
-#define IKFAST_HAS_LIBRARY
-#define IKFAST_NAMESPACE ikfast2
-#include "ikfast.h"
+#include "IKFast.hpp"
 
 #include <unistd.h>
 
@@ -15,10 +12,7 @@
 #include <functional>
 #include <queue>
 #include <memory>
-#include <algorithm> 
-
-#define VMATH_NAMESPACE vmath
-#include "vmath.h"
+#include <algorithm>
 
 #include "MathUtils.hpp"
 #include "PredictiveJointController.hpp"
@@ -26,6 +20,7 @@
 #include "AS5048.hpp"
 #include "MotionPlanner.hpp"
 #include "TimeUtil.hpp"
+#include "TrajectoryPlanner.hpp"
 
 
 class DirectControlProvider
@@ -52,66 +47,61 @@ class MotionController {
 		StreamingPlan,
 		Shutdown
 	};
+	
+public:
+	MotionController(std::vector<PredictiveJointController*> joints);
 
 private:
-	std::vector<PredictiveJointController*> joints;
-	int numSteps, planStepCount;
-	std::vector<std::shared_ptr<MotionPlan> > currentPlan;
-	std::queue<std::function<void()> > taskQueue;
-	std::mutex taskQueueMutex;
+	State state;
 	long updatePeriod;
 	long updateCount;
+
+	ArmState cArmState;
+
+	std::vector<PredictiveJointController*> joints;
+
+	std::queue<std::function<void()> > taskQueue;
+	std::mutex taskQueueMutex;
+	
 	std::stringstream ikLogStream;
+	std::map<std::string,SimpleMovingAverage*> timeSMA_map;
 	
 	timespec planStartTime;
 	double planLogTimeOffset;
-	
+
+	std::vector<std::shared_ptr<MotionPlan> > currentPlan;
+		
 	MotionPlanner * motionPlanner;
-
 	DirectControlProvider * controlProvider;
-
-	State state;
-	
-	std::map<std::string,SimpleMovingAverage*> timeSMA_map;
+	TrajectoryPlanner * trajectoryPlanner;
 
 	void executeControlTasks();
+	void updateControllerState(bool jointHasActivePlan);
+	void updateChildState();
+	void updateStreamingMotionPlans();		
+	bool confirmMotionPlan(std::vector<std::shared_ptr<MotionPlan> > & newPlan);
 	
 public:
-
-	std::vector<double> getJointAnglesRadians();
-	std::vector<double> getJointAnglesSteps();
-	void getTransform(std::vector<double> & angles, vmath::Vector3d & translation, vmath::Matrix3d & rotation);
+	
+	void updateController();
+	void requestDirectControl(IKGoal initialGoal, DirectControlProvider * controlProvider);
+	void printAverageTime();
 	
 	void executeMotionPlan(std::vector<std::shared_ptr<MotionPlan> > newPlan);
-	
-	MotionController(std::vector<PredictiveJointController*> & joints, int planStepCount);
-
-	PredictiveJointController * getJointByIndex(int jointIndex);
-		
-	void moveToPosition(vmath::Vector3d position, vmath::Matrix3d rotation, int pathDivisionCount, bool interactive);
-	
-	std::vector<std::shared_ptr<MotionPlan> >  planForPosition(vmath::Vector3d position, vmath::Matrix3d rotation, int pathDivisionCount);
-		
 	void setJointVelocity(int jointIndex, double velocity, double runTime);
 	void setJointPosition(int jointIndex, double angle);
-	bool confirmMotionPlan(std::vector<std::shared_ptr<MotionPlan> > & newPlan);
-
-	void updateController();
-
-	void postTask(std::function<void()> task);
+				
+	void postTask(std::function<void()> task);	
 	
-	void shutdown();
-	
+	void shutdown();	
 	void zeroAllJoints();
 	void prepareAllJoints();
 	void enableAllJoints();
-
-	void updateStreamingMotionPlans();
-	void requestDirectControl(IKGoal initialGoal, DirectControlProvider * controlProvider);
-	
-	void printAverageTime();
 	
 	MotionPlanner * getMotionPlanner();
+	TrajectoryPlanner * getTrajectoryPlanner();
+	void getTransform(std::vector<double> & angles, vmath::Vector3d & translation, vmath::Matrix3d & rotation);	
+	PredictiveJointController * getJointByIndex(int jointIndex);
 
 };
 

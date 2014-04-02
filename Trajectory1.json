@@ -1,0 +1,18 @@
+[
+	{
+		"Position" : [10,0,-5],
+		"EulerRotation" : [0,-90,0]
+	},
+	{
+		"Position" : [10,0,-7],
+		"EulerRotation" : [0,-90,0]
+	},
+	 {
+	 "Position" : [11,0,-7],
+	 "EulerRotation" : [0,-90,0]
+	 },
+ {
+ "Position" : [11,0,-5],
+ "EulerRotation" : [0,-90,0]
+ }
+]

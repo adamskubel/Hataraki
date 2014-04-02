@@ -4,9 +4,7 @@
 #define __GCC_HAVE_SYNC_COMPARE_AND_SWAP_8
 
 //#define IKFAST_CLIBRARY
-#define IKFAST_NO_MAIN
-#define IKFAST_HAS_LIBRARY
-#define IKFAST_NAMESPACE ikfast2
+#include "IKFast.hpp"
 
 
 #include <execinfo.h>
@@ -42,7 +40,7 @@
 
 
 using namespace std;
-using namespace ikfast2;
+using namespace ikfast;
 using namespace vmath;
 
 MotionController * motionController;
@@ -111,7 +109,7 @@ int main(int argc, char *argv[])
 		PredictiveJointController * pjc = new FakeJoint(&(armModel->joints.at(i)),0);
 		controllers.push_back(pjc);
 	}
-	motionController = new MotionController(controllers,5);
+	motionController = new MotionController(controllers);
 	
 
 	
@@ -175,7 +173,7 @@ void testUI()
 
 void testDynamicTorque()
 {
-	PoseDynamics::getInstance().setJointAngles({0,0,0,0,0,0});
+	PoseDynamics::getInstance().setArmState(ArmState({0,0,0,0,0,0}));
 //	PoseDynamics::getInstance().setJointAngles({100,-640,0,3400,6300,0});
 	PoseDynamics::getInstance().update();
 	
@@ -284,16 +282,27 @@ void testServoModel(ServoModel * sm)
 	cout << "V=0.56, T=0, S=" << sm->getSpeedForTorqueVoltage(0,0.56) << endl;
 }
 
-void setAngles(vector<double> angles)
-{
-	for (int i=0;i<6;i++)
-		dynamic_cast<FakeJoint*>(controllers[i])->Angle = angles[i];
-}
+//void setAngles(vector<double> angles)
+//{
+//	for (int i=0;i<6;i++)
+//		dynamic_cast<FakeJoint*>(controllers[i])->Angle = angles[i];
+//}
+//
+//void setAnglesDegrees(vector<double> anglesDegrees)
+//{
+//	for (int i=0;i<6;i++)
+//	{
+//		double a = AS5048::degreesToSteps(anglesDegrees[i]);
+//		dynamic_cast<FakeJoint*>(controllers[i])->Angle = a;
+//	}
+//}
 
-void setAnglesDegrees(vector<double> anglesDegrees)
+
+ArmState stateFromAngles(vector<double> anglesDegrees)
 {
-	for (int i=0;i<6;i++)
-		dynamic_cast<FakeJoint*>(controllers[i])->Angle = AS5048::degreesToSteps(anglesDegrees[i]);
+	vector<double> angles(anglesDegrees.size());
+	transform(anglesDegrees.begin(),anglesDegrees.end(),angles.begin(),AS5048::degreesToSteps);
+	return ArmState(angles);
 }
 
 void validatePlan(vector<shared_ptr<MotionPlan>> & motionPlan)
@@ -315,6 +324,9 @@ void validatePlan(vector<shared_ptr<MotionPlan>> & motionPlan)
 void testMotionPlanning()
 {
 	MotionPlanner * mp = new MotionPlanner(controllers);
+	TrajectoryPlanner * tp = new TrajectoryPlanner();
+	
+	const vector<string> names = {"Roll0","Pitch0","Roll1","Pitch1","Pitch2","Roll2"};
 	
 	const vector<double> angles1 = {0.1,-6.4,0,34,63,0}; //11 0 -6
 	const vector<double> angles2 = {0,-17,0,53,34,0}; //12 0 -5.5, 0 -70 0
@@ -322,38 +334,37 @@ void testMotionPlanning()
 	const vector<double> angles4  = {0.2,-20,1.1,64.1,45.7,-0.5}; //10 0 -6
 	
 	
-	std::ofstream outFile("/users/adamskubel/desktop/test_motionplanning.csv");
-	int numChannels = 6;
+	ofstream outFile("/users/adamskubel/desktop/test_motionplanning.csv");
 	outFile << "Time,TipX,TipY,TipZ,LinX,LinY,LinZ,";
-	
-	std::string names[] = {"Roll0","Pitch0","Roll1","Pitch1","Pitch2","Roll2"};
-	
-	for (int c=0;c<numChannels;c++)
+		
+	for (auto it = names.begin(); it != names.end(); it++)
 	{
-		std::string name = names[c];
+		std::string name = *it;
 		outFile << name << ".x," << name << ".dx," << name << ".k," << name << ".ddx" << ",";
 	}
 	outFile << "KeyTipX,KeyTipY,KeyTipZ";
 	outFile << endl;
+		
+	ArmState testState = stateFromAngles(angles4);
 	
-	setAnglesDegrees(angles4); //Set with IK?
+	mp->setArmState(testState);
+	tp->setArmState(testState);
 	
-	double r[9];
-	Vector3d startPosition;
-	vector<double> a(6);
-	transform(angles1.begin(), angles1.end(), a.begin(), MathUtil::degreesToRadians);
-	ComputeFk(a.data(),startPosition,r);
+	Vector3d startPosition = testState.getOpSpaceState().Position;
 	
 	Vector3d endPosition(11,0,-6);
 	endPosition /= 100;
 	
-	mp->setPathInterpolationMode(PathInterpolationMode::SingleStep);
-	mp->setPathDivisions(20);
-	auto motionPlan = mp->buildPlan(IKGoal(endPosition, Matrix3d::createRotationAroundAxis(0, -90, 0),false));
-		
+	tp->setPathInterpolationMode(PathInterpolationMode::SingleStep);
+	tp->setPathDivisions(20);
+	
+	auto trajectory = tp->buildTrajectory(Configuration::loadJsonFile("Trajectory1.json"),false);
+	//IKGoal(endPosition, Matrix3d::createRotationAroundAxis(0, -90, 0),false));
+	auto motionPlan = mp->buildPlan(trajectory);
 	validatePlan(motionPlan);
 	
 	double duration = motionPlan.front()->getPlanDuration();
+	int numChannels = 6;
 	for (double t = 0.0; t < duration; t += 0.001)
 	{
 		Vector3d actualTip,linearTip, keyTip;
@@ -362,6 +373,7 @@ void testMotionPlanning()
 		for (int c=0;c<numChannels;c++) jointAngles.push_back(AS5048::stepsToRadians(motionPlan[c]->x(t)));
 				
 		linearTip = startPosition + (endPosition-startPosition)*(t/duration);
+		double r[9];
 		ComputeFk(jointAngles.data(), actualTip, r);
 		
 		linearTip *= 100;

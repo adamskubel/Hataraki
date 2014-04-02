@@ -78,6 +78,8 @@ public:
 	double approachDistanceThreshold;
 	double maxSetpointError;
 	double maxAcceleration;
+	
+	double maxVelocityMeasureDelay;
 
 	int positionHistorySize;
 
@@ -108,9 +110,11 @@ public:
 		positionHistorySize = Configuration::getInstance().getObject(rawConfig,"SpeedControl.HistoryLength")->valueint;
 		maxSetpointError = get("SetpointPrecisionSteps");
 		
-		useTargetFeedback = (bool)get("SpeedControl.UseTargetFeedback");
+		useTargetFeedback = false;// (bool)get("SpeedControl.UseTargetFeedback");
 		
 		stepControlEnabled = (bool)get("StepControl.Enabled");
+		
+		maxVelocityMeasureDelay = get("SpeedControl.MaxMeasureDelay");
 	}
 
 

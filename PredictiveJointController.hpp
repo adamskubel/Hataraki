@@ -204,8 +204,6 @@ private:
 	double speedControlMeasureVoltage;
 	timespec speedControlMeasureStart;
 	double velocityErrorIntegral;
-	double speedControlIntegralGain;
-	double speedControlProportionalGain;
 
 	//Stepping states
 	//struct StepControlData {
