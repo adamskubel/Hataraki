@@ -40,6 +40,7 @@ public:
 
 class MotionController {
 
+public:
 	enum class State
 	{
 		Waiting,
@@ -57,6 +58,8 @@ private:
 	long updateCount;
 
 	ArmState cArmState;
+
+	std::function<void(State)> stateWatcher;
 
 	std::vector<PredictiveJointController*> joints;
 
@@ -102,6 +105,8 @@ public:
 	TrajectoryPlanner * getTrajectoryPlanner();
 	void getTransform(std::vector<double> & angles, vmath::Vector3d & translation, vmath::Matrix3d & rotation);	
 	PredictiveJointController * getJointByIndex(int jointIndex);
+
+	void setStateWatcher(std::function<void(State)> watcher);
 
 };
 

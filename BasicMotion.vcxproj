@@ -69,10 +69,9 @@
     <ClCompile Include="DRV8830.cpp" />
     <ClCompile Include="FlipIdentifier.cpp" />
     <ClCompile Include="I2CBus.cpp" />
-    <ClCompile Include="IJointControl.hpp" />
     <ClCompile Include="IKControlUI.cpp" />
     <ClCompile Include="ikfastsolution.cpp" />
-    <ClCompile Include="IKPlanner.cpp" />
+    <ClCompile Include="ikfastsolution_altconfig.cpp" />
     <ClCompile Include="KinematicSolver.cpp" />
     <ClCompile Include="Main.cpp" />
     <ClCompile Include="MathUtils.cpp" />
@@ -86,10 +85,11 @@
     <ClCompile Include="QuadraticRegression.cpp" />
     <ClCompile Include="ServoModel.cpp" />
     <ClCompile Include="ServoUtil.cpp" />
-    <ClCompile Include="StepController.cpp" />
     <ClCompile Include="Test.cpp" />
     <ClCompile Include="TimeMultiplexedVoltageConverter.cpp" />
     <ClCompile Include="TimeUtil.cpp" />
+    <ClCompile Include="TrajectoryController.cpp" />
+    <ClCompile Include="TrajectoryController.hpp" />
     <ClCompile Include="TrajectoryPlanner.cpp" />
     <ClCompile Include="UIElement.cpp" />
     <ClCompile Include="vmath.cpp" />
@@ -123,7 +123,6 @@
     <ClInclude Include="ServoModel.hpp" />
     <ClInclude Include="ServoUtil.hpp" />
     <ClInclude Include="SimpleMovingAverage.hpp" />
-    <ClInclude Include="StepController.hpp" />
     <ClInclude Include="TimeMultiplexedVoltageConverter.hpp" />
     <ClInclude Include="TimeUtil.hpp" />
     <ClInclude Include="TrajectoryPlanner.hpp" />

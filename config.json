@@ -5,10 +5,8 @@
 		"FilePrefix" : "JointData_"
 	},
 	"GlobalSettings" : {
-		"MaxVoltage" : 3.4,
-		"MotionPlanSteps" : 4,
-		"UpdateFrequency" : 400,
-		"DefaultAccel" 	: 2000
+		"MaxVoltage" : 2.8,
+		"UpdateFrequency" : 400
 	},
 	"ArmModel" : 
 	{
@@ -142,6 +140,12 @@
 			"Mass" : 0.046,
 			"BoneLength" : 0.026, 
 			"CenterOfMass" : [0.013,0.013,0]
+		},
+		{
+			"Name" : "DefaultSegment_Flipped",
+			"Mass" : 0.046,
+			"BoneLength" : 0.026,
+			"CenterOfMass" : [0.013,-0.013,0]
 		},
 		{
 			"Name" : "DefaultPitchArm",
@@ -315,7 +319,7 @@
 	"JointDefinitions" : [
 		{
 			"Name" : "Roll_0",
-			"ZeroPosition" : 223, 
+			"ZeroPosition" : 224,
 			"ContinuousRotation" : 0,
 			"MinAngle" : -175,
 			"MaxAngle" : 175,
@@ -337,7 +341,7 @@
 		},
 		{
 			"Name" : "Pitch_0",
-			"ZeroPosition" : 211,
+			"ZeroPosition" : 209,
 			"ContinuousRotation" : 0,
 			"MinAngle" : -35,
 			"MaxAngle" : 90,
@@ -359,10 +363,10 @@
 		},
 		{
 			"Name" : "Roll_1",
-			"ZeroPosition" : 101, 
+			"ZeroPosition" : 353,
 			"ContinuousRotation" : 0,
-			"MinAngle" : -120,
-			"MaxAngle" : 120,
+			"MinAngle" : -175,
+			"MaxAngle" : 175,
 			"AxisOfRotation" : [1,0,0],
 			"Servo" : 
 			{
@@ -381,11 +385,11 @@
 		},
 		{
 			"Name" : "Pitch_1",
-			"ZeroPosition" : 40,
+			"ZeroPosition" : 325,
 			"ContinuousRotation" : 0,
 			"MinAngle" : -40,
 			"MaxAngle" : 90,
-			"AxisOfRotation" : [0,-1,0],
+			"AxisOfRotation" : [0,1,0],
 			"Servo" : 
 			{
 				"DriverBus"		: "i2c-2",
@@ -403,7 +407,7 @@
 		},
 		{
 			"Name" : "Pitch_2",
-			"ZeroPosition" : 325,
+			"ZeroPosition" : 323,
 			"ContinuousRotation" : 0,
 			"MinAngle" : -60,
 			"MaxAngle" : 95,

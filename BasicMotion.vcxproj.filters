@@ -120,15 +120,6 @@
     <ClCompile Include="PredictiveJointControl_SignalImpl.cpp">
       <Filter>Source Files\Predictive</Filter>
     </ClCompile>
-    <ClCompile Include="StepController.cpp">
-      <Filter>Source Files\Predictive</Filter>
-    </ClCompile>
-    <ClCompile Include="IJointControl.hpp">
-      <Filter>Header Files\Predictive</Filter>
-    </ClCompile>
-    <ClCompile Include="IKPlanner.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="KinematicSolver.cpp">
       <Filter>Source Files\Math</Filter>
     </ClCompile>
@@ -158,6 +149,15 @@
     </ClCompile>
     <ClCompile Include="ArmState.cpp">
       <Filter>Source Files\Model</Filter>
+    </ClCompile>
+    <ClCompile Include="ikfastsolution_altconfig.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="TrajectoryController.hpp">
+      <Filter>Header Files\MotionPlanning</Filter>
+    </ClCompile>
+    <ClCompile Include="TrajectoryController.cpp">
+      <Filter>Source Files\MotionPlanning</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -220,9 +220,6 @@
     </ClInclude>
     <ClInclude Include="FlipIdentifier.hpp">
       <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="StepController.hpp">
-      <Filter>Header Files\Predictive</Filter>
     </ClInclude>
     <ClInclude Include="IKPlanner.hpp">
       <Filter>Header Files</Filter>

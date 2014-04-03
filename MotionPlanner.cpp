@@ -404,7 +404,7 @@ double MotionPlanner::calculateMotionEffort(const double * currentSolution, cons
 		double maxDiff = MathUtil::PI * 6.0;
 		double totalDiff = 0;
 		for (int i=0;i<6;i++) {
-			totalDiff += MathUtil::abs(MathUtil::subtractAngles(currentSolution[i],targetSolution[i]));
+			totalDiff += abs(currentSolution[i] - targetSolution[i]);
 		}
 		
 		if (totalDiff > maxDiff) {

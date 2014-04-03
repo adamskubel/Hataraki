@@ -128,6 +128,7 @@ void MotionController::updateControllerState(bool jointHasActivePlan)
 		if (!jointHasActivePlan)
 		{
 			state = State::Waiting;
+			stateWatcher(state);
 			//On transition, mark the time
 			planLogTimeOffset += TimeUtil::timeSince(planStartTime) + 0.1;
 		}
@@ -312,7 +313,6 @@ void MotionController::executeMotionPlan(vector<shared_ptr<MotionPlan> > newPlan
 		throw std::runtime_error("Must be in waiting state to execute plans");
 	}
 
-	state = State::FinitePlan;
 
 	this->currentPlan.clear();
 	this->currentPlan = newPlan;
@@ -326,6 +326,9 @@ void MotionController::executeMotionPlan(vector<shared_ptr<MotionPlan> > newPlan
 	{
 		joints.at(i)->validateMotionPlan(currentPlan.at(i));
 	}
+	
+	state = State::FinitePlan;
+	stateWatcher(state);
 
 	//Simultaneous start
 	for (int i=0;i<6;i++)
@@ -410,7 +413,10 @@ MotionPlanner * MotionController::getMotionPlanner()
 	return motionPlanner;
 }
 
-
+void MotionController::setStateWatcher(std::function<void(MotionController::State)> watcher)
+{
+	this->stateWatcher = watcher;
+}
 
 
 

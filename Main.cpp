@@ -38,6 +38,7 @@
 #include "MathUtils.hpp"
 #include "AsyncLogger.hpp"
 #include "IKControlUI.hpp"
+#include "TrajectoryController.hpp"
 
 #include "FlipIdentifier.hpp"
 
@@ -133,7 +134,7 @@ int main(int argc, char *argv[])
 	cJSON * globalConfig;
 	ArmModel * armModel;
 	std::string configFileName = "config.json";
-	//I2CBus * bus = NULL;
+	TrajectoryController * trajectoryController;
 
 	map<string,I2CBus*> busMap;
 
@@ -165,6 +166,7 @@ int main(int argc, char *argv[])
 		}
 				
 		motionController = new MotionController(controllers);	
+		trajectoryController = new TrajectoryController(motionController);
 		PoseDynamics::getInstance().setArmModel(armModel);
 	}
 	catch (ConfigurationException & confEx)
@@ -308,6 +310,45 @@ int main(int argc, char *argv[])
 				{
 					ikControl();
 				}
+				else if (command.compare("gl") == 0)
+				{
+					string filename;
+					input >> filename;
+					int reps = 1;
+					
+					if (input.fail()) {
+						cout << "Usage: gl <goal list file> [repeat count]" << endl;
+					} else {
+						
+						input >> reps;
+						
+						if (input.fail()) reps = 1;
+						
+						cJSON * pathObject = Configuration::loadJsonFile(filename);
+						
+						if (pathObject) {
+							cout << "Loaded path of " << cJSON_GetArraySize(pathObject) << " length" << endl;
+							
+							motionController->postTask([pathObject,trajectoryController,reps](){
+								auto goals = motionController->getTrajectoryPlanner()->buildTrajectory(pathObject,false);
+									
+								vector<IKGoal> goalList;
+								
+								for (int i=0;i<reps;i++)
+								{
+									auto it = goals.begin();
+									it++; //Skip initial state
+									for (; it != goals.end(); it++)
+									{
+										goalList.push_back(IKGoal(it->Position,it->Rotation,false));
+									}
+								}
+								
+								trajectoryController->executeSequentialGoals(goalList);								
+							});
+						}
+					}
+				}
 				else if (command.compare("path") == 0)
 				{
 					string filename;
@@ -343,7 +384,7 @@ int main(int argc, char *argv[])
 				}
 				else
 				{
-					cout << "Invalid entry. Valid commands are: enable, enable_, exit, k, home, set, list, getpos, setpos, pause, flip" << endl;
+					cout << "Invalid command" << endl;
 				}
 			}
 			catch (std::runtime_error & commandException)
