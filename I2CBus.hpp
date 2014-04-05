@@ -40,20 +40,14 @@ public:
 	
 	SimpleMovingAverage * writeTime, * readTime;
 	void selectAddress(int addr);
-
-	void writeToBus(unsigned char * buf, int length);
-	void readFromBus(unsigned char * buffer, int length);
-	
+		
 	int readWord(int address);
 	int readByte(int address);
 	
 	void writeByte(int address, int data);
 	void writeWord(int address, int data);
 	
-	void setRegister(unsigned char regAddr, unsigned char regValue);
-	int getRegisterValue(unsigned char regAddr);	
-
-
+	std::string getName();
 };
 
 #endif

@@ -79,10 +79,15 @@ void PredictiveJointController::setCurrentState()
 	cTargetVoltage = nTargetVoltage;
 	cDriverMode = nDriverMode;
 	
+	cRawSensorAngle = 0;
 	//Read new values
-	double sensorAngle = getSensorAngleRegisterValue();
-	cRawSensorAngle = correctAngleForDiscreteErrors(MathUtil::subtractAngles(sensorAngle,jointModel->sensorZeroPosition,AS5048::PI_STEPS));
-
+	for (int i=0;i<config->samplesPerUpdate;i++)
+	{
+		double sensorAngle = getSensorAngleRegisterValue();
+		double adjustedAngle = correctAngleForDiscreteErrors(MathUtil::subtractAngles(sensorAngle,jointModel->sensorZeroPosition,AS5048::PI_STEPS));
+		cRawSensorAngle += (adjustedAngle)/((double)config->samplesPerUpdate);
+	}
+		
 	cSensorAngle = filterAngle(cRawSensorAngle); 
 
 	//Using history to check lRawSensorAngle is valid
@@ -156,7 +161,7 @@ double PredictiveJointController::correctAngleForDiscreteErrors(double rawAngle)
 	double predictedDisplacement = 0;
 	if (cVelocityApproximationError > MinRValueForDisplacementPrediction)
 	{
-		predictedDisplacement = cVelocity*Configuration::SamplePeriod;
+		predictedDisplacement = cVelocity*(cTime-lTime);
 	}
 
 	if (std::abs(std::abs(rawAngle - (lRawSensorAngle+predictedDisplacement)) - 64.0) < MaxCorrectedOffsetFromPrevious)

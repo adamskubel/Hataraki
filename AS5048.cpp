@@ -44,25 +44,11 @@ double AS5048::stepsToRadians(double steps)
 
 unsigned char AS5048::getAutoGainValue(I2CBus* bus)
 {	
-//	unsigned char buf[1] = {AS5048Registers::AUTOGAINCNTRL};
-//	unsigned char result[1] = {0};
-//		
-//	bus->writeToBus(buf,1);
-//	bus->readFromBus(result,1);
-//
-//	return result[0];
 	return bus->readByte(250);
 }
 
 unsigned char AS5048::getDiagnosticFlags(I2CBus*bus)
 {
-//	unsigned char buf[1] = {AS5048Registers::DIAGNOSTICS};
-//	unsigned char result[1] = {0};
-//
-//	bus->writeToBus(buf,1);	
-//	bus->readFromBus(result,1);	
-//
-//	return result[0];
 	return bus->readByte(251);
 }
 

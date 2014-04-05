@@ -1,6 +1,7 @@
 #ifndef HATARAKI_BASICMOTION_PREDICTIVE_JOINT_CONTROLLER_HPP_
 #define HATARAKI_BASICMOTION_PREDICTIVE_JOINT_CONTROLLER_HPP_
 
+
 #include <time.h>
 #include <vector>
 #include <queue>
@@ -29,7 +30,8 @@
 #include "AsyncLogger.hpp"
 #include "MotionPlan.hpp"
 #include "QuadraticRegression.hpp"
-
+#include "AsyncI2CSender.hpp"
+#include "Configuration.hpp"
 
 enum JointStatus {
 	New,
@@ -230,6 +232,7 @@ private:
 
 	void doPositionHoldControl();
 	void doSpeedControl();
+	void doPositionControl();
 	bool doStepControl();
 
 	void setCurrentTorqueStates();

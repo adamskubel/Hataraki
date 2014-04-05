@@ -56,6 +56,8 @@ private:
 	WINDOW * uiWindow;	
 	std::map<std::string,UIElement*> elements;
 	UIElement * selectedElement;
+	bool relativeMode;
+	double relativeScale;
 	
 	//UI members
 	void init();
@@ -78,7 +80,7 @@ private:
 	vmath::Vector3d getVectorFromElements(std::vector<std::string> elementNames);
 	void updateArmStatus(bool copyToInput);
 	
-	std::vector<vmath::Vector3d> Favorites;
+	std::vector<vmath::Vector3d> Favorites, Offsets;
 	
 	//Motion planning
 	MotionController * motionController;
@@ -87,7 +89,7 @@ private:
 	void calculatePlan();
 	void executePlan();
 	
-	void setTargetGoal(vmath::Vector3d position, vmath::Vector3d eulerAngles);
+	void setTargetGoal(vmath::Vector3d position, vmath::Vector3d eulerAngles, bool relative);
 	
 public:
 	IKControlUI(MotionController * motionController);

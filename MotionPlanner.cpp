@@ -401,10 +401,12 @@ double MotionPlanner::calculateMotionEffort(const double * currentSolution, cons
 {
 	if (checkSolutionValid(targetSolution)) {
 		
-		double maxDiff = MathUtil::PI * 6.0;
+		double maxDiff = MathUtil::PI * 7.0;
 		double totalDiff = 0;
 		for (int i=0;i<6;i++) {
 			totalDiff += abs(currentSolution[i] - targetSolution[i]);
+			if (i == 0)
+				totalDiff *= 2.0;
 		}
 		
 		if (totalDiff > maxDiff) {

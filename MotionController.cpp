@@ -28,6 +28,8 @@ MotionController::MotionController(vector<PredictiveJointController*> joints) {
 	//AsyncLogger::getInstance().postLogTask("ik_tracking.csv", "Count,x,y,z,xt,yt,zt,xd,yd,zd\n");
 	//AsyncLogger::getInstance().postLogTask("joint_tracking.csv", "Time,Roll0,xRoll0,Pitch0,xPitch0,Roll1,xRoll1,Pitch1,xPitch1,Pitch2,xPitch2,Roll2,xRoll2\n");
 	state = State::Waiting;
+	
+	clog << "Time,Roll0,xRoll0,Pitch0,xPitch0,Roll1,xRoll1,Pitch1,xPitch1,Pitch2,xPitch2,Roll2,xRoll2" << endl;
 }
 
 PredictiveJointController * MotionController::getJointByIndex(int jointIndex)
@@ -94,6 +96,15 @@ void MotionController::updateController(){
 		updateChildState();
 		executeControlTasks();
 		
+//		stringstream ss;
+//		ss << TimeUtil::timeSince(planStartTime) + planLogTimeOffset << ",";
+//		for (auto it = joints.begin(); it != joints.end(); it++)
+//		{
+//			ss << round((*it)->getCurrentAngle()/0.001)*0.001 << "," << round((*it)->getAngleSetpoint()/0.001)*0.001 << ",";
+//		}
+//		
+//		clog << ss.str() << endl;
+			
 		double totalTime = TimeUtil::timeSince(start);
 		long adjustedSleep = updatePeriod - (totalTime*1000000);
 		if (adjustedSleep > 0 && adjustedSleep <= updatePeriod)
@@ -142,8 +153,19 @@ void MotionController::updateControllerState(bool jointHasActivePlan)
 				
 	if (state == State::FinitePlan)
 	{
+//		stringstream ss;
+//		ss << TimeUtil::timeSince(planStartTime) + planLogTimeOffset << ",";
+//		for (auto it = joints.begin(); it != joints.end(); it++)
+//		{
+//			ss << (*it)->getCurrentAngle() << "," << (*it)->getAngleSetpoint() << ",";
+//		}
+//		
+//		clog << ss.str() << endl;
+		
 		if (logIk)
 		{
+			
+			
 //			stringstream ss;
 //			double r[9];
 //			Vector3d t,t2,td;

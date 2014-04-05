@@ -22,3 +22,35 @@ double ServoModel::getSpeedForTorqueVoltage(double torque, double voltage)
 	//torque *= -1.0;
 	return (voltage - motor.armatureResistance*(torque/motor.torqueConstant + sgn(voltage)*motor.noLoadCurrent))/motor.backEmfConstant;		
 }
+
+
+
+ControllerConfig::ControllerConfig(cJSON * _rawConfig)
+{
+	this->rawConfig = _rawConfig;
+	
+	speedControlProportionalGain = Configuration::getInstance().getObject(rawConfig,"SpeedControl.ProportionalGain")->valuedouble;
+	speedControlIntegralGain = Configuration::getInstance().getObject(rawConfig,"SpeedControl.IntegralGain")->valuedouble;
+	speedControlDerivativeGain = Configuration::getInstance().getObject(rawConfig,"SpeedControl.DerivativeGain")->valuedouble;
+	
+	maxAcceleration = AS5048::degreesToSteps(Configuration::getInstance().getObject(rawConfig,"MaxAcceleration")->valuedouble);
+	
+	velocityCorrectionProportionalGain = Configuration::getInstance().getObject(rawConfig,"DynamicController.VelocityKPForPositionCorrection")->valuedouble;
+	velocityCorrectionDerivativeGain = Configuration::getInstance().getObject(rawConfig,"DynamicController.VelocityKDForPositionCorrection")->valuedouble;
+	
+	approachVelocity = AS5048::degreesToSteps(Configuration::getInstance().getObject(rawConfig,"DynamicController.SetpointApproachVelocity")->valuedouble);
+	approachDistanceThreshold = AS5048::degreesToSteps(Configuration::getInstance().getObject(rawConfig,"DynamicController.SetpointApproachDistanceThreshold")->valuedouble);
+	
+	positionHistorySize = Configuration::getInstance().getObject(rawConfig,"SpeedControl.HistoryLength")->valueint;
+	maxSetpointError = get("SetpointPrecisionSteps");
+	
+	useTargetFeedback = false;// (bool)get("SpeedControl.UseTargetFeedback");
+	
+	stepControlEnabled = (bool)get("StepControl.Enabled");
+	
+	maxVelocityMeasureDelay = get("SpeedControl.MaxMeasureDelay");
+	
+	samplesPerUpdate = (int)get("SamplesPerUpdate");
+	
+	AsyncDriverCommunication =  true; //(bool)get("AsyncDriverComm");
+}

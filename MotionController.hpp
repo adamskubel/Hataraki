@@ -21,6 +21,7 @@
 #include "MotionPlanner.hpp"
 #include "TimeUtil.hpp"
 #include "TrajectoryPlanner.hpp"
+#include "ALog.hpp"
 
 
 class DirectControlProvider

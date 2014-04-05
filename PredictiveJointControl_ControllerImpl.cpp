@@ -73,9 +73,9 @@ void PredictiveJointController::setTargetState()
 	else
 	{		
 		double remainingTime = TimeUtil::timeUntil(motionPlan->endTime);	
-		bool isMoving = std::abs(cVelocity) > 100.0;
+		bool isMoving = std::abs(cVelocity) > 50.0;
 
-		dynamicControl = isMoving || remainingTime > -0.1;
+		dynamicControl = isMoving || remainingTime > -0.2;
 				
 		if (dynamicControl)
 		{
@@ -156,29 +156,39 @@ void PredictiveJointController::doDynamicControl()
 		dynamicControlMode = DynamicControlMode::Travelling;
 	}
 	
-	if (dynamicControlMode == DynamicControlMode::Travelling)
+	if (dynamicControlMode == DynamicControlMode::Travelling || dynamicControlMode  == DynamicControlMode::Approaching)
 	{
+		const bool positionApproach = (bool)(Configuration::getInstance().getObject("GlobalControl.PositionBasedApproach")->valuedouble);
+		
 		double dynamicAngleError = cTargetAngle - cSensorAngle;
 		double errorDerivative = (dynamicAngleError - lDynamicPositionError)/(cTime - lTime);
 		lDynamicPositionError = dynamicAngleError;
-
+		
 		double velocityCorrection = dynamicAngleError * config->velocityCorrectionProportionalGain + errorDerivative * config->velocityCorrectionDerivativeGain;
 		
 		cTargetVelocity = cPlanTargetVelocity+velocityCorrection;
+		
 		double finalAngleError = motionPlan->finalAngle - cSensorAngle;
 
 		//Approaching, check for shutdown time
 		if (TimeUtil::timeUntil(motionPlan->endTime) < 0.2 && std::abs(finalAngleError) < config->approachDistanceThreshold)
 		{
-			double stopIn = estimateTimeToPosition(motionPlan->finalAngle) - servoModel->driverDelay;
-			if (stopIn < MaximumStopTime)
+			dynamicControlMode = DynamicControlMode::Approaching;
+			if (positionApproach)
 			{
-				dynamicControlMode = DynamicControlMode::Stopping;
-				commandDriver(0,DriverMode::Coast);
+				cTargetAngle = motionPlan->finalAngle;
+				doPositionControl();
 			}
 			else
 			{
-				doSpeedControl();
+				double stopIn = estimateTimeToPosition(motionPlan->finalAngle) - servoModel->driverDelay;
+				if (stopIn < MaximumStopTime)
+				{
+					dynamicControlMode = DynamicControlMode::Stopping;
+					commandDriver(0,DriverMode::Coast);
+				}
+				else
+					doSpeedControl();
 			}
 		}
 		else
@@ -195,19 +205,35 @@ void PredictiveJointController::doDynamicControl()
 
 
 void PredictiveJointController::doStaticControl()
-{	
-	if (!config->stepControlEnabled || staticControlMode == StaticControlMode::Holding)
-	{
-		doPositionHoldControl();	
-	}
+{
+	doPositionControl();
 	
-	if (!cDriverCommanded && staticControlMode == StaticControlMode::Stepping)
-	{
-		if (doStepControl())
-		{
-			staticControlMode = StaticControlMode::Holding;
-		}
-	}
+//	if (!config->stepControlEnabled || staticControlMode == StaticControlMode::Holding)
+//	{
+//		doPositionHoldControl();	
+//	}
+//	else if (!cDriverCommanded && staticControlMode == StaticControlMode::Stepping)
+//	{
+//		if (doStepControl())
+//		{
+//			staticControlMode = StaticControlMode::Holding;
+//		}
+//	}
+}
+
+void PredictiveJointController::doPositionControl()
+{
+	const double positionApproachGain = Configuration::getInstance().getObject("GlobalControl.PositionApproachGain")->valuedouble;
+	const double positionApproachMaxVelocity = Configuration::getInstance().getObject("GlobalControl.PositionApproachMaxSpeed")->valuedouble;
+	
+	double finalAngleError = cTargetAngle - cSensorAngle;
+	
+	cTargetVelocity = finalAngleError*positionApproachGain;
+	cTargetVelocity = min(cTargetVelocity,positionApproachMaxVelocity);
+	cTargetVelocity = max(cTargetVelocity,-positionApproachMaxVelocity);
+	
+	dynamicControlMode = DynamicControlMode::Approaching;
+	doSpeedControl();
 }
 
 void PredictiveJointController::doSpeedControl()
@@ -222,7 +248,11 @@ void PredictiveJointController::doSpeedControl()
 
 //	double dVError = (cVelocityError - lVelocityError)/(cTime - lTime);
 
-	if (speedControlState == SpeedControlState::Measuring)
+	if (dynamicControlMode == DynamicControlMode::Approaching)
+	{		
+		commandDriver(servoModel->getVoltageForTorqueSpeed(cControlTorque,cTargetVelocity),DriverMode::TMVoltage);
+	}
+	else if (speedControlState == SpeedControlState::Measuring)
 	{
 		if (TimeUtil::timeSince(speedControlMeasureStart) > MinSpeedControlMeasureDelay && cVelocityApproximationError < 0.7) //MinVelocityRValue)
 		{
@@ -428,8 +458,15 @@ void PredictiveJointController::commitCommands()
 			
 			if (cDriverCommand != driverCommand)
 			{
-				bus[servoModel->driverBus]->selectAddress(servoModel->driverAddress);
-				DRV8830::writeCommand(bus[servoModel->driverBus],driverCommand);
+				if (config->AsyncDriverCommunication)
+				{
+					AsyncI2CSender::forBus(bus[servoModel->driverBus])->postMessage(I2CMessage(servoModel->driverAddress, 0, driverCommand));
+				}
+				else
+				{
+					bus[servoModel->driverBus]->selectAddress(servoModel->driverAddress);
+					DRV8830::writeCommand(bus[servoModel->driverBus],driverCommand);
+				}
 				cDriverCommand = driverCommand;
 			}
 		}

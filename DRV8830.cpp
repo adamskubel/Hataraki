@@ -23,14 +23,9 @@ int DRV8830::voltageToSteps(double input)
 }
 
 unsigned char DRV8830::readFaultRegister(I2CBus * bus)
-{
-	unsigned char buf[1] = {(unsigned char)DRV8830Registers::FAULT};
-	bus->writeToBus(buf,1);
-	
-	unsigned char result[1] = {0};
-	bus->readFromBus(result,1);
-
-	return result[0];
+{	
+	unsigned char result = static_cast<unsigned char>(bus->readByte(1));
+	return result;
 }
 
 double DRV8830::getNearestVoltage(double voltageTarget)
@@ -85,41 +80,6 @@ double DRV8830::voltageToFractionalSteps(double voltage)
 	return voltage/(1.285/16.0);
 }
 
-//void DRV8830::buildVoltageDitherArray(double vTarget,int * vCmdArray, int cycleLength,int cycleCount)
-//{
-//	int vCmdLow = voltageToSteps(vTarget);
-//	int vCmdHigh = vCmdLow+1;
-//	if (vCmdHigh > 0x3F)
-//		vCmdHigh = 0x3F;
-//	
-//	double vLow = stepsToVoltage(vCmdLow);
-//	double vHigh = stepsToVoltage(vCmdHigh);
-//	
-//	//Vtarget = a*Vlow+(1-a)*Vhigh
-//	//Vt = a*Vlow + Vhigh - a*Vhigh
-//	//Vt = a*(Vlow-Vhigh) + Vhigh
-//	//(Vt - Vhigh)/a = Vlow-Vhigh
-//	//a = (Vt-Vhigh)/(Vlow-Vhigh)
-//	
-//	double alpha = (vTarget-vHigh)/(vLow-vHigh);
-//	
-//	int lowCycles = alpha * cycleLength;
-//	int highCycles = cycleLength - lowCycles;
-//	
-//	int cycle = 0, i = 0;
-//	for (; cycle < cycleCount; cycle++)
-//	{
-//		int pos = 0;
-//		for (;pos < cycleLength;i++,pos++)
-//		{
-//			if (pos < lowCycles)
-//				vCmdArray[i] = vCmdLow;
-//			else
-//				vCmdArray[i] = vCmdHigh;
-//		}
-//	}
-//}
-
 int DRV8830::buildCommand(double voltageMag, int mode)
 {
 	int command = voltageToSteps(voltageMag);
@@ -160,14 +120,9 @@ void DRV8830::writeVoltage(I2CBus * bus, double voltage)
 void DRV8830::writeVoltageMode(I2CBus * bus, double voltage, int mode)
 {
 	writeCommand(bus,buildCommand(voltage,mode));
-//
-//	unsigned char buffer[2] = {static_cast<unsigned char>(DRV8830Registers::CONTROL),command};
-//	bus->writeToBus(buffer,2);
 }
 
 void DRV8830::writeCommand(I2CBus * bus,unsigned char command)
 {
-//	unsigned char buffer[2] = {static_cast<unsigned char>(DRV8830Registers::CONTROL),command};
-	//	bus->writeToBus(buffer,2);
 	bus->writeByte(DRV8830Registers::CONTROL, command);
 }

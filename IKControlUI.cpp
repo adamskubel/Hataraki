@@ -21,6 +21,8 @@ IKControlUI::IKControlUI(MotionController * motionController)
 {
 	this->motionController = motionController;
 	this->selectedElement = NULL;
+	this->relativeMode = false;
+	this->relativeScale = 0.25;
 //	this->controlProvider = new UIControlProvider();
 	init();
 }
@@ -31,7 +33,19 @@ void IKControlUI::init()
 	int columnWidth = 12;
 	directModeActive = false;
 	
-	Favorites = {{10,0,-6},{0,-90,0},{11,0,-6},{0,-90,0},{10,1,-6},{0,-90,0},{10,-1,-6},{0,-90,0}};
+	Favorites = {
+		{10,0,6},{0,90,0},	//o
+		{14,0,4},{0,0,0},	//p
+		{10,-6,0},{0,0,-90}, //i
+		{10,-1,-6},{0,-90,0}};
+	
+	Offsets = {
+		{-1,0,0},{0,-90,0},	//w
+		{1,0,0},{0,-90,0},	//s
+		{0,1,0},{0,-90,0},	//a
+		{0,-1,0},{0,-90,0},	//d
+		{0,0,-1},{0,-90,0},	//q
+		{0,0,1},{0,-90,0}};	//e
 	
 	elements.insert(make_pair("T",new UIElement(3,1,"T:")));
 	elements["T"]->setText("[T]ranslation:");
@@ -182,137 +196,14 @@ void IKControlUI::start()
 
 void IKControlUI::updateAll()
 {
-	//bool updated = false, clearNeeded = false;
-	//for (auto it = elements.begin(); it != elements.end(); it++)
-	//{
-	//	updated = it->second->isUpdateNeeded() || updated;
-	//}
-	//
-	//if (updated)
-	//{
-	//	if (clearNeeded)
-	//		wclear(uiWindow);
-	//box(uiWindow,0,0);
 	for (auto it = elements.begin(); it != elements.end(); it++)
 	{
 		if (it->second->isUpdateNeeded())
 			it->second->update(uiWindow);
 	}
-	//refresh();
 	wrefresh(uiWindow);
-	//}
 }
 
-//IKGoal UIControlProvider::nextGoal()
-//{	
-//	std::lock_guard<std::mutex> locks(goalMutex);	
-//	IKGoal g = currentGoal;
-//	currentGoal = IKGoal::stopGoal(); //Default to stop unless current goal is replaced before next call
-//	return g;
-//}
-//
-//void UIControlProvider::setGoal(IKGoal goal)
-//{	
-//	std::lock_guard<std::mutex> locks(goalMutex);	
-//	currentGoal = goal;
-//}
-//
-//
-//void UIControlProvider::motionComplete()
-//{
-//	
-//}
-//
-//void UIControlProvider::motionOutOfRange()
-//{
-//	this->hasError = true;
-//	this->errorText = "Out of range";
-//}
-
-bool IKControlUI::doDirectControl(int c)
-{
-	return false;
-	//if (!directModeActive) return false;
-
-	//Vector3d dir;
-	//switch (c)
-	//{
-	//	case KEY_PPAGE:
-	//		dir = Vector3d(0,0,1);
-	//		break;
-	//	case KEY_NPAGE:
-	//		dir = Vector3d(0,0,-1);
-	//		break;
-	//	case KEY_RIGHT:
-	//		dir = Vector3d(0,1,0);
-	//		break;
-	//	case KEY_LEFT:
-	//		dir = Vector3d(0,-1,0);
-	//		break;
-	//	case KEY_UP:
-	//		dir = Vector3d(1,0,0);
-	//		break;
-	//	case KEY_DOWN:
-	//		dir = Vector3d(-1,0,0);
-	//		break;
-	//	case 'k':
-	//		directModeActive = false;
-	//		controlProvider->hasControl = false;
-	//		return false;
-	//	case 'x':
-	//		directModeActive = false;
-	//		controlProvider->hasControl = false;
-	//		break;
-	//}
-	//
-	//if (dir.length() == 0 || !directModeActive)
-	//{		
-	//	controlProvider->setGoal(IKGoal::stopGoal());
-	//}
-	//else
-	//{
-	//	if (controlProvider->hasError)
-	//	{
-	//		elements["StatusLog"]->setText(controlProvider->errorText);
-	//		controlProvider->hasError = false;
-	//	}
-	//	else
-	//	{
-	//		dir = dir * ((NumberBox*)elements["PathStepLength"])->getValue()/100.0;
-	//		controlProvider->setGoal(IKGoal(dir,true));
-	//		
-	//		if (!controlProvider->hasControl)
-	//		{
-	//			AsyncLogger::log("Requesting control");
-	//			motionController->getMotionPlanner()->setPathInterpolationMode(PathInterpolationMode::SingleStep);
-	//			motionController->requestDirectControl(controlProvider->currentGoal,controlProvider);
-	//		}
-	//	}
-	//}	
-	//return true;
-}
-
-void IKControlUI::drawDirectControlWindow()
-{
-	//if (directModeActive)
-	//{
-	//	vector<pair<string,string> > helpKeys({
-	//	{"UP","+Y"},
-	//	{"DOWN","-Y"},
-	//	{"LEFT","+X"},
-	//	{"RIGHT","-X"},
-	//	{"PAGEUP","+Z"},
-	//	{"PAGEDOWN","-Z"}
-	//});
-	//
-
-	//	for (int i=0;i<helpKeys.size();i++)
-	//	{
-	//		mvwprintw(directControlWindow,0,0,help
-	//	}
-	//	wrefresh(directControlWindow);
-	//}
-}
 
 bool IKControlUI::handleElementSelection(int c)
 {
@@ -357,7 +248,6 @@ void IKControlUI::handleInput()
 	
 	try
 	{
-		handled = handled || doDirectControl(c);
 		handled = handled || handleElementSelection(c);
 		handled = handled || (selectedElement != NULL && selectedElement->handleInput(uiWindow,c));
 		
@@ -365,20 +255,40 @@ void IKControlUI::handleInput()
 		{
 			switch (c)
 			{
+				case 'o':
+					setTargetGoal(Favorites[0], Favorites[1],false);
+					executePlan();
+					break;
+				case 'p':
+					setTargetGoal(Favorites[2], Favorites[3],false);
+					executePlan();
+					break;
+				case 'i':
+					setTargetGoal(Favorites[4], Favorites[5],false);
+					executePlan();
+					break;
 				case 'w':
-					setTargetGoal(Favorites[0], Favorites[1]);
+					setTargetGoal(Offsets[0]*relativeScale, Offsets[1], true);
 					executePlan();
 					break;
 				case 's':
-					setTargetGoal(Favorites[2], Favorites[3]);
+					setTargetGoal(Offsets[2]*relativeScale, Offsets[3], true);
 					executePlan();
 					break;
 				case 'a':
-					setTargetGoal(Favorites[4], Favorites[5]);
+					setTargetGoal(Offsets[4]*relativeScale, Offsets[5], true);
 					executePlan();
 					break;
 				case 'd':
-					setTargetGoal(Favorites[6], Favorites[7]);
+					setTargetGoal(Offsets[6]*relativeScale, Offsets[7], true);
+					executePlan();
+					break;
+				case 'q':
+					setTargetGoal(Offsets[8]*relativeScale, Offsets[9], true);
+					executePlan();
+					break;
+				case 'e':
+					setTargetGoal(Offsets[10]*relativeScale, Offsets[11], true);
 					executePlan();
 					break;
 				case 'U':
@@ -389,10 +299,6 @@ void IKControlUI::handleInput()
 					break;
 				case 'x':
 					running = false;
-					break;
-				case 'q':
-					calculatePlan();
-					executePlan();
 					break;
 				case 'c':
 					calculatePlan();
@@ -407,10 +313,10 @@ void IKControlUI::handleInput()
 				case 'h':
 					motionController->postTask([this](){motionController->zeroAllJoints();});
 					break;
-				//case 'd':
-				//	elements["StatusLog"]->setText("Direct mode enabled");
-				//	directModeActive = true;
-				//	break;
+				case 'r':
+					elements["StatusLog"]->setText("Direct mode enabled");
+					directModeActive = true;
+					break;
 			}
 		}
 	}
@@ -444,7 +350,13 @@ void IKControlUI::calculatePlan()
 	motionController->getTrajectoryPlanner()->setPathDivisions(divisionCount);
 	motionController->getTrajectoryPlanner()->setPathInterpolationMode(PathInterpolationMode::FixedStepCount);
 	
-	auto trajectory = motionController->getTrajectoryPlanner()->buildTrajectory(IKGoal(targetPosition, targetRotation, false));
+	auto trajectory = motionController->getTrajectoryPlanner()->buildTrajectory(IKGoal(targetPosition, targetRotation, relativeMode));
+	
+	Vector3d finalPos = trajectory.back().Position*100.0;
+	
+	((NumberBox*)elements["Tx"])->setValue(finalPos.x);
+	((NumberBox*)elements["Ty"])->setValue(finalPos.y);
+	((NumberBox*)elements["Tz"])->setValue(finalPos.z);
 
 	pendingMotionPlan = motionController->getMotionPlanner()->buildPlan(trajectory);
 	
@@ -456,7 +368,7 @@ void IKControlUI::calculatePlan()
 
 void IKControlUI::executePlan()
 {
-	if (pendingMotionPlan.empty()) throw std::runtime_error("Pending motion plan is invalid");
+	if (pendingMotionPlan.empty()) 	calculatePlan();
 	motionController->executeMotionPlan(pendingMotionPlan);
 }
 
@@ -471,14 +383,20 @@ void IKControlUI::setSelected(UIElement * element)
 	selectedElement->setSelected(true);
 }
 
-void IKControlUI::setTargetGoal(Vector3d position, Vector3d eulerAngles)
+void IKControlUI::setTargetGoal(Vector3d position, Vector3d eulerAngles, bool relative)
 {
 	((NumberBox*)elements["Tx"])->setValue(position.x);
 	((NumberBox*)elements["Ty"])->setValue(position.y);
 	((NumberBox*)elements["Tz"])->setValue(position.z);
-	((NumberBox*)elements["Rx"])->setValue(eulerAngles.x);
-	((NumberBox*)elements["Ry"])->setValue(eulerAngles.y);
-	((NumberBox*)elements["Rz"])->setValue(eulerAngles.z);
+	
+	if (!relative)
+	{
+		((NumberBox*)elements["Rx"])->setValue(eulerAngles.x);
+		((NumberBox*)elements["Ry"])->setValue(eulerAngles.y);
+		((NumberBox*)elements["Rz"])->setValue(eulerAngles.z);
+	}
+	
+	relativeMode = relative;
 
 	calculatePlan();
 }
@@ -496,6 +414,13 @@ void IKControlUI::updateArmStatus(bool copyToInput)
 	
 	double xR,yR,zR;
 	MathUtil::extractEulerAngles(rotationMatrix,xR,yR,zR);
+	
+	
+	if (relativeMode)
+	{
+		Vector3d targetPosition = getVectorFromElements({"Tx","Ty","Tz"});
+		translation = translation - targetPosition;
+	}
 	
 	((NumberBox*)elements["aTx"])->setValue(translation.x);
 	((NumberBox*)elements["aTy"])->setValue(translation.y);

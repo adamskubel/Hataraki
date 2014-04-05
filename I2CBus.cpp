@@ -2,11 +2,9 @@
 
 using namespace std;
 
-#define USE_IOCTL true
 
 #ifdef I2C_SUPPORTED
 
-/*
 I2CBus::I2CBus(string busname)
 {
 	writeTime = new SimpleMovingAverage(100);	
@@ -28,103 +26,6 @@ I2CBus::I2CBus(string busname)
 	}
 
 }
-void I2CBus::writeToBus(unsigned char * buf, int length)
-{
-	timespec writeStart = TimeUtil::getNow();
-	int res = 0;
-	if ((res = write(file,buf,length)) != length) {		
-		stringstream ss;
-		ss << "Failed to write to the i2c bus. Address = " << currentAddr << ", Bus = " << busName << ", Error=" << strerror(errno);
-		throw std::runtime_error(ss.str());
-	}
-	writeTime->add(TimeUtil::timeSince(writeStart)*1000.0);
-}
-
-void I2CBus::readFromBus(unsigned char * buffer, int length)
-{
-	timespec readStart = TimeUtil::getNow();
-	if (read(file,buffer,length) != length) 	{
-		stringstream ss;
-		ss << "Failed to read from the i2c bus. Address = " << currentAddr << ", Bus = " << busName << ", Error=" << strerror(errno);        
-		throw std::runtime_error(ss.str());
-	}
-	readTime->add(TimeUtil::timeSince(readStart)*1000.0);
-}
-
-void I2CBus::selectAddress(int addr)
-{
-	if (currentAddr != addr)
-	{
-		if (ioctl(file,I2C_SLAVE,addr) < 0) {
-			stringstream ss;
-			ss << "Failed to set address. TargetAddress = " << addr << ", Error=" << strerror(errno);        
-			throw std::runtime_error(ss.str());
-		}
-		currentAddr = addr;
-	}
-}
- */
-
-I2CBus::I2CBus(string busname)
-{
-	writeTime = new SimpleMovingAverage(100);	
-	readTime = new SimpleMovingAverage(100);
-
-	this->busName = busname;
-	
-    char filename[40];
-	sprintf(filename,"%s",busname.c_str());
-    if ((file = open(filename,O_RDWR)) < 0) {
-
-		stringstream ss;
-		ss << "Failed to open the bus. Name=" << filename << ", Error=" << strerror(errno);        
-		throw std::runtime_error(ss.str());
-    }
-	else
-	{
-		cout << "Opened bus " << busname.c_str() << endl;
-	}
-
-}
-
-//void I2CBus::writeToBus(unsigned char * buf, int length)
-//{
-//	timespec writeStart = TimeUtil::getNow();
-//	i2c_smbus_write_byte(client,buf[0]);
-//	writeTime->add(TimeUtil::timeSince(writeStart)*1000.0);
-//}
-//
-//void I2CBus::readFromBus(unsigned char * buffer, int length)
-//{
-//	timespec readStart = TimeUtil::getNow();
-//	buffer[0] = i2c_smbus_read_byte(client);
-//	readTime->add(TimeUtil::timeSince(readStart)*1000.0);
-//}
-
-void I2CBus::writeToBus(unsigned char * buf, int length)
-{
-	timespec writeStart = TimeUtil::getNow();
-	int res = 0;
-	if ((res = write(file,buf,length)) != length) {
-		stringstream ss;
-		ss << "Failed to write to the i2c bus. Address = " << currentAddr << ", Bus = " << busName << ", Error=" << strerror(errno);
-		throw std::runtime_error(ss.str());
-	}
-	writeTime->add(TimeUtil::timeSince(writeStart)*1000.0);
-}
-
-void I2CBus::readFromBus(unsigned char * buffer, int length)
-{
-	//timespec readStart = TimeUtil::getNow();
-	if (read(file,buffer,length) != length) 	{
-		stringstream ss;
-		ss << "Failed to read from the i2c bus. Address = " << currentAddr << ", Bus = " << busName << ", Error=" << strerror(errno);
-		throw std::runtime_error(ss.str());
-	}
-	//readTime->add(TimeUtil::timeSince(readStart)*1000.0);
-}
-
-
 
 int i2c_smbus_access(int file, char read_write, unsigned char command,int size, union i2c_smbus_data *data)
 {
@@ -184,19 +85,7 @@ int I2CBus::readWord(int registerAddress)
 {
 	int res = 0;
 	timespec readStart = TimeUtil::getNow();
-	if (USE_IOCTL)
-	{
-		res = i2c_smbus_read_word_data(file,(unsigned char)registerAddress);
-	}
-	else
-	{
-		unsigned char result[2] = {(unsigned char)(registerAddress+1),0};
-		writeToBus(result,1);
-		readFromBus(result,2);
-
-		res = ((int)result[1]) << 8;
-		res += (int)result[0];
-	}
+	res = i2c_smbus_read_word_data(file,(unsigned char)registerAddress);
 	readTime->add(TimeUtil::timeSince(readStart)*1000.0);
 	return res;
 }
@@ -229,14 +118,6 @@ I2CBus::I2CBus(string busname)
 	
 }
 
-void I2CBus::writeToBus(unsigned char * buf, int length)
-{
-}
-
-void I2CBus::readFromBus(unsigned char * buffer, int length)
-{
-}
-
 int I2CBus::readWord(int registerAddress)
 {
 	return 0;
@@ -261,3 +142,9 @@ void I2CBus::selectAddress(int addr)
 	
 }
 #endif
+
+
+string I2CBus::getName()
+{
+	return busName;
+}

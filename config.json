@@ -5,10 +5,17 @@
 		"FilePrefix" : "JointData_"
 	},
 	"GlobalSettings" : {
-		"MaxVoltage" : 2.8,
-		"UpdateFrequency" : 400
+		"MaxVoltage" : 2.4,
+		"UpdateFrequency" : 250
 	},
-	"ArmModel" : 
+	"GlobalControl" :
+	{
+		"AsyncDriverComm" : 1,
+		"PositionBasedApproach" : 1,
+		"PositionApproachMaxSpeed" : 500,
+		"PositionApproachGain" : 5
+	},
+	"ArmModel" :
 	{
 		"JointsW" :
 		[
@@ -171,7 +178,8 @@
 			"Name" : "Default",
 			"MaxAcceleration" : 180,
 			"SetpointPrecisionSteps" : 10,
-			"SpeedControl" : 
+			 "SamplesPerUpdate" : 2,
+			"SpeedControl" :
 			{ 
 				"ProportionalGain" : 0.1,
 				"IntegralGain" : 0.0,
@@ -206,7 +214,8 @@
 		{
 			"Name" : "HighSpeedMotors",
 			"MaxAcceleration" : 250,
-			"SetpointPrecisionSteps" : 20,
+			 "SetpointPrecisionSteps" : 20,
+			 "SamplesPerUpdate" : 2,
 			"SpeedControl" : 
 			{ 
 				"ProportionalGain" : 0.1,
@@ -241,7 +250,8 @@
 		{
 			"Name" : "Wheels",
 			"MaxAcceleration" : 150,			
-			"SetpointPrecisionSteps" : 20,
+			 "SetpointPrecisionSteps" : 20,
+			 "SamplesPerUpdate" : 2,
 			"SpeedControl" : 
 			{ 
 				"ProportionalGain" : 0.1,

@@ -39,8 +39,9 @@
 #include "AsyncLogger.hpp"
 #include "IKControlUI.hpp"
 #include "TrajectoryController.hpp"
+#include "AsyncI2CSender.hpp"
 
-#include "FlipIdentifier.hpp"
+#include "ALog.hpp"
 
 #define VMATH_NAMESPACE vmath
 #include "vmath.h"
@@ -89,26 +90,6 @@ double fmt(double d)
 }
 
 
-
-void printPositionForAngles(IkReal * jointAngles) {
-	
-	IkReal t[3];
-	IkReal r[9];
-	
-	ComputeFk(jointAngles,t,r);
-		
-	Matrix3d rotationMatrix = Matrix3d::fromRowMajorArray(r);	
-	Vector3d tipPos = Vector3d(t[0],t[1],t[2])*100.0;
-	//Vector3d tip = rotationMatrix * Vector3d(1,0,0);
-
-	double xR,yR,zR;
-	MathUtil::extractEulerAngles(rotationMatrix,xR,yR,zR);
-
-	cout << "Tip position: " << tipPos.toString() << endl;
-	cout << "Tip angles: " << fmt(xR) << " " << fmt(yR) << " " << fmt(zR) << endl;
-	cout << endl;
-}
-
 void handle(int sig) {
 	void *symbolArray[50];
 	size_t size;
@@ -146,7 +127,10 @@ int main(int argc, char *argv[])
 	{
 		configFileName = std::string(argv[1]);
 	}
-
+	
+	auto alog = new Log("Basicmotion", LOG_USER);
+	std::clog.rdbuf(alog);
+	
 	//Configuration
 	try
 	{
@@ -184,6 +168,10 @@ int main(int argc, char *argv[])
 	requestPriority(SCHED_OTHER);
 
 	AsyncLogger::getInstance().startThread();
+	
+	clog << kLogAlert << "This is a very long test message that is used for testing the logging system" << endl;
+	
+	alog->sync();
 
 	try
 	{
@@ -407,6 +395,9 @@ int main(int argc, char *argv[])
 	cout << "Done." << endl;
 	
 	motionController->shutdown();
+	AsyncI2CSender::cleanup();
 	
 	AsyncLogger::getInstance().joinThread();
+	
+	alog->sync();
 }
