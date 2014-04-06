@@ -5,15 +5,12 @@
 		"FilePrefix" : "JointData_"
 	},
 	"GlobalSettings" : {
-		"MaxVoltage" : 2.4,
-		"UpdateFrequency" : 250
+		"MaxVoltage" : 2.8,
+		"UpdateFrequency" : 220
 	},
 	"GlobalControl" :
 	{
-		"AsyncDriverComm" : 1,
-		"PositionBasedApproach" : 1,
-		"PositionApproachMaxSpeed" : 500,
-		"PositionApproachGain" : 5
+		"AsyncDriverComm" : 1
 	},
 	"ArmModel" :
 	{
@@ -132,14 +129,14 @@
 			"LostMotion" : 3.45,
 			"Efficiency" : 1.0,
 			"ViscousFriction" : 0
-	 },
-	 {
-	 "Name" : "GM12-50",
-	 "Ratio" : 50,
-	 "LostMotion" : 3.45,
-	 "Efficiency" : 1.0,
-	 "ViscousFriction" : 0
-	 }
+		 },
+		 {
+			"Name" : "GM12-50",
+			"Ratio" : 50,
+			"LostMotion" : 3.45,
+			"Efficiency" : 1.0,
+			"ViscousFriction" : 0
+		}
 	],
 	"SegmentDefinitions" : [
 		{
@@ -200,16 +197,23 @@
 			},
 			"DynamicController" :
 			{
-				"VelocityKPForPositionCorrection" : 0,
+				"VelocityKPForPositionCorrection" : 5,
 				"VelocityKDForPositionCorrection" : 0.01,
-				"SetpointApproachVelocity" : 10,
 				"SetpointApproachDistanceThreshold" : 1.5
 			},
-			 "StepControl" :
-			 {
-			 "Enabled" : 0
-			 }
-			
+			"PositionControl" :
+			{
+				"MaxVelocity" : 800,
+				"Kp" : 10,
+				"Kd" : 0,
+				"Ki" : 0
+			},
+					 "NonLinearTorque" :
+					 {
+					 "Enabled" : 0,
+					 "StartingTorque" : 0.0002,
+					 "GainScale" : 2
+					 }
 		},
 		{
 			"Name" : "HighSpeedMotors",
@@ -239,13 +243,21 @@
 			{
 				"VelocityKPForPositionCorrection" : 5,
 				"VelocityKDForPositionCorrection" : 0.01,
-				"SetpointApproachVelocity" : 10,
 				"SetpointApproachDistanceThreshold" : 1.5
 			 },
-			 "StepControl" :
-			 {
-			 "Enabled" : 0
-			 }
+			"PositionControl" :
+			{
+				"MaxVelocity" : 800,
+				"Kp" : 10,
+				"Kd" : 0,
+				"Ki" : 0
+					 },
+					 "NonLinearTorque" :
+					 {
+					 "Enabled" : 1,
+					 "StartingTorque" : 0.01,
+					 "GainScale" : 2
+					 }
 		},
 		{
 			"Name" : "Wheels",
@@ -275,13 +287,15 @@
 			{
 				"VelocityKPForPositionCorrection" : 0.0,
 				"VelocityKDForPositionCorrection" : 0.0,
-				"SetpointApproachVelocity" : 1,
 				"SetpointApproachDistanceThreshold" : 1.5
-			 },
-			 "StepControl" :
-			 {
-			 "Enabled" : 0
-			 }
+			},
+			"PositionControl" :
+			{
+				"MaxVelocity" : 500,
+				"Kp" : 5,
+				"Kd" : 0.1,
+				"Ki" : 0
+			}
 		}
 	],
 	"WheelDefinitions" : [
@@ -354,7 +368,7 @@
 			"ZeroPosition" : 209,
 			"ContinuousRotation" : 0,
 			"MinAngle" : -35,
-			"MaxAngle" : 90,
+			"MaxAngle" : 95,
 			"AxisOfRotation" : [0,-1,0],
 			"Servo" : 
 			{
@@ -398,7 +412,7 @@
 			"ZeroPosition" : 325,
 			"ContinuousRotation" : 0,
 			"MinAngle" : -40,
-			"MaxAngle" : 90,
+			"MaxAngle" : 98,
 			"AxisOfRotation" : [0,1,0],
 			"Servo" : 
 			{

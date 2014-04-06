@@ -7,6 +7,7 @@ TimeMultiplexedVoltageConverter::TimeMultiplexedVoltageConverter(int _maxMultipl
 	this->maxMultiplexPeriods = _maxMultiplexingPeriods;
 	this->maxVoltage = DRV8830::getNearestVoltage(_maxVoltage);
 	this->totalTime =0;
+	lastVoltage = 0;
 	
 	if (this->maxVoltage < 0)
 		throw std::runtime_error("Maximum voltage must be >= 0");

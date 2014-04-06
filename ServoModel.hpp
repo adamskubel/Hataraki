@@ -71,11 +71,9 @@ public:
 	double speedControlDerivativeGain;
 
 	bool useTargetFeedback;
-	bool stepControlEnabled;
 	bool AsyncDriverCommunication;
 	
 	double velocityCorrectionProportionalGain,velocityCorrectionDerivativeGain;
-	double approachVelocity;
 	double approachDistanceThreshold;
 	double maxSetpointError;
 	double maxAcceleration;
@@ -83,6 +81,8 @@ public:
 	double maxVelocityMeasureDelay;
 
 	int positionHistorySize;
+	bool nonLinearTorqueResponseEnabled;
+	double nonLinearTorqueOffset;
 	
 	int samplesPerUpdate;
 

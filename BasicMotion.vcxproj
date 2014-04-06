@@ -62,8 +62,10 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="ALog.cpp" />
     <ClCompile Include="ArmState.cpp" />
     <ClCompile Include="AS5048.cpp" />
+    <ClCompile Include="AsyncI2CSender.cpp" />
     <ClCompile Include="AsyncLogger.cpp" />
     <ClCompile Include="Configuration.cpp" />
     <ClCompile Include="DRV8830.cpp" />
@@ -96,9 +98,11 @@
     <ClCompile Include="VoltageTesting.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="ALog.hpp" />
     <ClInclude Include="AngleUtil.hpp" />
     <ClInclude Include="ArmState.hpp" />
     <ClInclude Include="AS5048.hpp" />
+    <ClInclude Include="AsyncI2CSender.hpp" />
     <ClInclude Include="AsyncLogger.hpp" />
     <ClInclude Include="Configuration.hpp" />
     <ClInclude Include="DRV8830.hpp" />

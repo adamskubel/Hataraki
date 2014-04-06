@@ -61,11 +61,14 @@
     <Filter Include="Header Files\MotionPlanning">
       <UniqueIdentifier>{ac9f7379-24fd-489d-a270-466763fcb44d}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Header Files\IO">
+      <UniqueIdentifier>{544856a9-1ade-4897-b436-cf879ae259ed}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\IO">
+      <UniqueIdentifier>{93ee747c-fa01-4f07-ad8f-86599fad5c5c}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="I2CBus.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="AS5048.cpp">
       <Filter>Source Files\DeviceUtil</Filter>
     </ClCompile>
@@ -159,11 +162,17 @@
     <ClCompile Include="TrajectoryController.cpp">
       <Filter>Source Files\MotionPlanning</Filter>
     </ClCompile>
+    <ClCompile Include="I2CBus.cpp">
+      <Filter>Source Files\IO</Filter>
+    </ClCompile>
+    <ClCompile Include="AsyncI2CSender.cpp">
+      <Filter>Source Files\IO</Filter>
+    </ClCompile>
+    <ClCompile Include="ALog.cpp">
+      <Filter>Source Files\Utils</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="I2CBus.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="AS5048.hpp">
       <Filter>Header Files\DeviceUtil</Filter>
     </ClInclude>
@@ -256,6 +265,15 @@
     </ClInclude>
     <ClInclude Include="ArmState.hpp">
       <Filter>Header Files\Model</Filter>
+    </ClInclude>
+    <ClInclude Include="I2CBus.hpp">
+      <Filter>Header Files\IO</Filter>
+    </ClInclude>
+    <ClInclude Include="AsyncI2CSender.hpp">
+      <Filter>Header Files\IO</Filter>
+    </ClInclude>
+    <ClInclude Include="ALog.hpp">
+      <Filter>Header Files\Util</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

@@ -38,7 +38,6 @@ ControllerConfig::ControllerConfig(cJSON * _rawConfig)
 	velocityCorrectionProportionalGain = Configuration::getInstance().getObject(rawConfig,"DynamicController.VelocityKPForPositionCorrection")->valuedouble;
 	velocityCorrectionDerivativeGain = Configuration::getInstance().getObject(rawConfig,"DynamicController.VelocityKDForPositionCorrection")->valuedouble;
 	
-	approachVelocity = AS5048::degreesToSteps(Configuration::getInstance().getObject(rawConfig,"DynamicController.SetpointApproachVelocity")->valuedouble);
 	approachDistanceThreshold = AS5048::degreesToSteps(Configuration::getInstance().getObject(rawConfig,"DynamicController.SetpointApproachDistanceThreshold")->valuedouble);
 	
 	positionHistorySize = Configuration::getInstance().getObject(rawConfig,"SpeedControl.HistoryLength")->valueint;
@@ -46,11 +45,12 @@ ControllerConfig::ControllerConfig(cJSON * _rawConfig)
 	
 	useTargetFeedback = false;// (bool)get("SpeedControl.UseTargetFeedback");
 	
-	stepControlEnabled = (bool)get("StepControl.Enabled");
-	
 	maxVelocityMeasureDelay = get("SpeedControl.MaxMeasureDelay");
 	
 	samplesPerUpdate = (int)get("SamplesPerUpdate");
 	
 	AsyncDriverCommunication =  true; //(bool)get("AsyncDriverComm");
+	
+	nonLinearTorqueOffset = get("NonLinearTorque.StartingTorque");
+	nonLinearTorqueResponseEnabled = (bool)get("NonLinearTorque.Enabled");
 }

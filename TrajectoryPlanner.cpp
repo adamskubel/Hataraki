@@ -89,10 +89,10 @@ vector<OpSpaceState> TrajectoryPlanner::buildTrajectory(IKGoal goal)
 
 	Vector3d delta = targetPosition - currentPosition;
 	
-	if (delta.length() < 0.001)
-	{
-		throw std::runtime_error("Goal does not change position");
-	}
+//	if (delta.length() < 0.000001)
+//	{
+//		throw std::runtime_error("Goal does not change position");
+//	}
 		
 	
 	int numDivisions;

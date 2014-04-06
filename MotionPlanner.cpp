@@ -615,7 +615,7 @@ vector<shared_ptr<MotionPlan> > MotionPlanner::createClosedSolutionMotionPlanFro
 		double direction = sgn(delta);
 		double maxSpeed = joints.at(i)->getMaxVelocity();
 		double maxAccel = joints.at(i)->getMaxAcceleration();
-		double coastVelocity = joints.at(i)->getJointModel()->servoModel.controllerConfig.approachVelocity*direction;
+		double coastVelocity = 0;
 
 		double v1,jointTime = 0;
 		
@@ -637,7 +637,7 @@ vector<shared_ptr<MotionPlan> > MotionPlanner::createClosedSolutionMotionPlanFro
 		double v0 = 0, vF = 0;
 		double delta = step->Positions[i] - s1->Positions[i];
 		double direction = sgn(delta);
-		double coastVelocity = joints.at(i)->getJointModel()->servoModel.controllerConfig.approachVelocity*direction;
+		double coastVelocity = 0;
 		double maxAccel = joints.at(i)->getMaxAcceleration();
 
 		PlanSolution sol;

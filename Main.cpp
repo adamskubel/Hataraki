@@ -111,6 +111,8 @@ void ikControl()
 
 int main(int argc, char *argv[])
 {
+	cout << "STARTING BASICMOTION" << endl;
+
 	vector<PredictiveJointController*> controllers;
 	cJSON * globalConfig;
 	ArmModel * armModel;
@@ -128,8 +130,8 @@ int main(int argc, char *argv[])
 		configFileName = std::string(argv[1]);
 	}
 	
-	auto alog = new Log("Basicmotion", LOG_USER);
-	std::clog.rdbuf(alog);
+//	auto alog = new Log("Basicmotion", LOG_USER);
+//	std::clog.rdbuf(alog);
 	
 	//Configuration
 	try
@@ -169,9 +171,9 @@ int main(int argc, char *argv[])
 
 	AsyncLogger::getInstance().startThread();
 	
-	clog << kLogAlert << "This is a very long test message that is used for testing the logging system" << endl;
+	//clog << kLogAlert << "This is a very long test message that is used for testing the logging system" << endl;
 	
-	alog->sync();
+	//alog->sync();
 
 	try
 	{
@@ -399,5 +401,5 @@ int main(int argc, char *argv[])
 	
 	AsyncLogger::getInstance().joinThread();
 	
-	alog->sync();
+//	alog->sync();
 }

@@ -71,6 +71,7 @@ void PredictiveJointController::setCurrentState()
 	lRawSensorAngle = cRawSensorAngle;
 	lSensorAngle = cSensorAngle;
 	lTime = cTime;
+	lTargetAngle = cTargetAngle;
 	
 	//Carry next to current
 	cDriverCommanded = false;	
@@ -147,6 +148,7 @@ void PredictiveJointController::doQuadraticRegression()
 	}
 	else
 	{
+		cVelocityApproximationError = 0.0;
 		cVelocity = 0; 
 	}
 }

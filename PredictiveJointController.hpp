@@ -41,22 +41,11 @@ enum JointStatus {
 	Paused
 };
 
-enum StaticControlMode {
-	Holding,
-	Stepping
-};
-
 enum DynamicControlMode {
 	Starting,
 	Travelling,
 	Approaching,
 	Stopping
-};
-
-enum SteppingState {
-	Energizing,
-	Braking,
-	Reading
 };
 
 enum DriverMode {
@@ -128,6 +117,7 @@ private:
 	double lSensorAngle;	
 	double lStaticModelTorque;
 	double lVelocityError;
+	double lTargetAngle;
 		
 	//Motion plan
 	std::shared_ptr<MotionPlan> motionPlan;
@@ -161,7 +151,6 @@ private:
 	
 	DynamicControlMode dynamicControlMode;
 	bool dynamicControl;
-	StaticControlMode staticControlMode;
 	double lDynamicPositionError;
 	
 
@@ -206,20 +195,7 @@ private:
 	double speedControlMeasureVoltage;
 	timespec speedControlMeasureStart;
 	double velocityErrorIntegral;
-
-	//Stepping states
-	//struct StepControlData {
-		std::vector<double> stepVoltages;
-		SteppingState steppingState;
-		int stepVoltageIndex;
-		struct timespec readDelayStart;
-		double stepStartPosition;
-		double stepInitialTargetDistance;
-		int stepExpectedDirection;
-		double stepVoltageIntegral;
-	//};
-		
-
+	
 	//--Member functions--//
 	//-------------------//
 	double estimateTimeToPosition(double position);
@@ -233,7 +209,6 @@ private:
 	void doPositionHoldControl();
 	void doSpeedControl();
 	void doPositionControl();
-	bool doStepControl();
 
 	void setCurrentTorqueStates();
 	void setCurrentState();
@@ -241,10 +216,6 @@ private:
 	
 	void doDynamicControl();
 	void doStaticControl();
-	
-
-	void executeStep(double voltage, int energizeLength, int coastStepCount);
-	void executeStep(std::vector<double> & voltagePattern);
 	
 	void commandDriver(double targetVoltage, DriverMode mode);
 	void commitCommands();

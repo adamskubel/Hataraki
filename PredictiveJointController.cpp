@@ -12,15 +12,13 @@ void PredictiveJointController::init()
 
 	quadraticRegressionFilter = new QuadraticRegression((int)config->get("SensorFilters.VelocityApproximation.WindowSize"));
 
-	steppingState = SteppingState::Braking;
 	speedControlState = SpeedControlState::Measuring;		
 	dynamicControlMode = DynamicControlMode::Travelling;
-	staticControlMode = StaticControlMode::Holding;
 	dynamicControl = false;
 	jointStatus = JointStatus::New;
 	motionPlan = NULL;
 	haltRequested = false;
-
+	
 	logfileName = "Data_" + jointModel->name + ".csv";
 				
 	cSensorAngle = 0;
@@ -34,7 +32,9 @@ void PredictiveJointController::init()
 	cPlanTargetVelocity = 0;
 	cExpectedVelocity = 0;
 	cControlTorque = 0;
+	lTargetAngle = 0;
 
+	cVoltage = 0;
 	cTargetVoltage = 0;
 	cAppliedVoltage = 0;
 	nVoltage = 0;
@@ -77,16 +77,21 @@ void PredictiveJointController::enable()
 		setCurrentState();
 		motionPlan = shared_ptr<MotionPlan>(new MotionPlan(cSensorAngle));
 		motionPlan->startNow();
+		cTargetAngle = cSensorAngle;
+		lTargetAngle = cTargetAngle;
 
 		motionPlanComplete = true;
-		staticControlMode = StaticControlMode::Holding;
-		jointStatus = JointStatus::Active;		
+		speedControlState = SpeedControlState::Adjusting;
+		cControlTorque = 0;
+		isControlTorqueValid = false;
 				
 		std::string upName = std::string(jointModel->name);
 		std::transform(upName.begin(), upName.end(),upName.begin(), ::toupper);		
 		cout << "JOINT " << upName << " IS ONLINE" << endl;
 
 		TimeUtil::setNow(enableTime);
+		
+		jointStatus = JointStatus::Active;
 	}
 	else
 	{
@@ -152,9 +157,6 @@ void PredictiveJointController::executeMotionPlan(std::shared_ptr<MotionPlan> re
 	lDynamicPositionError = 0;
 	
 	AsyncLogger::log(jointModel->name + " - Executing motion plan of duration " + to_string(motionPlan->getPlanDuration()));
-
-	//while (rawSensorAngleHistory.size() > 1)
-	//	rawSensorAngleHistory.pop_front();
 }
 
 void PredictiveJointController::validateMotionPlan(std::shared_ptr<MotionPlan> requestedMotionPlan)
@@ -303,16 +305,8 @@ void PredictiveJointController::logState()
 		}
 		else 
 		{
-			if (staticControlMode == StaticControlMode::Stepping)
-			{			
-				ss << -2	<< Configuration::CsvSeparator;
-				ss << steppingState;
-			}
-			else //if (staticControlMode == StaticControlMode::Holding)
-			{			
-				ss << -1	<< Configuration::CsvSeparator;
-				ss << 0;
-			}
+			ss << -1	<< Configuration::CsvSeparator;
+			ss << 0;			
 		}
 
 

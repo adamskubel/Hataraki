@@ -37,7 +37,8 @@ void IKControlUI::init()
 		{10,0,6},{0,90,0},	//o
 		{14,0,4},{0,0,0},	//p
 		{10,-6,0},{0,0,-90}, //i
-		{10,-1,-6},{0,-90,0}};
+		{4,0,4},{0,-90,0},
+		{4,-7,-1.5},{0,0,160}};
 	
 	Offsets = {
 		{-1,0,0},{0,-90,0},	//w
@@ -127,12 +128,12 @@ void IKControlUI::init()
 	((NumberBox*)elements["DivisionNumBox"])->setPrecision(0);
 	((NumberBox*)elements["DivisionNumBox"])->setValue(1);
 	
-	elements.insert(make_pair("PathStepLength_Label",new UIElement(6,24,"PathStepLength_Label","Step Length:")));
+	elements.insert(make_pair("PathStepLength_Label",new UIElement(6,24,"PathStepLength_Label","Step size (mm):")));
 	elements.insert(make_pair("PathStepLength",new NumberBox(6,38,"PathStepLength")));
 	
 	((NumberBox*)elements["PathStepLength"])->setIncrement(0.1);
 	((NumberBox*)elements["PathStepLength"])->setPrecision(1);
-	((NumberBox*)elements["PathStepLength"])->setValue(0.5);
+	((NumberBox*)elements["PathStepLength"])->setValue(2.5);
 	
 	int helpX = 4,helpY = 8, helpSpacing = 6;
 	
@@ -264,31 +265,31 @@ void IKControlUI::handleInput()
 					executePlan();
 					break;
 				case 'i':
-					setTargetGoal(Favorites[4], Favorites[5],false);
+					setTargetGoal(Favorites[8], Favorites[9],false);
 					executePlan();
 					break;
 				case 'w':
-					setTargetGoal(Offsets[0]*relativeScale, Offsets[1], true);
+					setTargetGoal(Offsets[0], Offsets[1], true);
 					executePlan();
 					break;
 				case 's':
-					setTargetGoal(Offsets[2]*relativeScale, Offsets[3], true);
+					setTargetGoal(Offsets[2], Offsets[3], true);
 					executePlan();
 					break;
 				case 'a':
-					setTargetGoal(Offsets[4]*relativeScale, Offsets[5], true);
+					setTargetGoal(Offsets[4], Offsets[5], true);
 					executePlan();
 					break;
 				case 'd':
-					setTargetGoal(Offsets[6]*relativeScale, Offsets[7], true);
+					setTargetGoal(Offsets[6], Offsets[7], true);
 					executePlan();
 					break;
 				case 'q':
-					setTargetGoal(Offsets[8]*relativeScale, Offsets[9], true);
+					setTargetGoal(Offsets[8], Offsets[9], true);
 					executePlan();
 					break;
 				case 'e':
-					setTargetGoal(Offsets[10]*relativeScale, Offsets[11], true);
+					setTargetGoal(Offsets[10], Offsets[11], true);
 					executePlan();
 					break;
 				case 'U':
@@ -385,6 +386,12 @@ void IKControlUI::setSelected(UIElement * element)
 
 void IKControlUI::setTargetGoal(Vector3d position, Vector3d eulerAngles, bool relative)
 {
+	if (relative)
+	{
+		relativeScale = ((NumberBox*)elements["PathStepLength"])->getValue()/10.0;
+		position *= relativeScale;
+	}
+		
 	((NumberBox*)elements["Tx"])->setValue(position.x);
 	((NumberBox*)elements["Ty"])->setValue(position.y);
 	((NumberBox*)elements["Tz"])->setValue(position.z);
@@ -444,7 +451,11 @@ void IKControlUI::updateArmStatus(bool copyToInput)
 	{
 		if (motionController->getJointByIndex(i)->getJointStatus() == JointStatus::Active)
 		{
-			actualAngles[i]->setValue(angles[i]);
+			if (relativeMode)
+				actualAngles[i]->setValue(angles[i] - inputAngles[i]->getValue());
+			else
+				actualAngles[i]->setValue(angles[i]);
+			
 			if (copyToInput)
 				inputAngles[i]->setValue(angles[i]);
 		}
