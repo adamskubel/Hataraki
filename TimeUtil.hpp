@@ -35,6 +35,8 @@ public:
 
 	static void assertTime(timespec & start, std::string message);
 	static void assertTime(timespec & start, std::string message, double threshold);
+	
+	static void sleepFor(double sleepTime);
 };
 
 

@@ -19,9 +19,6 @@
     <Filter Include="Source Files\DeviceUtil">
       <UniqueIdentifier>{b0addbc2-d6c3-46f4-a1a2-10b626289020}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Header Files\IK">
-      <UniqueIdentifier>{4d719d9d-a6ad-4003-83ed-a592c244d840}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Header Files\Predictive">
       <UniqueIdentifier>{63502c62-ba6a-4aac-add8-a1d9158f711a}</UniqueIdentifier>
     </Filter>
@@ -66,6 +63,21 @@
     </Filter>
     <Filter Include="Source Files\IO">
       <UniqueIdentifier>{93ee747c-fa01-4f07-ad8f-86599fad5c5c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\WheelMotion">
+      <UniqueIdentifier>{7aeca2d5-3d84-40af-b13d-bc8450195d05}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\WheelMotion">
+      <UniqueIdentifier>{600e8e6b-af94-4bc3-ac88-08fefab783d5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\IK">
+      <UniqueIdentifier>{4d719d9d-a6ad-4003-83ed-a592c244d840}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\RealtimeLoop">
+      <UniqueIdentifier>{4c474ce5-d239-4647-8365-50d74f643816}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\RealtimeLoop">
+      <UniqueIdentifier>{4c94b972-319d-4832-875b-4220716dd834}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -171,6 +183,27 @@
     <ClCompile Include="ALog.cpp">
       <Filter>Source Files\Utils</Filter>
     </ClCompile>
+    <ClCompile Include="WheelMotionController.cpp">
+      <Filter>Source Files\WheelMotion</Filter>
+    </ClCompile>
+    <ClCompile Include="DriveModel.cpp">
+      <Filter>Source Files\WheelMotion</Filter>
+    </ClCompile>
+    <ClCompile Include="ServoDirectController.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="AntennaDeflectionSensor.cpp">
+      <Filter>Source Files\WheelMotion</Filter>
+    </ClCompile>
+    <ClCompile Include="RealtimeLoopController.cpp">
+      <Filter>Source Files\RealtimeLoop</Filter>
+    </ClCompile>
+    <ClCompile Include="NavigationController.cpp">
+      <Filter>Source Files\WheelMotion</Filter>
+    </ClCompile>
+    <ClCompile Include="ObstacleAwareNavigator.cpp">
+      <Filter>Source Files\WheelMotion</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AS5048.hpp">
@@ -274,6 +307,33 @@
     </ClInclude>
     <ClInclude Include="ALog.hpp">
       <Filter>Header Files\Util</Filter>
+    </ClInclude>
+    <ClInclude Include="WheelMotionController.hpp">
+      <Filter>Header Files\WheelMotion</Filter>
+    </ClInclude>
+    <ClInclude Include="DriveModel.hpp">
+      <Filter>Header Files\WheelMotion</Filter>
+    </ClInclude>
+    <ClInclude Include="ServoDirectController.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ThreadUtils.hpp">
+      <Filter>Header Files\Util</Filter>
+    </ClInclude>
+    <ClInclude Include="AntennaDeflectionSensor.hpp">
+      <Filter>Header Files\WheelMotion</Filter>
+    </ClInclude>
+    <ClInclude Include="IRealtimeUpdatable.hpp">
+      <Filter>Header Files\RealtimeLoop</Filter>
+    </ClInclude>
+    <ClInclude Include="RealtimeLoopController.hpp">
+      <Filter>Header Files\RealtimeLoop</Filter>
+    </ClInclude>
+    <ClInclude Include="NavigationController.hpp">
+      <Filter>Header Files\WheelMotion</Filter>
+    </ClInclude>
+    <ClInclude Include="ObstacleAwareNavigator.hpp">
+      <Filter>Header Files\WheelMotion</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

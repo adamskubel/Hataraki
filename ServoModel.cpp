@@ -49,8 +49,6 @@ ControllerConfig::ControllerConfig(cJSON * _rawConfig)
 	
 	samplesPerUpdate = (int)get("SamplesPerUpdate");
 	
-	AsyncDriverCommunication =  true; //(bool)get("AsyncDriverComm");
-	
 	nonLinearTorqueOffset = get("NonLinearTorque.StartingTorque");
 	nonLinearTorqueResponseEnabled = (bool)get("NonLinearTorque.Enabled");
 }

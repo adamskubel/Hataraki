@@ -35,6 +35,17 @@ double TimeUtil::timeBetween(timespec & t0, timespec & t1)
 	return getTimeDelta(t0,t1);
 }
 
+void TimeUtil::sleepFor(double sleepTime)
+{
+	if (sleepTime > 0)
+	{
+		long adjustedSleep = (sleepTime*1000000);
+		if (adjustedSleep > 0)
+		{
+			usleep(static_cast<unsigned int>(adjustedSleep));
+		}
+	}
+}
 
 double TimeUtil::timeSince(timespec & sinceTime)
 {

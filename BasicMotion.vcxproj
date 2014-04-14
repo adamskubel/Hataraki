@@ -63,17 +63,22 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="ALog.cpp" />
+    <ClCompile Include="AntennaDeflectionSensor.cpp" />
     <ClCompile Include="ArmState.cpp" />
     <ClCompile Include="AS5048.cpp" />
     <ClCompile Include="AsyncI2CSender.cpp" />
     <ClCompile Include="AsyncLogger.cpp" />
     <ClCompile Include="Configuration.cpp" />
+    <ClCompile Include="DriveModel.cpp" />
     <ClCompile Include="DRV8830.cpp" />
     <ClCompile Include="FlipIdentifier.cpp" />
     <ClCompile Include="I2CBus.cpp" />
     <ClCompile Include="IKControlUI.cpp" />
     <ClCompile Include="ikfastsolution.cpp" />
     <ClCompile Include="ikfastsolution_altconfig.cpp" />
+    <ClCompile Include="NavigationController.cpp" />
+    <ClCompile Include="ObstacleAwareNavigator.cpp" />
+    <ClCompile Include="RealtimeLoopController.cpp" />
     <ClCompile Include="KinematicSolver.cpp" />
     <ClCompile Include="Main.cpp" />
     <ClCompile Include="MathUtils.cpp" />
@@ -85,6 +90,7 @@
     <ClCompile Include="PredictiveJointControl_ControllerImpl.cpp" />
     <ClCompile Include="PredictiveJointControl_SignalImpl.cpp" />
     <ClCompile Include="QuadraticRegression.cpp" />
+    <ClCompile Include="ServoDirectController.cpp" />
     <ClCompile Include="ServoModel.cpp" />
     <ClCompile Include="ServoUtil.cpp" />
     <ClCompile Include="Test.cpp" />
@@ -96,23 +102,30 @@
     <ClCompile Include="UIElement.cpp" />
     <ClCompile Include="vmath.cpp" />
     <ClCompile Include="VoltageTesting.cpp" />
+    <ClCompile Include="WheelMotionController.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ALog.hpp" />
     <ClInclude Include="AngleUtil.hpp" />
+    <ClInclude Include="AntennaDeflectionSensor.hpp" />
     <ClInclude Include="ArmState.hpp" />
     <ClInclude Include="AS5048.hpp" />
     <ClInclude Include="AsyncI2CSender.hpp" />
     <ClInclude Include="AsyncLogger.hpp" />
     <ClInclude Include="Configuration.hpp" />
+    <ClInclude Include="DriveModel.hpp" />
     <ClInclude Include="DRV8830.hpp" />
     <ClInclude Include="Exceptions.hpp" />
     <ClInclude Include="FlipIdentifier.hpp" />
     <ClInclude Include="I2CBus.hpp" />
+    <ClInclude Include="IRealtimeUpdatable.hpp" />
     <ClInclude Include="IKControlUI.hpp" />
     <ClInclude Include="ikfast.h" />
     <ClInclude Include="IKFast.hpp" />
     <ClInclude Include="IKPlanner.hpp" />
+    <ClInclude Include="NavigationController.hpp" />
+    <ClInclude Include="ObstacleAwareNavigator.hpp" />
+    <ClInclude Include="RealtimeLoopController.hpp" />
     <ClInclude Include="KinematicSolver.hpp" />
     <ClInclude Include="LowpassFilter.hpp" />
     <ClInclude Include="MathUtils.hpp" />
@@ -124,14 +137,17 @@
     <ClInclude Include="PoseDynamics.hpp" />
     <ClInclude Include="PredictiveJointController.hpp" />
     <ClInclude Include="QuadraticRegression.hpp" />
+    <ClInclude Include="ServoDirectController.hpp" />
     <ClInclude Include="ServoModel.hpp" />
     <ClInclude Include="ServoUtil.hpp" />
     <ClInclude Include="SimpleMovingAverage.hpp" />
+    <ClInclude Include="ThreadUtils.hpp" />
     <ClInclude Include="TimeMultiplexedVoltageConverter.hpp" />
     <ClInclude Include="TimeUtil.hpp" />
     <ClInclude Include="TrajectoryPlanner.hpp" />
     <ClInclude Include="UIElement.hpp" />
     <ClInclude Include="vmath.h" />
+    <ClInclude Include="WheelMotionController.hpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="config.json" />

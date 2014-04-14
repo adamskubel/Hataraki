@@ -63,7 +63,7 @@ void FlipIdentifier::execute()
 		{
 			cout << "Executing pattern[" << i << "]" << endl;
 
-			motionController->postTask([this](){
+			RealtimeDispatcher::AddTask([this](){
 				const double TestAngle = AS5048::degreesToSteps(10);
 				const double TestAngleSpeed = AS5048::degreesToSteps(20);	
 				motionController->setJointPosition(jointIndex,TestAngle);

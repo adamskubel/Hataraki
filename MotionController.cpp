@@ -15,12 +15,6 @@ MotionController::MotionController(vector<PredictiveJointController*> joints) {
 
 	planLogTimeOffset = 0;
 	updateCount = 0;
-	
-	for (auto it = joints.begin(); it != joints.end(); it++)
-		timeSMA_map.insert(make_pair((*it)->getJointModel()->name,new SimpleMovingAverage(30)));
-	
-	
-	timeSMA_map.insert(make_pair("All",new SimpleMovingAverage(30)));
 	timeSMA_map.insert(make_pair("PoseDynamics",new SimpleMovingAverage(30)));
 	
 	ikLogStream << "Count,x,y,z,xt,yt,zt,xd,yd,zd" << endl;
@@ -29,7 +23,7 @@ MotionController::MotionController(vector<PredictiveJointController*> joints) {
 	//AsyncLogger::getInstance().postLogTask("joint_tracking.csv", "Time,Roll0,xRoll0,Pitch0,xPitch0,Roll1,xRoll1,Pitch1,xPitch1,Pitch2,xPitch2,Roll2,xRoll2\n");
 	state = State::Waiting;
 	
-	clog << "Time,Roll0,xRoll0,Pitch0,xPitch0,Roll1,xRoll1,Pitch1,xPitch1,Pitch2,xPitch2,Roll2,xRoll2" << endl;
+	//clog << "Time,Roll0,xRoll0,Pitch0,xPitch0,Roll1,xRoll1,Pitch1,xPitch1,Pitch2,xPitch2,Roll2,xRoll2" << endl;
 }
 
 PredictiveJointController * MotionController::getJointByIndex(int jointIndex)
@@ -40,31 +34,8 @@ PredictiveJointController * MotionController::getJointByIndex(int jointIndex)
 	return joints[jointIndex];
 }
 
-void MotionController::executeControlTasks()
-{
-	timespec step;
-	TimeUtil::setNow(step);
-	if (taskQueueMutex.try_lock()) {		
-		while (!taskQueue.empty()) {
-			try 
-			{
-				taskQueue.front()();
-			}
-			catch (std::runtime_error & e)
-			{
-				stringstream ss;
-				ss << "Exception executing scheduled task: " << e.what();
-				AsyncLogger::log(ss);
-			}
-			taskQueue.pop();
-		}
-		taskQueueMutex.unlock();
-	}
-	TimeUtil::assertTime(step,"Task execution");
-}
 
-
-void MotionController::updateController(){
+void MotionController::update(){
 
 	if (state == State::Shutdown) return;
 	
@@ -72,46 +43,19 @@ void MotionController::updateController(){
 	{
 		bool jointHasActivePlan = false;
 
-		timespec start, step;
-		TimeUtil::setNow(start);
-
 		vector<double> jointAngles;
 		for (auto it = joints.begin(); it != joints.end(); it++)
 		{
-			TimeUtil::setNow(step);
-
 			auto joint = *it;
-
-			joint->run();			
 			jointHasActivePlan = jointHasActivePlan|| joint->isDynamicMode();
 			jointAngles.push_back(joint->getCurrentAngle());
-
-			timeSMA_map[joint->getJointModel()->name]->add(TimeUtil::timeSince(step)*1000.0);
 		}
-		timeSMA_map["All"]->add(TimeUtil::timeSince(start)*1000.0);
 		
 		cArmState.setJointAngles(jointAngles);
 		
 		updateControllerState(jointHasActivePlan);				
 		updateChildState();
-		executeControlTasks();
 		
-//		stringstream ss;
-//		ss << TimeUtil::timeSince(planStartTime) + planLogTimeOffset << ",";
-//		for (auto it = joints.begin(); it != joints.end(); it++)
-//		{
-//			ss << round((*it)->getCurrentAngle()/0.001)*0.001 << "," << round((*it)->getAngleSetpoint()/0.001)*0.001 << ",";
-//		}
-//		
-//		clog << ss.str() << endl;
-			
-		double totalTime = TimeUtil::timeSince(start);
-		long adjustedSleep = updatePeriod - (totalTime*1000000);
-		if (adjustedSleep > 0 && adjustedSleep <= updatePeriod)
-		{
-			usleep(static_cast<unsigned int>(adjustedSleep));
-		}		
-		updateCount++;
 	}
 	catch (std::runtime_error & e)
 	{
@@ -144,24 +88,12 @@ void MotionController::updateControllerState(bool jointHasActivePlan)
 			planLogTimeOffset += TimeUtil::timeSince(planStartTime) + 0.1;
 		}
 		break;
-	case State::StreamingPlan:
-		updateStreamingMotionPlans();
-		break;
 	default:
 		break;
 	}
 				
 	if (state == State::FinitePlan)
-	{
-//		stringstream ss;
-//		ss << TimeUtil::timeSince(planStartTime) + planLogTimeOffset << ",";
-//		for (auto it = joints.begin(); it != joints.end(); it++)
-//		{
-//			ss << (*it)->getCurrentAngle() << "," << (*it)->getAngleSetpoint() << ",";
-//		}
-//		
-//		clog << ss.str() << endl;
-		
+	{		
 		if (logIk)
 		{
 			
@@ -178,95 +110,6 @@ void MotionController::updateControllerState(bool jointHasActivePlan)
 //			
 //			ikLogStream << ss.str();
 		}
-	}
-}
-
-void MotionController::updateStreamingMotionPlans()
-{
-//	bool complete = false;
-//	for (auto it=currentPlan.begin(); it != currentPlan.end(); it++)
-//	{
-//		if (TimeUtil::timeUntil((*it)->endTime) < 0)
-//		{
-//			complete = true;
-//			break;
-//		}
-//	}
-//
-//	if (complete)
-//	{
-//		AsyncLogger::log("Plan complete, reading next goal");
-//		currentPlan.clear();
-//		IKGoal goal = controlProvider->nextGoal();
-//		try
-//		{
-//			currentPlan = motionPlanner->buildPlan(goal);
-//		}
-//		catch (std::runtime_error & e)
-//		{
-//			stringstream ss;
-//			ss << "Exception building plan for streaming goal." << e.what();
-//			AsyncLogger::log(ss.str());
-//			controlProvider->motionOutOfRange();
-//			controlProvider->revokeControl();
-//			currentPlan = motionPlanner->buildPlan(IKGoal::stopGoal());
-//		}
-//
-//		std::for_each(currentPlan.begin(),currentPlan.end(),[](shared_ptr<MotionPlan> p){p->startNow();});
-//		for (int i=0;i<6;i++) joints.at(i)->joinMotionPlan(currentPlan.at(i));			
-//	}
-}
-
-void MotionController::requestDirectControl(IKGoal initialGoal, DirectControlProvider * controlProvider)
-{
-	//auto plan = motionPlanner->buildPlan(initialGoal);
-	//this->controlProvider = controlProvider;	
-	//executeMotionPlan(plan);		
-	//state = State::StreamingPlan;
-	//controlProvider->grantControl();
-}
-
-void MotionController::setJointVelocity(int jointIndex, double targetVelocity, double runTime)
-{
-	if (jointIndex >= 0 && jointIndex < joints.size()){		
-			
-		auto joint = joints.at(jointIndex);
-		auto plan = std::shared_ptr<MotionPlan>(new MotionPlan());
-
-		double v0 = joint->getCurrentVelocity();
-		double vF = targetVelocity;
-		double accelTime = abs((vF - v0)/joint->getMaxAcceleration());
-
-		plan->motionIntervals.push_back(MotionInterval(v0,vF,accelTime));
-		plan->motionIntervals.push_back(MotionInterval(vF,runTime));
-
-		plan->startAngle = joint->getCurrentAngle();
-		plan->finalAngle = plan->x(plan->getPlanDuration());
-
-		joint->validateMotionPlan(plan);		
-		plan->startNow();		
-		joint->executeMotionPlan(plan);
-	}
-	else {
-		throw std::runtime_error("Error! Joint index is not valid.");
-	}
-}
-
-
-void MotionController::setJointPosition(int jointIndex, double targetAngle)
-{
-	if (jointIndex >= 0 && jointIndex < joints.size()){		
-			
-		auto joint = joints.at(jointIndex);
-		auto plan = motionPlanner->buildOptimalMotionPlan(jointIndex,targetAngle);
-		
-		plan->startNow();
-		joint->validateMotionPlan(plan);		
-		plan->startNow();		
-		joint->executeMotionPlan(plan);
-	}
-	else {
-		throw std::runtime_error("Error! Joint index is not valid.");
 	}
 }
 
@@ -292,39 +135,7 @@ void MotionController::shutdown()
 		(*it)->writeHistoryToLog();
 }
 
-void MotionController::printAverageTime()
-{
-	this->postTask([this](){
-		for (auto it = timeSMA_map.begin(); it != timeSMA_map.end(); it++)
-		{
-			cout << it->first << " = " << it->second->avg() << endl;
-		}
-	});
-}
 
-void MotionController::zeroAllJoints()
-{
-	for (int i=0;i<joints.size();i++)
-	{
-		setJointPosition(i,0);
-	}
-}
-
-void MotionController::prepareAllJoints()
-{
-	for (auto it = joints.begin(); it != joints.end(); it++)
-	{
-		(*it)->prepare();
-	}
-}
-
-void MotionController::enableAllJoints()
-{
-	for (auto it = joints.begin(); it != joints.end(); it++)
-	{
-		(*it)->enable();
-	}
-}
 
 void MotionController::executeMotionPlan(vector<shared_ptr<MotionPlan> > newPlan)
 {
@@ -365,49 +176,6 @@ void MotionController::executeMotionPlan(vector<shared_ptr<MotionPlan> > newPlan
 	}
 }
 
-bool MotionController::confirmMotionPlan(vector<shared_ptr<MotionPlan> > & newPlan)
-{
-	cout << "Angles    = ";
-	for (auto it = newPlan.begin(); it != newPlan.end(); it++)
-	{
-		//cout << setprecision(2) << std::round(AS5048::stepsToDegrees((*it)->finalAngle)/0.01)*0.01 << "  ";
-		cout << setprecision(2) << std::round(AS5048::stepsToDegrees((*it)->x(1000))/0.01)*0.01 << "  ";
-	}
-	cout << endl;
-	cout << "Angles2    = ";
-	for (auto it = newPlan.begin(); it != newPlan.end(); it++)
-	{
-		cout << setprecision(2) << std::round(AS5048::stepsToDegrees((*it)->finalAngle)/0.01)*0.01 << "  ";
-	}
-	cout << endl;
-	cout << "Times = ";
-	for (auto it = newPlan.begin(); it != newPlan.end(); it++)
-	{
-		double time = (*it)->getPlanDuration();
-		cout << std::round(time/0.01)*0.01 << "  ";
-	}
-	cout << endl;
-	cout << std::fixed;
-	cout << "Commence motion? [y]es/[a]bort :" << endl;
-	string strIn;
-	getline(cin,strIn);
-	
-	if (strIn.compare("y") != 0)
-	{
-		newPlan.clear();
-		return false;
-	}
-	else
-	{
-		return true;
-	}
-}
-
-void MotionController::postTask(std::function<void()> task)
-{
-	std::lock_guard<std::mutex> locks(taskQueueMutex);
-	taskQueue.push(task);
-}
 
 void MotionController::getTransform(std::vector<double> & anglesDegrees, vmath::Vector3d & translation, vmath::Matrix3d & rotation)
 {

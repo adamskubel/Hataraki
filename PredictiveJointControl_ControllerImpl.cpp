@@ -1,12 +1,6 @@
 #include "PredictiveJointController.hpp"
 
-namespace ControllerConfiguration 
-{	
-	//Speed Control
-	const double MinSpeedControlMeasureDelay = 0.00; //seconds
-};
 
-using namespace ControllerConfiguration;
 using namespace std;
 
 void PredictiveJointController::run()
@@ -163,8 +157,10 @@ void PredictiveJointController::doDynamicControl()
 	}
 	else if (dynamicControlMode == DynamicControlMode::Stopping)
 	{
-		commandDriver(0,DriverMode::Brake);
-		motionPlanComplete = true;
+		if (useBrakeToStop)
+			commandDriver(0,DriverMode::Brake);
+		else
+			commandDriver(0,DriverMode::Coast);
 	}
 }
 
@@ -303,7 +299,7 @@ void PredictiveJointController::commitCommands()
 			
 			if (cDriverCommand != driverCommand)
 			{
-				if (config->AsyncDriverCommunication)
+				if (Configuration::AsyncDriverCommunication)
 				{
 					AsyncI2CSender::forBus(bus[servoModel->driverBus])->postMessage(I2CMessage(servoModel->driverAddress, 0, driverCommand));
 				}

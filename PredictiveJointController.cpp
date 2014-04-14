@@ -49,6 +49,8 @@ void PredictiveJointController::init()
 	cRevolutionCount = 0;
 	cRunTime = 0;
 	isControlTorqueValid = false;
+	
+	useBrakeToStop = false;
 
 	if (Configuration::CsvLoggingEnabled)
 	{		
@@ -114,10 +116,17 @@ void PredictiveJointController::disable()
 	emergencyHalt("Disabled by user");
 }
 
+void PredictiveJointController::cancelMotionPlan(bool brake)
+{
+	motionPlan->finalAngle = cSensorAngle;
+	dynamicControlMode = DynamicControlMode::Stopping;
+	useBrakeToStop = brake;
+}
+
 void PredictiveJointController::joinMotionPlan(std::shared_ptr<MotionPlan> newMotionPlan)
 {
 	//If current plan is already done, just start the new one
-	if (motionPlanComplete || motionPlan == NULL || TimeUtil::timeUntil(motionPlan->endTime) < 0) 
+	if (motionPlanComplete) // || motionPlan == NULL || TimeUtil::timeUntil(motionPlan->endTime) < 0)
 	{
 		executeMotionPlan(newMotionPlan);
 	}
@@ -133,12 +142,13 @@ void PredictiveJointController::joinMotionPlan(std::shared_ptr<MotionPlan> newMo
 		//double dxError = abs(dxJoin - cVelocity);
 
 		//if (xError > 100 || dxError > 100) throw std::runtime_error("Error between new plan and current state is too high");
-			
+		
+		this->motionPlan.reset();
+//		cout << "Assign" << endl;
 		this->motionPlan = newMotionPlan;
 		speedControlState = SpeedControlState::Adjusting;
 		dynamicControlMode = DynamicControlMode::Starting;
 		lDynamicPositionError = 0;
-		motionPlanComplete = false;
 	}
 }
 
@@ -333,7 +343,7 @@ void PredictiveJointController::logState()
 
 double PredictiveJointController::getMaxVelocity()
 {
-	const double AverageTorque = 0.03;
+	const double AverageTorque = jointModel->getDouble("AverageTorque");
 
 	return servoModel->getSpeedForTorqueVoltage(AverageTorque,DRV8830::stepsToVoltage(getMaxVoltageSteps()));
 }
@@ -395,7 +405,7 @@ JointStatus PredictiveJointController::getJointStatus()
 
 bool PredictiveJointController::isDynamicMode()
 {
-	return dynamicControl;
+	return !motionPlanComplete;
 }
 
 

@@ -4,9 +4,42 @@ bool Configuration::CsvLoggingEnabled = false;
 bool Configuration::FastLogging = true;
 char Configuration::CsvSeparator = ',';
 double Configuration::SamplePeriod = 0.01;
+bool Configuration::AsyncDriverCommunication = false;
 
 using namespace std;
 using namespace vmath;
+
+
+ConfigurationObject::ConfigurationObject(cJSON * rootObject)
+{
+	this->rootObject = rootObject;
+}
+
+int ConfigurationObject::getInteger(string key)
+{
+	return Configuration::getInstance().getObject(rootObject,key)->valueint;
+}
+
+double ConfigurationObject::getDouble(string key)
+{
+	return Configuration::getInstance().getObject(rootObject,key)->valuedouble;
+}
+
+string ConfigurationObject::getString(string key)
+{
+	return string(Configuration::getInstance().getObject(rootObject,key)->valuestring);
+}
+
+bool ConfigurationObject::getBool(string key)
+{
+	return (bool)Configuration::getInstance().getObject(rootObject,key)->valueint;
+}
+
+cJSON * ConfigurationObject::getObject(string key)
+{
+	return Configuration::getInstance().getObject(rootObject,key);
+}
+
 
 Configuration::Configuration()
 {	
@@ -40,6 +73,15 @@ Vector3d Configuration::getVectorFromJSON(cJSON * vectorObj)
 	return Vector3d(cJSON_GetArrayItem(vectorObj,0)->valuedouble,
 		cJSON_GetArrayItem(vectorObj,1)->valuedouble,
 		cJSON_GetArrayItem(vectorObj,2)->valuedouble);
+}
+
+Vector2d Configuration::getVector2dFromJSON(cJSON * vectorObj)
+{
+	if (cJSON_GetArraySize(vectorObj) != 2)
+		throw ConfigurationException("JSON vector representation requires 2 values");
+
+	return Vector2d(cJSON_GetArrayItem(vectorObj,0)->valuedouble,
+		cJSON_GetArrayItem(vectorObj,1)->valuedouble);
 }
 
 vector<double> Configuration::getVoltagePatternFromJSON(cJSON * rawPattern)
@@ -181,6 +223,7 @@ void Configuration::loadConfig(std::string configFileName)
 	
 	cJSON * globalConfig = cJSON_GetObjectItem(Configuration::getInstance().getRoot(),"GlobalSettings");
 	Configuration::SamplePeriod = 1.0/cJSON_GetObjectItem(globalConfig,"UpdateFrequency")->valuedouble;
+	Configuration::AsyncDriverCommunication = (cJSON_GetObjectItem(globalConfig,"AsyncDriverCommunication")->valueint != 0);
 }
 
 

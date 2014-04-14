@@ -311,9 +311,9 @@ void IKControlUI::handleInput()
 					motionController->shutdown();
 					running = false;
 					break;
-				case 'h':
-					motionController->postTask([this](){motionController->zeroAllJoints();});
-					break;
+//				case 'h':
+//					RealtimeDispatcher::AddTask([this](){motionController->zeroAllJoints();});
+//					break;
 				case 'r':
 					elements["StatusLog"]->setText("Direct mode enabled");
 					directModeActive = true;

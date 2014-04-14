@@ -45,13 +45,13 @@ void PredictiveJointController::setCurrentTorqueStates()
 		cPredictedTorque = cStaticModelTorque + frictionTorque;
 		
 		//Then flip back around to get motor torque. 
-		cPredictedTorque = -cPredictedTorque;
+		cPredictedTorque = 0;// -cPredictedTorque;
 		
 		//Make sure torque is the same sign as motion
-		if (direction > 0)
-			cPredictedTorque = std::max<double>(MinimumPredictedTorque,cPredictedTorque);
-		else
-			cPredictedTorque = std::min<double>(-MinimumPredictedTorque,cPredictedTorque);
+//		if (direction > 0)
+//			cPredictedTorque = std::max<double>(MinimumPredictedTorque,cPredictedTorque);
+//		else
+//			cPredictedTorque = std::min<double>(-MinimumPredictedTorque,cPredictedTorque);
 
 		cControlTorque = cPredictedTorque;
 		isControlTorqueValid = true;
@@ -89,27 +89,29 @@ void PredictiveJointController::setCurrentState()
 		cRawSensorAngle += (adjustedAngle)/((double)config->samplesPerUpdate);
 	}
 		
-	cSensorAngle = filterAngle(cRawSensorAngle); 
-
 	//Using history to check lRawSensorAngle is valid
-	if (jointModel->continuousRotation && rawSensorAngleHistory.size() > 1)
+	if (jointModel->continuousRotation && sensorAngleHistory.size() > 1)
 	{
 		const double pi = AS5048::PI_STEPS;
 
 		//eg. -175 to 179
-		if (cSensorAngle > (pi/2) && lSensorAngle < (-pi/2))
+		if (cRawSensorAngle > (pi/2) && lRawSensorAngle < (-pi/2))
 			cRevolutionCount--;		
 		//eg. 178 to -179
-		else if (cSensorAngle < (-pi/2) && lSensorAngle > (pi/2))
+		else if (cRawSensorAngle < (-pi/2) && lRawSensorAngle > (pi/2))
 			cRevolutionCount++;
 
-		cSensorAngle += (cRevolutionCount * AS5048::TAU_STEPS);
+		cSensorAngle = filterAngle(cRawSensorAngle) + (cRevolutionCount * AS5048::TAU_STEPS);
+	}
+	else
+	{
+		cSensorAngle = filterAngle(cRawSensorAngle);
 	}
 	
 	cTime = TimeUtil::timeSince(controllerStartTime);
 	
-	rawSensorAngleHistory.push_back(make_pair(cTime,cSensorAngle));
-	if (rawSensorAngleHistory.size() > config->positionHistorySize) rawSensorAngleHistory.pop_front();
+	sensorAngleHistory.push_back(make_pair(cTime,cSensorAngle));
+	if (sensorAngleHistory.size() > config->positionHistorySize) sensorAngleHistory.pop_front();
 		
 	doQuadraticRegression();
 
@@ -130,14 +132,14 @@ void PredictiveJointController::doQuadraticRegression()
 		if (cVelocityApproximationError < 0.8 && std::abs(cVelocity) < MaxPossibleZeroVelocity)
 		{
 			double avgSpeed = 0;
-			auto it=rawSensorAngleHistory.begin();
+			auto it=sensorAngleHistory.begin();
 			auto last = (*it);
 			it++;
-			for (;it != rawSensorAngleHistory.end(); it++)
+			for (;it != sensorAngleHistory.end(); it++)
 			{
 				avgSpeed += (it->second - last.second); ///(it->first - last.first);
 			}
-			avgSpeed /= rawSensorAngleHistory.size();
+			avgSpeed /= sensorAngleHistory.size();
 
 			if (std::abs(avgSpeed) < MinAverageOffsetForNonZeroVelocity)
 			{

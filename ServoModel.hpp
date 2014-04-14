@@ -71,7 +71,6 @@ public:
 	double speedControlDerivativeGain;
 
 	bool useTargetFeedback;
-	bool AsyncDriverCommunication;
 	
 	double velocityCorrectionProportionalGain,velocityCorrectionDerivativeGain;
 	double approachDistanceThreshold;
@@ -145,7 +144,7 @@ public:
 
 };
 
-class JointModel {
+class JointModel : public ConfigurationObject {
 
 private:
 	cJSON * rawConfig;
@@ -169,7 +168,7 @@ public:
 	}
 
 	JointModel(cJSON * rawConfig) :
-		servoModel(cJSON_GetObjectItem(rawConfig,"Servo"))
+		ConfigurationObject(rawConfig), servoModel(cJSON_GetObjectItem(rawConfig,"Servo"))
 	{		
 		Configuration::AssertConfigExists(rawConfig,"JointModel");
 		this->rawConfig = rawConfig;

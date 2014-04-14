@@ -3,7 +3,7 @@
 
 using namespace std;
 
-double PlanSolution::MaxSpeed = 20000.0;
+double PlanSolution::MaxSpeed = 200000.0;
 
 void KinematicSolver::validateSolution(PlanSolution & sol)
 {

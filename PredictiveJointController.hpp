@@ -107,7 +107,7 @@ private:
 
 	//Historical data
 	std::list<DataFrame> dataHistory;
-	std::list<std::pair<double,double> > rawSensorAngleHistory;
+	std::list<std::pair<double,double> > sensorAngleHistory;
 
 	int cRevolutionCount;
 
@@ -123,7 +123,7 @@ private:
 	std::shared_ptr<MotionPlan> motionPlan;
 	timespec enableTime;
 	bool motionPlanComplete;
-
+	bool useBrakeToStop;
 
 	
 	//Current state
@@ -253,6 +253,7 @@ public:
 	void validateMotionPlan(std::shared_ptr<MotionPlan> requestedMotionPlan);
 	void executeMotionPlan(std::shared_ptr<MotionPlan> requestedMotionPlan);
 	void joinMotionPlan(std::shared_ptr<MotionPlan> newMotionPlan);
+	void cancelMotionPlan(bool brake);
 
 	void run();
 
