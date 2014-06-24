@@ -288,7 +288,13 @@ void PredictiveJointController::commitCommands()
 			if (nDriverMode == DriverMode::Brake)
 				driverCommand = DRV8830::buildCommand(0,DriveMode::BRAKE);	
 			else if (nDriverMode == DriverMode::ConstantVoltage || nDriverMode == DriverMode::TMVoltage)
-				driverCommand = DRV8830::buildCommand(nAppliedVoltage);
+			{
+				if ((int)config->get("InvertVoltage") == 0)
+					driverCommand = DRV8830::buildCommand(nAppliedVoltage);
+				else
+					driverCommand = DRV8830::buildCommand(-nAppliedVoltage);
+				
+			}
 			else if (nDriverMode == DriverMode::Coast)
 				driverCommand = DRV8830::buildCommand(0, DriveMode::OFF);
 			else

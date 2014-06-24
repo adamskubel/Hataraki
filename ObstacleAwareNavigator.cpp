@@ -33,7 +33,7 @@ void ObstacleAwareNavigator::deflectionEvent()
 	{
 		colliding = true;
 
-		wheels[0]->getCurrentAngle();
+		//wheels[0]->getCurrentAngle();
 
 		//cout << "Obstacle detected, stopping" << endl;
 		//this->stopMotion();

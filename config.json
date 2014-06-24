@@ -5,8 +5,8 @@
 		"FilePrefix" : "JointData_"
 	},
 	"GlobalSettings" : {
-		"MaxVoltage" : 3.54,
-		"UpdateFrequency" : 400,
+		"MaxVoltage" : 2.96,
+		"UpdateFrequency" : 800,
 		"WheelsEnabled" : 1,
 		"ArmEnabled" : 0,
 		"AsyncDriverCommunication" : 0
@@ -38,20 +38,37 @@
 	},
 	"DriveModel" :
 	{
-		"WheelDiameter" : 0.032,
+		"WheelDiameter" : 0.018,
 		"Wheels" :
 		[
 			{
-				"Joint" : "WheelDefinitions.LeftWheel",
-				"Reverse" : 0,
-				"DistanceFromCenter" : 0.0465
+				"Joint" : "WheelDefinitions.LeftWheel_Small",
+				"Reverse" : 1,
+				"DistanceFromCenter" : 0.042
 			},
 			{
-				"Joint" : "WheelDefinitions.RightWheel",
-				"Reverse" : 1,
-				"DistanceFromCenter" : 0.0465
+				"Joint" : "WheelDefinitions.RightWheel_Small",
+				"Reverse" : 0,
+				"DistanceFromCenter" : 0.042
 			}
 		]
+	},
+	"DriveModel_Big" :
+	{
+		"WheelDiameter" : 0.032,
+		"Wheels" :
+		[
+		 {
+		 "Joint" : "WheelDefinitions.LeftWheel_Small",
+		 "Reverse" : 0,
+		 "DistanceFromCenter" : 0.0465
+		 },
+		 {
+		 "Joint" : "WheelDefinitions.RightWheel_Small",
+		 "Reverse" : 1,
+		 "DistanceFromCenter" : 0.0465
+		 }
+		 ]
 	},
 	"Motors" :
 	[
@@ -94,9 +111,19 @@
 			"NoLoadSpeed" : 290.0,
 			"NoLoadTorque" : 0.0,
 			"NoLoadCurrent" : 0.02
-		}		
+		 },
+		 {
+			 "Name" : "Planet_25",
+			 "TorqueConstant" : 0.01065,
+			 "BackEmfConstant" : 0.0024,
+			 "ArmatureResistance" : 14.155,
+			 "StallTorque" : 0.0,
+			 "NoLoadSpeed" : 1250.0,
+			 "NoLoadTorque" : 0.0,
+			 "NoLoadCurrent" : 0.02
+		 }
 	],
-	"Gearboxes" : 
+	"Gearboxes" :
 	[
 		{
 			"Name" : "Ideal",
@@ -271,10 +298,101 @@
 			}
 		},
 		{
-			"Name" : "Wheels",
+			"Name" : "Wheels_Small",
 			"MaxAcceleration" : 1500,
 			"SetpointPrecisionSteps" : 20,
 			"SamplesPerUpdate" : 1,
+			"InvertVoltage" : 0,
+			"SpeedControl" : 
+			{ 
+				"ProportionalGain" : 0.1,
+				"IntegralGain" : 0.0,
+				"DerivativeGain" : 0.00,
+				"HistoryLength" : 12,
+				"MaxMeasureDelay" : 0.01
+			},
+			"SensorFilters" : 
+			{
+				"LowpassPositionFilter" : 
+				{
+					"TimeConstant" : 0.0
+				},
+				"VelocityApproximation" : 
+				{
+					"WindowSize" : 10
+				}
+			},
+			"DynamicController" :
+			{
+				"VelocityKPForPositionCorrection" : 5,
+				"VelocityKDForPositionCorrection" : 0.0,
+				"SetpointApproachDistanceThreshold" : 1.5
+			},
+			"PositionControl" :
+			{
+				"MaxVelocity" : 5000,
+				"Kp" : 0.1,
+				"Kd" : 0.001,
+				"Ki" : 0
+			},
+			"NonLinearTorque" :
+			{
+				"Enabled" : 1,
+				"StartingTorque" : 0.005,
+				"GainScale" : 2
+			}
+		},
+					 {
+					 "Name" : "Wheels_Small_inv",
+					 "MaxAcceleration" : 1500,
+					 "SetpointPrecisionSteps" : 20,
+					 "SamplesPerUpdate" : 1,
+					 "InvertVoltage" : 1,
+					 "SpeedControl" :
+					 {
+					 "ProportionalGain" : 0.1,
+					 "IntegralGain" : 0.0,
+					 "DerivativeGain" : 0.00,
+					 "HistoryLength" : 12,
+					 "MaxMeasureDelay" : 0.01
+					 },
+					 "SensorFilters" :
+					 {
+					 "LowpassPositionFilter" :
+					 {
+					 "TimeConstant" : 0.0
+					 },
+					 "VelocityApproximation" :
+					 {
+					 "WindowSize" : 10
+					 }
+					 },
+					 "DynamicController" :
+					 {
+					 "VelocityKPForPositionCorrection" : 5,
+					 "VelocityKDForPositionCorrection" : 0.0,
+					 "SetpointApproachDistanceThreshold" : 1.5
+					 },
+					 "PositionControl" :
+					 {
+					 "MaxVelocity" : 5000,
+					 "Kp" : 0.1,
+					 "Kd" : 0.001,
+					 "Ki" : 0
+					 },
+					 "NonLinearTorque" :
+					 {
+					 "Enabled" : 1,
+					 "StartingTorque" : 0.005,
+					 "GainScale" : 2
+					 }
+					 },
+		{
+			"Name" : "Wheels",
+			"MaxAcceleration" : 1500,
+			"SetpointPrecisionSteps" : 20,
+			"SamplesPerUpdate" : 2,
+			"InvertVoltage" : 0,
 			"SpeedControl" : 
 			{ 
 				"ProportionalGain" : 0.1,
@@ -302,9 +420,9 @@
 			},
 			"PositionControl" :
 			{
-				"MaxVelocity" : 20000,
-				"Kp" : 5,
-				"Kd" : 0,
+				"MaxVelocity" : 5000,
+				"Kp" : 0.1,
+				"Kd" : 0.001,
 				"Ki" : 0
 			},
 			"NonLinearTorque" :
@@ -317,12 +435,54 @@
 	],
 	"WheelDefinitions" : [
 		{
-			"Name" : "RightWheel",
+			"Name" : "RightWheel_Small",
 			"ZeroPosition" : 0, 
 			"ContinuousRotation" : 1,
 			"AxisOfRotation" : [1,0,0],
 			"AverageTorque" : -0.01,
 			"Servo" : 
+			{
+				"DriverBus"		: "i2c-3",
+				"DriverAddress" : 97,
+				"SensorBus"		: "i2c-3",
+				"SensorAddress" : 88,
+				"DriverDelay" : 0.0004,
+				"SensorDelay" : 0.0012,
+				"MaxDriverVoltage" : 3.6,
+				"FrictionTorque" : 0.0001,
+				"Motor" : "Motors.Planet_25",
+				"Gearbox" : "Gearboxes.Ideal",
+				"ControllerConfig" : "Controllers.Wheels_Small"
+			}
+		},
+		{
+			"Name" : "LeftWheel_Small",
+			"ZeroPosition" : 0,
+			"ContinuousRotation" : 1,
+			"AxisOfRotation" : [0,-1,0],
+			"AverageTorque" : -0.01,
+			"Servo" : 
+			{
+				"DriverBus"		: "i2c-3",
+				"DriverAddress" : 101,
+				"SensorBus"		: "i2c-3",
+				"SensorAddress" : 64,
+				"DriverDelay" : 0.0004,
+				"SensorDelay" : 0.0,
+				"MaxDriverVoltage" : 3.6,
+				"FrictionTorque" : 0.0001,
+				"Motor" : "Motors.Planet_25",
+				"Gearbox" : "Gearboxes.Ideal",
+				"ControllerConfig" : "Controllers.Wheels_Small"
+			}
+		},
+		{
+			"Name" : "RightWheel",
+			"ZeroPosition" : 0,
+			"ContinuousRotation" : 1,
+			"AxisOfRotation" : [1,0,0],
+			"AverageTorque" : -0.01,
+			"Servo" :
 			{
 				"DriverBus"		: "i2c-2",
 				"DriverAddress" : 98,
@@ -343,7 +503,7 @@
 			"ContinuousRotation" : 1,
 			"AxisOfRotation" : [0,-1,0],
 			"AverageTorque" : -0.01,
-			"Servo" : 
+			"Servo" :
 			{
 				"DriverBus"		: "i2c-2",
 				"DriverAddress" : 97,
@@ -359,7 +519,7 @@
 			}
 		}
 	],
-	"AntennaSensors" :
+	"AntennaSensors2" :
 	[
 		{
 			"Name" : "RightAntenna",

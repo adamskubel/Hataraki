@@ -84,6 +84,8 @@ map<string,I2CBus*> initializeI2C()
 	map<string,I2CBus*> busMap;
 	busMap.insert(make_pair("i2c-1",new I2CBus("/dev/i2c-1")));
 	busMap.insert(make_pair("i2c-2",new I2CBus("/dev/i2c-2")));
+	busMap.insert(make_pair("i2c-3",new I2CBus("/dev/i2c-3")));
+	busMap.insert(make_pair("i2c-4",new I2CBus("/dev/i2c-4")));
 	return busMap;
 }
 
@@ -118,12 +120,13 @@ vector<AntennaDeflectionSensor*> loadAntennaSensors(cJSON * sensorArray, map<str
 {
 	vector<AntennaDeflectionSensor*> sensors;
 
-	for (int i=0;i<cJSON_GetArraySize(sensorArray); i++)
-	{
-		AntennaSensorConfig config(cJSON_GetArrayItem(sensorArray,i));
-		cout << "Loaded antenna: " << config.antennaName << endl;
-		sensors.push_back(new AntennaDeflectionSensor(config,busMap[config.sensorBusName]));
-	}
+	if (sensorArray != NULL)
+		for (int i=0;i<cJSON_GetArraySize(sensorArray); i++)
+		{
+			AntennaSensorConfig config(cJSON_GetArrayItem(sensorArray,i));
+			cout << "Loaded antenna: " << config.antennaName << endl;
+			sensors.push_back(new AntennaDeflectionSensor(config,busMap[config.sensorBusName]));
+		}
 
 	return sensors;
 }
@@ -158,7 +161,7 @@ int main(int argc, char *argv[])
 		
 		busMap = initializeI2C();
 
-		antennas = loadAntennaSensors(Configuration::getInstance().getObject("AntennaSensors"),busMap);
+		//antennas = loadAntennaSensors(Configuration::getInstance().getObject("AntennaSensors"),busMap);
 		
 		if (Configuration::getInstance().getObject("GlobalSettings.ArmEnabled")->valueint != 0)
 			controllers = loadControllers(armModel,busMap);
