@@ -5,7 +5,11 @@
 
 #include "I2CDevice.hpp"
 
-class PCA9552 : I2CDevice
+class PCA9552 : public I2CDevice {
+	
+	
+	
+};
 
 
 #endif
