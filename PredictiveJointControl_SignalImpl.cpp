@@ -37,7 +37,7 @@ void PredictiveJointController::setCurrentTorqueStates()
 	{
 		double direction = sgn(cPlanTargetVelocity);
 		//Need to invert this for some reason
-		cStaticModelTorque = -PoseDynamics::getInstance().computeJointTorque(jointModel->index);
+		cStaticModelTorque = 0;//-PoseDynamics::getInstance().computeJointTorque(jointModel->index);
 		//cStaticModelRotatum = (cStaticModelTorque - lStaticModelTorque)/(cTime-lTime);
 
 		double frictionTorque = (servoModel->frictionTorque * -direction);

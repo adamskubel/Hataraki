@@ -4,8 +4,6 @@
 #define __GCC_HAVE_SYNC_COMPARE_AND_SWAP_8
 
 
-#include "IKFast.hpp"
-
 #include <stdlib.h>
 #include <unistd.h>
 #include <sys/ioctl.h>
@@ -32,11 +30,8 @@
 #include "I2CBus.hpp"
 #include "PredictiveJointController.hpp"
 #include "Configuration.hpp"
-#include "MotionController.hpp"
 #include "MathUtils.hpp"
 #include "AsyncLogger.hpp"
-#include "IKControlUI.hpp"
-#include "TrajectoryController.hpp"
 #include "AsyncI2CSender.hpp"
 #include "ThreadUtils.hpp"
 #include "ALog.hpp"
@@ -44,15 +39,17 @@
 #include "ServoDirectController.hpp"
 #include "WheelMotionController.hpp"
 #include "NavigationController.hpp"
-#include "ObstacleAwareNavigator.hpp"
-#include "AntennaDeflectionSensor.hpp"
+#include "FaceController.hpp"
+#include "PCA9552.hpp"
 
 #define VMATH_NAMESPACE vmath
 #include "vmath.h"
 
 using namespace std;
-using namespace ikfast;
 using namespace vmath;
+
+
+map<string,I2CBus*> busMap;
 
 double fmt(double d)
 {
@@ -72,36 +69,16 @@ void handle(int sig) {
 	exit(1);
 }
 
-void ikControl(MotionController * motionController)
-{
-	IKControlUI ui(motionController);
-	ui.start();
-}
-
-
 map<string,I2CBus*> initializeI2C()
 {	
 	map<string,I2CBus*> busMap;
-	busMap.insert(make_pair("i2c-1",new I2CBus("/dev/i2c-1")));
-	busMap.insert(make_pair("i2c-2",new I2CBus("/dev/i2c-2")));
+//	busMap.insert(make_pair("i2c-1",new I2CBus("/dev/i2c-1")));
+//	busMap.insert(make_pair("i2c-2",new I2CBus("/dev/i2c-2")));
 	busMap.insert(make_pair("i2c-3",new I2CBus("/dev/i2c-3")));
-	busMap.insert(make_pair("i2c-4",new I2CBus("/dev/i2c-4")));
+//	busMap.insert(make_pair("i2c-4",new I2CBus("/dev/i2c-4")));
 	return busMap;
 }
 
-
-vector<PredictiveJointController*> loadControllers(ArmModel * armModel, map<string,I2CBus*> busMap)
-{
-	vector<PredictiveJointController*> controllers;
-	
-	for (int i=0;i<armModel->joints.size();i++)
-	{
-		PredictiveJointController * pjc = new PredictiveJointController(&(armModel->joints.at(i)),busMap);		
-		controllers.push_back(pjc);
-	}
-	
-	return controllers;
-}
 
 vector<PredictiveJointController*> loadControllers(DriveModel * driveModel, map<string,I2CBus*> busMap)
 {
@@ -116,56 +93,29 @@ vector<PredictiveJointController*> loadControllers(DriveModel * driveModel, map<
 	return controllers;
 }
 
-vector<AntennaDeflectionSensor*> loadAntennaSensors(cJSON * sensorArray, map<string,I2CBus*> busMap)
+int doRobot(int argc, char * argv[])
 {
-	vector<AntennaDeflectionSensor*> sensors;
-
-	if (sensorArray != NULL)
-		for (int i=0;i<cJSON_GetArraySize(sensorArray); i++)
-		{
-			AntennaSensorConfig config(cJSON_GetArrayItem(sensorArray,i));
-			cout << "Loaded antenna: " << config.antennaName << endl;
-			sensors.push_back(new AntennaDeflectionSensor(config,busMap[config.sensorBusName]));
-		}
-
-	return sensors;
-}
-
-int main(int argc, char *argv[])
-{
-	cout << "STARTING BASICMOTION" << endl;
-	std::string configFileName = "config.json";		
-
-	map<string,I2CBus*> busMap;
 	vector<PredictiveJointController*> controllers;
-	vector<AntennaDeflectionSensor*> antennas;
+	std::string configFileName = "config.json";
 	
-	ArmModel * armModel;
 	DriveModel * driveModel;
-
+	
 	bool running = false;
 	
 	signal(SIGSEGV, handle);
-
+	
 	if (argc >= 2)
 	{
 		configFileName = std::string(argv[1]);
 	}
-
+	
 	try
 	{
 		Configuration::getInstance().loadConfig(configFileName);
 		DRV8830::MaxVoltageStep = DRV8830::voltageToSteps(Configuration::getInstance().getObject("GlobalSettings.MaxVoltage")->valuedouble);
-		armModel = new ArmModel(Configuration::getInstance().getObject("ArmModel"));	
 		driveModel = new DriveModel(Configuration::getInstance().getObject("DriveModel"));
-		
-		busMap = initializeI2C();
-
-		//antennas = loadAntennaSensors(Configuration::getInstance().getObject("AntennaSensors"),busMap);
-		
-		if (Configuration::getInstance().getObject("GlobalSettings.ArmEnabled")->valueint != 0)
-			controllers = loadControllers(armModel,busMap);
-		else if (Configuration::getInstance().getObject("GlobalSettings.WheelsEnabled")->valueint != 0)
+				
+		if (Configuration::getInstance().getObject("GlobalSettings.WheelsEnabled")->valueint != 0)
 			controllers = loadControllers(driveModel,busMap);
 	}
 	catch (ConfigurationException & confEx)
@@ -173,56 +123,52 @@ int main(int argc, char *argv[])
 		cout << "Configuration error: " << confEx.what() << endl;
 		cout << "Exiting." << endl;
 		return 1;
-	}	
+	}
 	cout << std::setbase(10) << 1.0 << endl;
 	
+	auto neckJoint = Configuration::getInstance().getObject("JointDefinitions.NeckPitch");
+	auto neckJointModel = new JointModel(neckJoint);
+	controllers.push_back(new PredictiveJointController(neckJointModel,busMap));
+	
 	//Initialize controllers
-	MotionController * motionController = new MotionController(controllers);	
-	TrajectoryController * trajectoryController = new TrajectoryController(motionController);
-	ServoDirectController * servoDirectController = new ServoDirectController(motionController->getMotionPlanner(),controllers);
-
-	WheelMotionController * wheelMotionController = new ObstacleAwareNavigator(antennas,controllers,*driveModel,servoDirectController);
+	ServoDirectController * servoDirectController = new ServoDirectController(new MotionPlanner(controllers),controllers);
+	
+	WheelMotionController * wheelMotionController = new WheelMotionController(controllers,*driveModel,servoDirectController);
 	NavigationController * navController = new NavigationController(wheelMotionController);
-
-	PoseDynamics::getInstance().setArmModel(armModel);
 	
 	RealtimeLoopController jointLoop(controllers);
-
-	for (auto it=antennas.begin(); it != antennas.end(); it++)
-	{
-		jointLoop.addWatcher(*it);
-	}
 	
-	jointLoop.addWatcher(motionController);
 	jointLoop.addWatcher(wheelMotionController);
 	
+	FaceController * fc = new FaceController(new PCA9552(busMap["i2c-3"],96));
+	
+	
+	
+	jointLoop.addWatcher(fc);
+	
 	//Start everything
-	AsyncLogger::getInstance().startThread();	
-	jointLoop.start();	
+	AsyncLogger::getInstance().startThread();
+	jointLoop.start();
 	running = true;
 	
 	servoDirectController->prepareAllJoints();
-	for (auto it=antennas.begin(); it != antennas.end(); it++)
-	{
-		(*it)->start();
-	}
-
+	
 	//Make main thread lower priority
 	ThreadUtils::requestPriority(SCHED_OTHER);
 	try
 	{
-		while (running) 
+		while (running)
 		{
 			cout << "->>";
-
+			
 			string inputString;
 			getline(cin,inputString);
-
+			
 			stringstream input(inputString);
 			
 			string command;
 			input >> command;
-						
+			
 			try
 			{
 				if (command.compare("exit") == 0 || command.compare("k") == 0) {
@@ -238,18 +184,18 @@ int main(int argc, char *argv[])
 						enableName = "all";
 					else
 						input >> enableName;
-
+					
 					if (input.fail()) {
 						cout << "Invalid input. Usage: enable <index|all>" << endl;
 					}
 					else
-					{						
+					{
 						bool enableAll = false;
 						int jointIndex = 0;
-
-						if (enableName.compare("all") == 0) 
+						
+						if (enableName.compare("all") == 0)
 							enableAll = true;
-						else 
+						else
 							jointIndex= std::stoi(enableName);
 						
 						RealtimeDispatcher::AddTask([servoDirectController,enableAll,jointIndex,controllers](){
@@ -267,10 +213,10 @@ int main(int argc, char *argv[])
 					});
 				}
 				else if (command.compare("set") == 0 || command.compare("s") == 0) {
-
+					
 					int jointIndex;
 					double angle;
-
+					
 					input >> jointIndex;
 					input >> angle;
 					
@@ -289,10 +235,10 @@ int main(int argc, char *argv[])
 				{
 					int jointIndex;
 					double speed, runTime;
-
+					
 					input >> jointIndex;
 					input >> speed;
-
+					
 					if (input.fail()) {
 						cout << "Invalid input. Usage: setspeed <index> <speed> [runtime]" << endl;
 					}
@@ -300,7 +246,7 @@ int main(int argc, char *argv[])
 					{
 						input >> runTime;
 						if (input.fail()) runTime = 30.0;
-
+						
 						RealtimeDispatcher::AddTask([servoDirectController,jointIndex,runTime,speed](){
 							servoDirectController->setJointVelocity(jointIndex, AS5048::degreesToSteps(speed),runTime);
 						});
@@ -308,10 +254,10 @@ int main(int argc, char *argv[])
 					
 				}
 				else if (command.compare("list") == 0) {
-
+					
 					cout << "Angles: ";
 					for (auto it = controllers.begin(); it != controllers.end(); it++)
-					{					
+					{
 						cout << setprecision(2) << AS5048::stepsToDegrees((*it)->getCurrentAngle()) << " ";
 					}
 					cout << std::fixed;
@@ -327,71 +273,6 @@ int main(int argc, char *argv[])
 						RealtimeDispatcher::AddTask([controllers,jointIndex](){
 							controllers.at(jointIndex)->pause();
 						});
-					}
-				}
-				else if (command.compare("ik") == 0)
-				{
-					ikControl(motionController);
-				}
-				else if (command.compare("gl") == 0)
-				{
-					string filename;
-					input >> filename;
-					int reps = 1;
-					
-					if (input.fail()) {
-						cout << "Usage: gl <goal list file> [repeat count]" << endl;
-					} else {
-						
-						input >> reps;
-						
-						if (input.fail()) reps = 1;
-						
-						cJSON * pathObject = Configuration::loadJsonFile(filename);
-						
-						if (pathObject) {
-							cout << "Loaded path of " << cJSON_GetArraySize(pathObject) << " length" << endl;
-							
-							RealtimeDispatcher::AddTask([motionController,pathObject,trajectoryController,reps](){
-								auto goals = motionController->getTrajectoryPlanner()->buildTrajectory(pathObject,false);
-									
-								vector<IKGoal> goalList;
-								
-								for (int i=0;i<reps;i++)
-								{
-									auto it = goals.begin();
-									it++; //Skip initial state
-									for (; it != goals.end(); it++)
-									{
-										goalList.push_back(IKGoal(it->Position,it->Rotation,false));
-									}
-								}
-								
-								trajectoryController->executeSequentialGoals(goalList);								
-							});
-						}
-					}
-				}
-				else if (command.compare("armpath") == 0)
-				{
-					string filename;
-					input >> filename;
-					if (input.fail()) {
-						cout << "Usage: armpath <pathfile>" << endl;
-					} else {
-						cJSON * pathObject = Configuration::loadJsonFile(filename);
-						
-						if (pathObject) {
-							cout << "Loaded path of " << cJSON_GetArraySize(pathObject) << " length" << endl;
-							
-							RealtimeDispatcher::AddTask([pathObject,motionController](){
-								auto trajectory = motionController->getTrajectoryPlanner()->buildTrajectory(pathObject,false);
-								cout << "Created trajectory with " << trajectory.size() << " states" << endl;
-								auto motionPlan = motionController->getMotionPlanner()->buildPlan(trajectory);
-								cout << "Created plan of duration " << motionPlan.front()->getPlanDuration() << " s " << endl;
-								motionController->executeMotionPlan(motionPlan);
-							});
-						}
 					}
 				}
 				else if (command.compare("time") == 0)
@@ -416,7 +297,7 @@ int main(int argc, char *argv[])
 					else
 					{
 						RealtimeDispatcher::AddTask([wheelMotionController,distance](){
-						wheelMotionController->translateBy(distance);
+							wheelMotionController->translateBy(distance);
 						});
 					}
 				}
@@ -457,6 +338,12 @@ int main(int argc, char *argv[])
 						}
 					}
 				}
+				else if (command.compare("led") == 0)
+				{
+					RealtimeDispatcher::AddTask([fc](){
+						fc->startTestAnimation();
+					});
+				}
 				else
 				{
 					cout << "Invalid command" << endl;
@@ -476,12 +363,24 @@ int main(int argc, char *argv[])
 	{
 		cout << "Runtime Exception: " << e.what() << endl;
 	}
-
-	cout << "Powering down control loops..";	
+	
+	cout << "Powering down control loops..";
 	jointLoop.stop();
 	cout << "Done." << endl;
 	
-	motionController->shutdown();
+	return 0;
+}
+
+int main(int argc, char *argv[])
+{
+	cout << "STARTING TempMotion" << endl;
+	std::string configFileName = "config.json";
+	
+	
+//	RealtimeLoopController jointLoop(controllers);
+
+	doRobot(argc,argv);
+
 	AsyncI2CSender::cleanup();
 	
 	AsyncLogger::getInstance().joinThread();

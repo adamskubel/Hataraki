@@ -6,7 +6,30 @@
 class I2CDevice {
 	
 public:
-	I2CDevice(I2CBus * bus, int deviceAddress);
+	I2CDevice(I2CBus * bus, int deviceAddress)
+	{
+		this->bus = bus;
+		this->deviceAddress = deviceAddress;
+	}
+	
+protected:
+	void writeByte(int registerAddress,unsigned char data)
+	{
+		bus->selectAddress(deviceAddress);
+		bus->writeByte(registerAddress, data);
+	}
+	
+	int readByte(int registerAddress)
+	{
+		bus->selectAddress(deviceAddress);
+		return bus->readByte(registerAddress);
+	}
+	
+private:
+	I2CBus * bus;
+	int deviceAddress;
+	
+	
 };
 
 

@@ -165,6 +165,7 @@ void PredictiveJointController::executeMotionPlan(std::shared_ptr<MotionPlan> re
 	//Make sure speed controller starts off in adjusting state
 	speedControlState = SpeedControlState::Adjusting;
 	lDynamicPositionError = 0;
+	cControlTorque = 0;
 	
 	AsyncLogger::log(jointModel->name + " - Executing motion plan of duration " + to_string(motionPlan->getPlanDuration()));
 }

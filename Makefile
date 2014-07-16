@@ -17,7 +17,7 @@ INC_PARAMS=$(foreach d, $(INC),-I$d)
 MAINFILE=Main.cpp
 TESTFILE=VoltageTesting.cpp
 
-SOURCES=DRV8830.cpp AS5048.cpp I2CBus.cpp PredictiveJointController.cpp Configuration.cpp MotionController.cpp TimeMultiplexedVoltageConverter.cpp MathUtils.cpp ServoUtil.cpp PoseDynamics.cpp TimeUtil.cpp AsyncLogger.cpp FlipIdentifier.cpp PredictiveJointControl_ControllerImpl.cpp PredictiveJointControl_SignalImpl.cpp vmath.cpp ikfastsolution.cpp cJSON.cpp MotionPlan.cpp MotionPlanner.cpp KinematicSolver.cpp QuadraticRegression.cpp IKControlUI.cpp UIElement.cpp NumberSpinner.cpp ServoModel.cpp TrajectoryPlanner.cpp ArmState.cpp TrajectoryController.cpp AsyncI2CSender.cpp ALog.cpp ServoDirectController.cpp WheelMotionController.cpp DriveModel.cpp RealtimeLoopController.cpp NavigationController.cpp ObstacleAwareNavigator.cpp AntennaDeflectionSensor.cpp
+SOURCES=DRV8830.cpp AS5048.cpp I2CBus.cpp PredictiveJointController.cpp Configuration.cpp TimeMultiplexedVoltageConverter.cpp MathUtils.cpp ServoUtil.cpp TimeUtil.cpp AsyncLogger.cpp PredictiveJointControl_ControllerImpl.cpp PredictiveJointControl_SignalImpl.cpp vmath.cpp cJSON.cpp MotionPlan.cpp MotionPlanner.cpp KinematicSolver.cpp QuadraticRegression.cpp ServoModel.cpp AsyncI2CSender.cpp ALog.cpp ServoDirectController.cpp WheelMotionController.cpp DriveModel.cpp RealtimeLoopController.cpp NavigationController.cpp FaceController.cpp PCA9552.cpp
 
 OBJECTS=$(SOURCES:.cpp=.o)
 MAINOBJ=$(MAINFILE:.cpp=.o)

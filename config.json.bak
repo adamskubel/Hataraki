@@ -1,0 +1,676 @@
+{
+	"Version" : "2.0",
+	"DataRecording" : {
+		"Enabled" : 0,
+		"FilePrefix" : "JointData_"
+	},
+	"GlobalSettings" : {
+		"MaxVoltage" : 2.96,
+		"UpdateFrequency" : 800,
+		"WheelsEnabled" : 1,
+		"ArmEnabled" : 0,
+		"AsyncDriverCommunication" : 0
+	},
+	"GlobalControl" :
+	{
+		"AsyncDriverComm" : 1
+	},
+	"ArmModel" :
+	{
+		"Joints" :
+		[
+			"JointDefinitions.Roll_0",
+			"JointDefinitions.Pitch_0", 
+			"JointDefinitions.Roll_1",
+			"JointDefinitions.Pitch_1",
+			"JointDefinitions.Pitch_2",
+			"JointDefinitions.Roll_2"
+		],
+		"Segments" : 
+		[
+			"SegmentDefinitions.DefaultSegment",
+			"SegmentDefinitions.DefaultPitchArm",
+			"SegmentDefinitions.DefaultSegment",
+			"SegmentDefinitions.PitchOnlySegment",
+			"SegmentDefinitions.DefaultPitchArm",
+			"SegmentDefinitions.TipSegment"
+		]
+	},
+	"DriveModel" :
+	{
+		"WheelDiameter" : 0.018,
+		"Wheels" :
+		[
+			{
+				"Joint" : "WheelDefinitions.LeftWheel_Small",
+				"Reverse" : 0,
+				"DistanceFromCenter" : 0.014
+			},
+			{
+				"Joint" : "WheelDefinitions.RightWheel_Small",
+				"Reverse" : 1,
+				"DistanceFromCenter" : 0.014
+			}
+		]
+	},
+	"DriveModel_Big" :
+	{
+		"WheelDiameter" : 0.032,
+		"Wheels" :
+		[
+		 {
+		 "Joint" : "WheelDefinitions.LeftWheel_Small",
+		 "Reverse" : 0,
+		 "DistanceFromCenter" : 0.0465
+		 },
+		 {
+		 "Joint" : "WheelDefinitions.RightWheel_Small",
+		 "Reverse" : 1,
+		 "DistanceFromCenter" : 0.0465
+		 }
+		 ]
+	},
+	"Motors" :
+	[
+		{
+			"Name" : "GM12-1000",
+			"TorqueConstant" : 1.328,
+			"BackEmfConstant" : 0.315655,
+			"ArmatureResistance" : 9.4,
+			"StallTorque" : 0.0,
+			"NoLoadSpeed" : 14.5,
+			"NoLoadTorque" : 0.0,
+			"NoLoadCurrent" : 0.020
+		},
+		{
+			"Name" : "GM12-298",
+			"TorqueConstant" : 0.412,
+			"BackEmfConstant" : 0.105,
+			"ArmatureResistance" : 9.4,
+			"StallTorque" : 0.0,
+			"NoLoadSpeed" : 43.5,
+			"NoLoadTorque" : 0.0,
+			"NoLoadCurrent" : 0.015
+		},
+		{
+			"Name" : "GM12-100",
+			"TorqueConstant" : 0.1328,
+			"BackEmfConstant" : 0.03157,
+			"ArmatureResistance" : 9.4,
+			"StallTorque" : 0.0,
+			"NoLoadSpeed" : 145.0,
+			"NoLoadTorque" : 0.0,
+			"NoLoadCurrent" : 0.02
+		},
+		{
+			"Name" : "GM12-50",
+			"TorqueConstant" : 0.0664,
+			"BackEmfConstant" : 0.01578,
+			"ArmatureResistance" : 9.4,
+			"StallTorque" : 0.0,
+			"NoLoadSpeed" : 290.0,
+			"NoLoadTorque" : 0.0,
+			"NoLoadCurrent" : 0.02
+		 },
+		 {
+			 "Name" : "Planet_25",
+			 "TorqueConstant" : 0.01065,
+			 "BackEmfConstant" : 0.0024,
+			 "ArmatureResistance" : 14.155,
+			 "StallTorque" : 0.0,
+			 "NoLoadSpeed" : 1250.0,
+			 "NoLoadTorque" : 0.0,
+			 "NoLoadCurrent" : 0.02
+		 }
+	],
+	"Gearboxes" :
+	[
+		{
+			"Name" : "Ideal",
+			"Ratio" : 1,
+			"LostMotion" : 0,
+			"Efficiency" : 1.0,
+			"ViscousFriction" : 0
+		},
+		{
+			"Name" : "GM12-1000",
+			"Ratio" : 1000,
+			"LostMotion" : 3.45,
+			"Efficiency" : 1.0,
+			"ViscousFriction" : 0
+		},
+		{
+			"Name" : "GM12-298",
+			"Ratio" : 298,
+			"LostMotion" : 0.8,
+			"LostMotionMeasured" : 3.23,
+			"Efficiency" : 1.0,
+			"ViscousFriction" : 0
+		},
+		{
+			"Name" : "GM12-1000-Bevel",
+			"Ratio" : 1000,
+			"LostMotion" : 29.27,
+			"Efficiency" : 1.0,
+			"ViscousFriction" : 0
+		},
+		{
+			"Name" : "GM12-298-Bevel",
+			"Ratio" : 298,
+			"LostMotion" : 15.71,
+			"Efficiency" : 1.0,
+			"ViscousFriction" : 0
+		},
+		{
+			"Name" : "GM12-100",
+			"Ratio" : 100,
+			"LostMotion" : 3.45,
+			"Efficiency" : 1.0,
+			"ViscousFriction" : 0
+		 },
+		 {
+			"Name" : "GM12-50",
+			"Ratio" : 50,
+			"LostMotion" : 3.45,
+			"Efficiency" : 1.0,
+			"ViscousFriction" : 0
+		}
+	],
+	"SegmentDefinitions" : [
+		{
+			"Name" : "DefaultSegment",
+			"Mass" : 0.046,
+			"BoneLength" : 0.026, 
+			"CenterOfMass" : [0.013,0.013,0]
+		},
+		{
+			"Name" : "DefaultSegment_Flipped",
+			"Mass" : 0.046,
+			"BoneLength" : 0.026,
+			"CenterOfMass" : [0.013,-0.013,0]
+		},
+		{
+			"Name" : "DefaultPitchArm",
+			"Mass" : 0.004,
+			"BoneLength" : 0.0186,
+			"CenterOfMass" : [0.0093,0,0]
+		},
+		{
+			"Name" : "PitchOnlySegment",
+			"Mass" : 0.036,
+			"BoneLength" : 0.0446, 
+			"CenterOfMass" : [0.0263,0.012,0]
+		},
+		{
+			"Name" : "TipSegment",
+			"Mass" : 0.030,
+			"BoneLength" : 0.026, 
+			"CenterOfMass" : [0.013,0.008,0]
+		}
+	],	
+	"Controllers" : [		
+		{
+			"Name" : "Default",
+			"MaxAcceleration" : 180,
+			"SetpointPrecisionSteps" : 10,
+			 "SamplesPerUpdate" : 1,
+			"SpeedControl" :
+			{ 
+				"ProportionalGain" : 0.1,
+				"IntegralGain" : 0.0,
+				"DerivativeGain" : 0.0,
+				"HistoryLength" : 15,
+					 "MaxMeasureDelay" : 0.01
+			},
+			"SensorFilters" : 
+			{
+				"LowpassPositionFilter" : 
+				{
+					"TimeConstant" : 0.005
+				},
+				"VelocityApproximation" : 
+				{
+					"WindowSize" : 15
+				}
+			},
+			"DynamicController" :
+			{
+				"VelocityKPForPositionCorrection" : 5,
+				"VelocityKDForPositionCorrection" : 0.01,
+				"SetpointApproachDistanceThreshold" : 1.5
+			},
+			"PositionControl" :
+			{
+				"MaxVelocity" : 800,
+				"Kp" : 10,
+				"Kd" : 0,
+				"Ki" : 0
+			},
+					 "NonLinearTorque" :
+					 {
+					 "Enabled" : 1,
+					 "StartingTorque" : 0.02,
+					 "GainScale" : 2
+					 }
+		},
+		{
+			"Name" : "HighSpeedMotors",
+			"MaxAcceleration" : 250,
+			 "SetpointPrecisionSteps" : 20,
+			 "SamplesPerUpdate" : 1 ,
+			"SpeedControl" : 
+			{ 
+				"ProportionalGain" : 0.1,
+				"IntegralGain" : 0.0,
+				"DerivativeGain" : 0.0,
+					 "HistoryLength" : 15,
+					 "MaxMeasureDelay" : 0.01
+			},
+			"SensorFilters" : 
+			{
+				"LowpassPositionFilter" : 
+				{
+					"TimeConstant" : 0.005
+				},
+				"VelocityApproximation" : 
+				{
+					"WindowSize" : 15
+				}
+			},
+			"DynamicController" :
+			{
+				"VelocityKPForPositionCorrection" : 5,
+				"VelocityKDForPositionCorrection" : 0.01,
+				"SetpointApproachDistanceThreshold" : 1.5
+			 },
+			"PositionControl" :
+			{
+				"MaxVelocity" : 800,
+				"Kp" : 10,
+				"Kd" : 0,
+				"Ki" : 0
+			},
+			"NonLinearTorque" :
+			{
+				"Enabled" : 1,
+				"StartingTorque" : 0.01,
+				"GainScale" : 2
+			}
+		},
+		{
+			"Name" : "Wheels_Small",
+			"MaxAcceleration" : 1500,
+			"SetpointPrecisionSteps" : 20,
+			"SamplesPerUpdate" : 1,
+			"InvertVoltage" : 0,
+			"SpeedControl" : 
+			{ 
+				"ProportionalGain" : 0.1,
+				"IntegralGain" : 0.0,
+				"DerivativeGain" : 0.00,
+				"HistoryLength" : 12,
+				"MaxMeasureDelay" : 0.01
+			},
+			"SensorFilters" : 
+			{
+				"LowpassPositionFilter" : 
+				{
+					"TimeConstant" : 0.0
+				},
+				"VelocityApproximation" : 
+				{
+					"WindowSize" : 10
+				}
+			},
+			"DynamicController" :
+			{
+				"VelocityKPForPositionCorrection" : 5,
+				"VelocityKDForPositionCorrection" : 0.0,
+				"SetpointApproachDistanceThreshold" : 1.5
+			},
+			"PositionControl" :
+			{
+				"MaxVelocity" : 5000,
+				"Kp" : 0.1,
+				"Kd" : 0.001,
+				"Ki" : 0
+			},
+			"NonLinearTorque" :
+			{
+				"Enabled" : 1,
+				"StartingTorque" : 0.005,
+				"GainScale" : 2
+			}
+		},
+					 {
+					 "Name" : "Wheels_Small_inv",
+					 "MaxAcceleration" : 1500,
+					 "SetpointPrecisionSteps" : 20,
+					 "SamplesPerUpdate" : 1,
+					 "InvertVoltage" : 1,
+					 "SpeedControl" :
+					 {
+					 "ProportionalGain" : 0.1,
+					 "IntegralGain" : 0.0,
+					 "DerivativeGain" : 0.00,
+					 "HistoryLength" : 12,
+					 "MaxMeasureDelay" : 0.01
+					 },
+					 "SensorFilters" :
+					 {
+					 "LowpassPositionFilter" :
+					 {
+					 "TimeConstant" : 0.0
+					 },
+					 "VelocityApproximation" :
+					 {
+					 "WindowSize" : 10
+					 }
+					 },
+					 "DynamicController" :
+					 {
+					 "VelocityKPForPositionCorrection" : 5,
+					 "VelocityKDForPositionCorrection" : 0.0,
+					 "SetpointApproachDistanceThreshold" : 1.5
+					 },
+					 "PositionControl" :
+					 {
+					 "MaxVelocity" : 5000,
+					 "Kp" : 0.1,
+					 "Kd" : 0.001,
+					 "Ki" : 0
+					 },
+					 "NonLinearTorque" :
+					 {
+					 "Enabled" : 1,
+					 "StartingTorque" : 0.005,
+					 "GainScale" : 2
+					 }
+					 },
+		{
+			"Name" : "Wheels",
+			"MaxAcceleration" : 1500,
+			"SetpointPrecisionSteps" : 20,
+			"SamplesPerUpdate" : 2,
+			"InvertVoltage" : 0,
+			"SpeedControl" : 
+			{ 
+				"ProportionalGain" : 0.1,
+				"IntegralGain" : 0.0,
+				"DerivativeGain" : 0.00,
+				 "HistoryLength" : 12,
+				 "MaxMeasureDelay" : 0.01
+			},
+			"SensorFilters" : 
+			{
+				"LowpassPositionFilter" : 
+				{
+					"TimeConstant" : 0.0
+				},
+				"VelocityApproximation" : 
+				{
+					"WindowSize" : 10
+				}
+			},
+			"DynamicController" :
+			{
+				"VelocityKPForPositionCorrection" : 5,
+				"VelocityKDForPositionCorrection" : 0.0,
+				"SetpointApproachDistanceThreshold" : 1.5
+			},
+			"PositionControl" :
+			{
+				"MaxVelocity" : 5000,
+				"Kp" : 0.1,
+				"Kd" : 0.001,
+				"Ki" : 0
+			},
+			"NonLinearTorque" :
+			{
+				"Enabled" : 1,
+				"StartingTorque" : 0.005,
+				"GainScale" : 2
+			}
+		}
+	],
+	"WheelDefinitions" : [
+		{
+			"Name" : "RightWheel_Small",
+			"ZeroPosition" : 0, 
+			"ContinuousRotation" : 1,
+			"AxisOfRotation" : [1,0,0],
+			"AverageTorque" : -0.01,
+			"Servo" : 
+			{
+				"DriverBus"		: "i2c-2",
+				"DriverAddress" : 100,
+				"SensorBus"		: "i2c-1",
+				"SensorAddress" : 65,
+				"DriverDelay" : 0.0004,
+				"SensorDelay" : 0.0012,
+				"MaxDriverVoltage" : 3.6,
+				"FrictionTorque" : 0.0001,
+				"Motor" : "Motors.Planet_25",
+				"Gearbox" : "Gearboxes.Ideal",
+				"ControllerConfig" : "Controllers.Wheels_Small_inv"
+			}
+		},
+		{
+			"Name" : "LeftWheel_Small",
+			"ZeroPosition" : 0,
+			"ContinuousRotation" : 1,
+			"AxisOfRotation" : [0,-1,0],
+			"AverageTorque" : -0.01,
+			"Servo" : 
+			{
+				"DriverBus"		: "i2c-2",
+				"DriverAddress" : 97,
+				"SensorBus"		: "i2c-1",
+				"SensorAddress" : 64,
+				"DriverDelay" : 0.0004,
+				"SensorDelay" : 0.0,
+				"MaxDriverVoltage" : 3.6,
+				"FrictionTorque" : 0.0001,
+				"Motor" : "Motors.Planet_25",
+				"Gearbox" : "Gearboxes.Ideal",
+				"ControllerConfig" : "Controllers.Wheels_Small"
+			}
+		},
+		{
+			"Name" : "RightWheel",
+			"ZeroPosition" : 0,
+			"ContinuousRotation" : 1,
+			"AxisOfRotation" : [1,0,0],
+			"AverageTorque" : -0.01,
+			"Servo" :
+			{
+				"DriverBus"		: "i2c-2",
+				"DriverAddress" : 98,
+				"SensorBus"		: "i2c-1",
+				"SensorAddress" : 77,
+				"DriverDelay" : 0.0004,
+				"SensorDelay" : 0.0012,
+				"MaxDriverVoltage" : 3.6,
+				"FrictionTorque" : 0.0001,
+				"Motor" : "Motors.GM12-100",
+				"Gearbox" : "Gearboxes.GM12-100",
+				"ControllerConfig" : "Controllers.Wheels"
+			}
+		},
+		{
+			"Name" : "LeftWheel",
+			"ZeroPosition" : 0,
+			"ContinuousRotation" : 1,
+			"AxisOfRotation" : [0,-1,0],
+			"AverageTorque" : -0.01,
+			"Servo" :
+			{
+				"DriverBus"		: "i2c-2",
+				"DriverAddress" : 97,
+				"SensorBus"		: "i2c-1",
+				"SensorAddress" : 82,
+				"DriverDelay" : 0.0004,
+				"SensorDelay" : 0.0,
+				"MaxDriverVoltage" : 3.6,
+				"FrictionTorque" : 0.0001,
+				"Motor" : "Motors.GM12-100",
+				"Gearbox" : "Gearboxes.GM12-100",
+				"ControllerConfig" : "Controllers.Wheels"
+			}
+		}
+	],
+	"AntennaSensors2" :
+	[
+		{
+			"Name" : "RightAntenna",
+			"SamplesPerUpdate" : 1,
+			"SensorAddress" : 64,
+			"ZeroOffset" : 300,
+			"PositionHistorySize" : 10,
+			"UpperDeflectionThreshold" : 2,
+			"LowerDeflectionThreshold" : -6,
+			"LowpassFilterTimeConstant" : 0.0,
+			"SensorBus" : "i2c-1"
+		}
+	],
+	"JointDefinitions" : [
+		{
+			"Name" : "Roll_0",
+			"ZeroPosition" : 224,
+			"ContinuousRotation" : 0,
+			"MinAngle" : -175,
+			"MaxAngle" : 175,
+			"AxisOfRotation" : [1,0,0],
+		  "AverageTorque" : 0.03,
+			"Servo" :
+			{
+				"DriverBus"		: "i2c-2",
+				"DriverAddress" : 100,
+				"SensorBus"		: "i2c-1",
+				"SensorAddress" : 68,
+				"DriverDelay" : 0.0004,
+				"SensorDelay" : 0.0002,
+				"MaxDriverVoltage" : 3.6,
+				"FrictionTorque" : 0.04,
+				"Motor" : "Motors.GM12-1000",
+				"Gearbox" : "Gearboxes.GM12-1000-Bevel",
+				"ControllerConfig" : "Controllers.Default"
+			}
+		},
+		{
+			"Name" : "Pitch_0",
+			"ZeroPosition" : 209,
+			"ContinuousRotation" : 0,
+			"MinAngle" : -35,
+			"MaxAngle" : 95,
+						  "AxisOfRotation" : [0,-1,0],
+						  "AverageTorque" : 0.03,
+			"Servo" : 
+			{
+				"DriverBus"		: "i2c-2",
+				"DriverAddress" : 101,
+				"SensorBus"		: "i2c-1",
+				"SensorAddress" : 75,
+				"DriverDelay" : 0.0004,
+				"SensorDelay" : 0.0002,
+				"MaxDriverVoltage" : 3.6,
+				"FrictionTorque" : 0.02,
+				"Motor" : "Motors.GM12-1000",
+				"Gearbox" : "Gearboxes.GM12-1000",
+				"ControllerConfig" : "Controllers.Default"
+			}
+		},
+		{
+			"Name" : "Roll_1",
+			"ZeroPosition" : 353,
+			"ContinuousRotation" : 0,
+			"MinAngle" : -175,
+			"MaxAngle" : 175,
+						  "AxisOfRotation" : [1,0,0],
+						  "AverageTorque" : 0.03,
+			"Servo" : 
+			{
+				"DriverBus"		: "i2c-2",
+				"DriverAddress" : 103,
+				"SensorBus"		: "i2c-1",
+				"SensorAddress" : 65,				
+				"DriverDelay" : 0.0004,
+				"SensorDelay" : 0.0002,
+				"MaxDriverVoltage" : 3.6,
+				"FrictionTorque" : 0.02,
+				"Motor" : "Motors.GM12-1000",
+				"Gearbox" : "Gearboxes.GM12-1000-Bevel",
+				"ControllerConfig" : "Controllers.Default"
+			}
+		},
+		{
+			"Name" : "Pitch_1",
+			"ZeroPosition" : 325,
+			"ContinuousRotation" : 0,
+			"MinAngle" : -40,
+			"MaxAngle" : 98,
+						  "AxisOfRotation" : [0,1,0],
+						  "AverageTorque" : 0.03,
+			"Servo" : 
+			{
+				"DriverBus"		: "i2c-2",
+				"DriverAddress" : 99,
+				"SensorBus"		: "i2c-1",
+				"SensorAddress" : 66,
+				"DriverDelay" : 0.0004,
+				"SensorDelay" : 0.0002,
+				"MaxDriverVoltage" : 3.6,
+				"FrictionTorque" : 0.02,
+				"Motor" : "Motors.GM12-1000",
+				"Gearbox" : "Gearboxes.GM12-1000",
+				"ControllerConfig" : "Controllers.Default"
+			}
+		},
+		{
+			"Name" : "Pitch_2",
+			"ZeroPosition" : 323,
+			"ContinuousRotation" : 0,
+			"MinAngle" : -60,
+			"MaxAngle" : 95,
+						  "AxisOfRotation" : [0,-1,0],
+						  "AverageTorque" : 0.02,
+			"Servo" : 
+			{
+				"DriverBus"		: "i2c-2",
+				"DriverAddress" : 104,
+				"SensorBus"		: "i2c-1",
+				"SensorAddress" : 67,
+				"DriverDelay" : 0.0004,
+				"SensorDelay" : 0.0002,
+				"MaxDriverVoltage" : 2.6,
+				"FrictionTorque" : 0.0086,
+				"Motor" : "Motors.GM12-298",
+				"Gearbox" : "Gearboxes.GM12-298",
+				"ControllerConfig" : "Controllers.HighSpeedMotors"
+			}
+		},
+		{
+			"Name" : "Roll_2",
+			"ZeroPosition" : 139,
+			"ContinuousRotation" : 0,
+			"MinAngle" : -170,
+			"MaxAngle" : 170,
+						  "AxisOfRotation" : [1,0,0],
+						  "AverageTorque" : 0.01,
+			"Servo" : 
+			{
+				"DriverBus"		: "i2c-2",
+				"DriverAddress" : 102,
+				"SensorBus"		: "i2c-1",
+				"SensorAddress" : 64,
+				"DriverDelay" : 0.0004,
+				"SensorDelay" : 0.0002,
+				"MaxDriverVoltage" : 3.6,
+				"FrictionTorque" : 0.01,
+				"Motor" : "Motors.GM12-298",
+				"Gearbox" : "Gearboxes.GM12-298-Bevel",
+				"ControllerConfig" : "Controllers.HighSpeedMotors"
+			}
+		}
+	]
+}

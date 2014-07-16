@@ -2,7 +2,6 @@
 
 using namespace std;
 using namespace vmath;
-using namespace ikfast;
 
 #define MotionPlanDebug false
 
@@ -297,57 +296,6 @@ vector<shared_ptr<MotionPlan> > MotionPlanner::compileStepMotionPlans(vector<Ste
 	return motionPlan;
 }
 
-void MotionPlanner::validatePlan(vector<OpSpaceState> stateVector, vector<shared_ptr<MotionPlan> > plans)
-{
-	//if (goal.action == IKGoal::Action::Stop)
-	//{
-	//	
-	//}
-	//else
-	//{
-	const double timeError = 0.1;
-
-	double minTime = std::numeric_limits<double>::infinity();
-	double maxTime = 0;
-	for (auto p = plans.begin(); p != plans.end(); p++)
-	{
-		minTime = std::min(minTime,(*p)->getPlanDuration());
-		maxTime = std::max(maxTime,(*p)->getPlanDuration());
-	}
-
-	if (minTime < 0)
-	{
-		stringstream ss;
-		ss << "Negative or zero time in plan: " << minTime;
-		throw std::runtime_error(ss.str());
-	}
-
-	if (abs(minTime - maxTime) > timeError)
-		throw std::logic_error("Differences in plan duration exceed allowable error");
-	//}
-}
-
-vector<shared_ptr<MotionPlan> > MotionPlanner::buildPlan(vector<OpSpaceState> stateVector)
-{
-	vector<shared_ptr<MotionPlan> > newPlan;
-
-	//if (goal.action == IKGoal::Action::Stop)
-	//{
-	//	newPlan = buildPlanForSmoothStop();
-	//}
-	//else
-	{
-		vector<Step> steps = buildMotionSteps(stateVector);
-		if (steps.size() > 2)
-			newPlan = buildPlan(steps);
-		else
-			newPlan = createClosedSolutionMotionPlanFromSteps(steps,false);
-	}
-	
-	validatePlan(stateVector,newPlan);
-	
-	return newPlan;
-}
 
 vector<shared_ptr<MotionPlan> > MotionPlanner::buildPlan(vector<Step> & steps)
 {
@@ -420,41 +368,6 @@ double MotionPlanner::calculateMotionEffort(const double * currentSolution, cons
 	return 0;
 }
 
-//TODO: Move this to IK/Trajectory planner
-bool MotionPlanner::getEasiestSolution(const double * currentAngles, Vector3d targetPosition, Matrix3d rotationMatrix, vector<double> & result) {
-	
-	double targetRotation[9];
-	MathUtil::getRowMajorData(rotationMatrix,targetRotation);
-		
-	IkSolutionList<IkReal> solutions;
-	ComputeIk(targetPosition,targetRotation,NULL, solutions);
-	
-	double bestSolution[6];
-	double bestSolutionScore = 0;
-	
-	for (int i=0;i<solutions.GetNumSolutions();i++)
-	{
-		double solution[6];
-		
-		solutions.GetSolution(i).GetSolution(solution,NULL);
-		
-		double score = calculateMotionEffort(currentAngles,solution);
-		
-		if (score > bestSolutionScore) {
-			bestSolutionScore = score;
-			std::copy(std::begin(solution), std::end(solution), std::begin(bestSolution));
-		}
-	}
-	
-	if (bestSolutionScore > 0) {
-		
-		for (int i=0;i<6;i++)
-			result[i] = bestSolution[i];
-		
-		return true;
-	}
-	return false;
-}
 
 shared_ptr<MotionPlan> MotionPlanner::buildOptimalMotionPlan(int jointIndex, const double targetAngle)
 {
@@ -463,7 +376,7 @@ shared_ptr<MotionPlan> MotionPlanner::buildOptimalMotionPlan(int jointIndex, con
 	auto joint = joints.at(jointIndex);	
 
 	double v0 = 0;
-	double startAngle = cArmState.getJointAngles()[jointIndex];
+	double startAngle = 0;//cArmState.getJointAngles()[jointIndex];
 	double delta = targetAngle - startAngle;
 	double vF = 0; //joint->getJointModel()->servoModel.controllerConfig.approachVelocity * dir;
 	
@@ -542,49 +455,6 @@ shared_ptr<MotionPlan> MotionPlanner::buildMotionPlan(const double startAngle,co
 	plan->finalAngle = targetAngle;
 	
 	return plan;
-}
-
-vector<Step> MotionPlanner::buildMotionSteps(vector<OpSpaceState> stateVector)
-{	
-	vector<Step> steps;
-	vector<double> lastAngles = cArmState.getJointAnglesRadians();
-	
-	int stepCount = 0;
-	for (auto it = stateVector.begin(); it != stateVector.end(); it++)
-	{
-		Vector3d stepPosition = it->Position;
-		Matrix3d stepRotation = it->Rotation;
-		
-		vector<double> angles(6);
-		bool solutionExists = getEasiestSolution(lastAngles.data(),stepPosition,stepRotation,angles);
-		
-		if (!solutionExists) {
-			stringstream ss;
-			ss << "Step #" << stepCount << " - solution could not be found for position: " << (stepPosition*100.0).toString() << endl;
-			throw std::runtime_error(ss.str());
-		}
-				
-		vector<double> anglesSteps(6);
-		std::transform(angles.begin(),angles.end(),anglesSteps.begin(),AS5048::radiansToSteps);						
-		steps.push_back(Step(anglesSteps));
-
-		lastAngles = angles;
-		stepCount++;
-		
-		stringstream ss;
-		ss << "Building plan for goal: " << it->toString();
-		ss << endl;
-		ss << "Final angles = ";
-		for (int c=0;c<6;c++)
-		{
-			ss << AS5048::stepsToDegrees(steps.back().Positions[c]) << " ";
-		}
-		AsyncLogger::log(ss);
-	}
-		
-
-
-	return steps;
 }
 
 
@@ -675,9 +545,4 @@ vector<shared_ptr<MotionPlan> > MotionPlanner::createClosedSolutionMotionPlanFro
 	return motionPlan;
 }
 
-
-void MotionPlanner::setArmState(ArmState newState)
-{
-	cArmState = newState;
-}
 

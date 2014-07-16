@@ -63,29 +63,22 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="ALog.cpp" />
-    <ClCompile Include="AntennaDeflectionSensor.cpp" />
-    <ClCompile Include="ArmState.cpp" />
     <ClCompile Include="AS5048.cpp" />
     <ClCompile Include="AsyncI2CSender.cpp" />
     <ClCompile Include="AsyncLogger.cpp" />
     <ClCompile Include="Configuration.cpp" />
     <ClCompile Include="DriveModel.cpp" />
     <ClCompile Include="DRV8830.cpp" />
-    <ClCompile Include="FlipIdentifier.cpp" />
+    <ClCompile Include="FaceController.cpp" />
     <ClCompile Include="I2CBus.cpp" />
-    <ClCompile Include="IKControlUI.cpp" />
-    <ClCompile Include="ikfastsolution.cpp" />
-    <ClCompile Include="ikfastsolution_altconfig.cpp" />
     <ClCompile Include="NavigationController.cpp" />
-    <ClCompile Include="ObstacleAwareNavigator.cpp" />
+    <ClCompile Include="PCA9552.cpp" />
     <ClCompile Include="RealtimeLoopController.cpp" />
     <ClCompile Include="KinematicSolver.cpp" />
     <ClCompile Include="Main.cpp" />
     <ClCompile Include="MathUtils.cpp" />
-    <ClCompile Include="MotionController.cpp" />
     <ClCompile Include="MotionPlan.cpp" />
     <ClCompile Include="MotionPlanner.cpp" />
-    <ClCompile Include="PoseDynamics.cpp" />
     <ClCompile Include="PredictiveJointController.cpp" />
     <ClCompile Include="PredictiveJointControl_ControllerImpl.cpp" />
     <ClCompile Include="PredictiveJointControl_SignalImpl.cpp" />
@@ -96,9 +89,6 @@
     <ClCompile Include="Test.cpp" />
     <ClCompile Include="TimeMultiplexedVoltageConverter.cpp" />
     <ClCompile Include="TimeUtil.cpp" />
-    <ClCompile Include="TrajectoryController.cpp" />
-    <ClCompile Include="TrajectoryController.hpp" />
-    <ClCompile Include="TrajectoryPlanner.cpp" />
     <ClCompile Include="UIElement.cpp" />
     <ClCompile Include="vmath.cpp" />
     <ClCompile Include="VoltageTesting.cpp" />
@@ -107,7 +97,6 @@
   <ItemGroup>
     <ClInclude Include="ALog.hpp" />
     <ClInclude Include="AngleUtil.hpp" />
-    <ClInclude Include="AntennaDeflectionSensor.hpp" />
     <ClInclude Include="ArmState.hpp" />
     <ClInclude Include="AS5048.hpp" />
     <ClInclude Include="AsyncI2CSender.hpp" />
@@ -116,25 +105,20 @@
     <ClInclude Include="DriveModel.hpp" />
     <ClInclude Include="DRV8830.hpp" />
     <ClInclude Include="Exceptions.hpp" />
-    <ClInclude Include="FlipIdentifier.hpp" />
+    <ClInclude Include="FaceController.hpp" />
     <ClInclude Include="I2CBus.hpp" />
+    <ClInclude Include="I2CDevice.hpp" />
     <ClInclude Include="IRealtimeUpdatable.hpp" />
-    <ClInclude Include="IKControlUI.hpp" />
-    <ClInclude Include="ikfast.h" />
-    <ClInclude Include="IKFast.hpp" />
-    <ClInclude Include="IKPlanner.hpp" />
     <ClInclude Include="NavigationController.hpp" />
-    <ClInclude Include="ObstacleAwareNavigator.hpp" />
+    <ClInclude Include="PCA9552.hpp" />
     <ClInclude Include="RealtimeLoopController.hpp" />
     <ClInclude Include="KinematicSolver.hpp" />
     <ClInclude Include="LowpassFilter.hpp" />
     <ClInclude Include="MathUtils.hpp" />
     <ClInclude Include="MathUtilTests.hpp" />
-    <ClInclude Include="MotionController.hpp" />
     <ClInclude Include="MotionPlan.hpp" />
     <ClInclude Include="MotionPlanner.hpp" />
     <ClInclude Include="OpSpaceState.hpp" />
-    <ClInclude Include="PoseDynamics.hpp" />
     <ClInclude Include="PredictiveJointController.hpp" />
     <ClInclude Include="QuadraticRegression.hpp" />
     <ClInclude Include="ServoDirectController.hpp" />
@@ -144,7 +128,6 @@
     <ClInclude Include="ThreadUtils.hpp" />
     <ClInclude Include="TimeMultiplexedVoltageConverter.hpp" />
     <ClInclude Include="TimeUtil.hpp" />
-    <ClInclude Include="TrajectoryPlanner.hpp" />
     <ClInclude Include="UIElement.hpp" />
     <ClInclude Include="vmath.h" />
     <ClInclude Include="WheelMotionController.hpp" />

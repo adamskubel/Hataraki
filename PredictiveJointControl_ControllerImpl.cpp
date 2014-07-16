@@ -177,6 +177,10 @@ void PredictiveJointController::doPositionControl()
 	const double maxVelocity = config->get("PositionControl.MaxVelocity");
 	
 	double error = cTargetAngle - cSensorAngle;
+	
+	if (abs(error) < config->maxSetpointError)
+		error = 0;
+	
 	double d_error = 0; //(error - (lTargetAngle - lSensorAngle))/(cTime - lTime);
 	
 	cTargetVelocity = error*kP + d_error * kD;

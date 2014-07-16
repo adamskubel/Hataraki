@@ -13,18 +13,6 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
-    <Filter Include="Header Files\DeviceUtil">
-      <UniqueIdentifier>{ebf68541-7e38-48fa-919f-822b138617cc}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Source Files\DeviceUtil">
-      <UniqueIdentifier>{b0addbc2-d6c3-46f4-a1a2-10b626289020}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Header Files\Predictive">
-      <UniqueIdentifier>{63502c62-ba6a-4aac-add8-a1d9158f711a}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Source Files\Predictive">
-      <UniqueIdentifier>{895c7499-0566-4973-a9a6-78bf3c0d82d3}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Header Files\Model">
       <UniqueIdentifier>{003c2bb2-ef57-4114-8ed1-74110e0074d8}</UniqueIdentifier>
     </Filter>
@@ -70,37 +58,43 @@
     <Filter Include="Header Files\WheelMotion">
       <UniqueIdentifier>{600e8e6b-af94-4bc3-ac88-08fefab783d5}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Header Files\IK">
-      <UniqueIdentifier>{4d719d9d-a6ad-4003-83ed-a592c244d840}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Header Files\RealtimeLoop">
       <UniqueIdentifier>{4c474ce5-d239-4647-8365-50d74f643816}</UniqueIdentifier>
     </Filter>
     <Filter Include="Source Files\RealtimeLoop">
       <UniqueIdentifier>{4c94b972-319d-4832-875b-4220716dd834}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Header Files\Devices">
+      <UniqueIdentifier>{ebf68541-7e38-48fa-919f-822b138617cc}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Devices">
+      <UniqueIdentifier>{b0addbc2-d6c3-46f4-a1a2-10b626289020}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\JointController">
+      <UniqueIdentifier>{895c7499-0566-4973-a9a6-78bf3c0d82d3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\JointController">
+      <UniqueIdentifier>{63502c62-ba6a-4aac-add8-a1d9158f711a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Ubi">
+      <UniqueIdentifier>{af924791-02d3-4b57-a9f0-ca1b133e7dd3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Ubi">
+      <UniqueIdentifier>{900b3d59-993c-42f5-aecc-14e54f44c4ea}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="AS5048.cpp">
-      <Filter>Source Files\DeviceUtil</Filter>
+      <Filter>Source Files\Devices</Filter>
     </ClCompile>
     <ClCompile Include="Main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="DRV8830.cpp">
-      <Filter>Source Files\DeviceUtil</Filter>
-    </ClCompile>
-    <ClCompile Include="ikfastsolution.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="MotionController.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="PoseDynamics.cpp">
-      <Filter>Source Files\Predictive</Filter>
+      <Filter>Source Files\Devices</Filter>
     </ClCompile>
     <ClCompile Include="PredictiveJointController.cpp">
-      <Filter>Source Files\Predictive</Filter>
+      <Filter>Source Files\JointController</Filter>
     </ClCompile>
     <ClCompile Include="TimeMultiplexedVoltageConverter.cpp">
       <Filter>Source Files</Filter>
@@ -126,23 +120,17 @@
     <ClCompile Include="Configuration.cpp">
       <Filter>Source Files\Utils</Filter>
     </ClCompile>
-    <ClCompile Include="FlipIdentifier.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="PredictiveJointControl_ControllerImpl.cpp">
-      <Filter>Source Files\Predictive</Filter>
+      <Filter>Source Files\JointController</Filter>
     </ClCompile>
     <ClCompile Include="PredictiveJointControl_SignalImpl.cpp">
-      <Filter>Source Files\Predictive</Filter>
+      <Filter>Source Files\JointController</Filter>
     </ClCompile>
     <ClCompile Include="KinematicSolver.cpp">
       <Filter>Source Files\Math</Filter>
     </ClCompile>
     <ClCompile Include="QuadraticRegression.cpp">
       <Filter>Source Files\Math</Filter>
-    </ClCompile>
-    <ClCompile Include="IKControlUI.cpp">
-      <Filter>Source Files\UI</Filter>
     </ClCompile>
     <ClCompile Include="UIElement.cpp">
       <Filter>Source Files\UI</Filter>
@@ -157,21 +145,6 @@
       <Filter>Source Files\MotionPlanning</Filter>
     </ClCompile>
     <ClCompile Include="MotionPlanner.cpp">
-      <Filter>Source Files\MotionPlanning</Filter>
-    </ClCompile>
-    <ClCompile Include="TrajectoryPlanner.cpp">
-      <Filter>Source Files\MotionPlanning</Filter>
-    </ClCompile>
-    <ClCompile Include="ArmState.cpp">
-      <Filter>Source Files\Model</Filter>
-    </ClCompile>
-    <ClCompile Include="ikfastsolution_altconfig.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="TrajectoryController.hpp">
-      <Filter>Header Files\MotionPlanning</Filter>
-    </ClCompile>
-    <ClCompile Include="TrajectoryController.cpp">
       <Filter>Source Files\MotionPlanning</Filter>
     </ClCompile>
     <ClCompile Include="I2CBus.cpp">
@@ -192,40 +165,31 @@
     <ClCompile Include="ServoDirectController.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="AntennaDeflectionSensor.cpp">
-      <Filter>Source Files\WheelMotion</Filter>
-    </ClCompile>
     <ClCompile Include="RealtimeLoopController.cpp">
       <Filter>Source Files\RealtimeLoop</Filter>
     </ClCompile>
     <ClCompile Include="NavigationController.cpp">
       <Filter>Source Files\WheelMotion</Filter>
     </ClCompile>
-    <ClCompile Include="ObstacleAwareNavigator.cpp">
-      <Filter>Source Files\WheelMotion</Filter>
+    <ClCompile Include="PCA9552.cpp">
+      <Filter>Source Files\Devices</Filter>
+    </ClCompile>
+    <ClCompile Include="FaceController.cpp">
+      <Filter>Source Files\Ubi</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AS5048.hpp">
-      <Filter>Header Files\DeviceUtil</Filter>
+      <Filter>Header Files\Devices</Filter>
     </ClInclude>
     <ClInclude Include="DRV8830.hpp">
-      <Filter>Header Files\DeviceUtil</Filter>
-    </ClInclude>
-    <ClInclude Include="ikfast.h">
-      <Filter>Header Files\IK</Filter>
+      <Filter>Header Files\Devices</Filter>
     </ClInclude>
     <ClInclude Include="Configuration.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="MotionController.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="PredictiveJointController.hpp">
-      <Filter>Header Files\Predictive</Filter>
-    </ClInclude>
-    <ClInclude Include="PoseDynamics.hpp">
-      <Filter>Header Files\Predictive</Filter>
+      <Filter>Header Files\JointController</Filter>
     </ClInclude>
     <ClInclude Include="ServoModel.hpp">
       <Filter>Header Files\Model</Filter>
@@ -260,29 +224,17 @@
     <ClInclude Include="ServoUtil.hpp">
       <Filter>Header Files\Util</Filter>
     </ClInclude>
-    <ClInclude Include="FlipIdentifier.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="IKPlanner.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="KinematicSolver.hpp">
       <Filter>Header Files\Math</Filter>
     </ClInclude>
     <ClInclude Include="QuadraticRegression.hpp">
       <Filter>Header Files\Math</Filter>
     </ClInclude>
-    <ClInclude Include="IKControlUI.hpp">
-      <Filter>Header Files\UI</Filter>
-    </ClInclude>
     <ClInclude Include="UIElement.hpp">
       <Filter>Header Files\UI</Filter>
     </ClInclude>
     <ClInclude Include="MathUtilTests.hpp">
       <Filter>Header Files\Test</Filter>
-    </ClInclude>
-    <ClInclude Include="TrajectoryPlanner.hpp">
-      <Filter>Header Files\MotionPlanning</Filter>
     </ClInclude>
     <ClInclude Include="MotionPlan.hpp">
       <Filter>Header Files\MotionPlanning</Filter>
@@ -292,9 +244,6 @@
     </ClInclude>
     <ClInclude Include="OpSpaceState.hpp">
       <Filter>Header Files\MotionPlanning</Filter>
-    </ClInclude>
-    <ClInclude Include="IKFast.hpp">
-      <Filter>Header Files\IK</Filter>
     </ClInclude>
     <ClInclude Include="ArmState.hpp">
       <Filter>Header Files\Model</Filter>
@@ -320,9 +269,6 @@
     <ClInclude Include="ThreadUtils.hpp">
       <Filter>Header Files\Util</Filter>
     </ClInclude>
-    <ClInclude Include="AntennaDeflectionSensor.hpp">
-      <Filter>Header Files\WheelMotion</Filter>
-    </ClInclude>
     <ClInclude Include="IRealtimeUpdatable.hpp">
       <Filter>Header Files\RealtimeLoop</Filter>
     </ClInclude>
@@ -332,8 +278,14 @@
     <ClInclude Include="NavigationController.hpp">
       <Filter>Header Files\WheelMotion</Filter>
     </ClInclude>
-    <ClInclude Include="ObstacleAwareNavigator.hpp">
-      <Filter>Header Files\WheelMotion</Filter>
+    <ClInclude Include="PCA9552.hpp">
+      <Filter>Header Files\Devices</Filter>
+    </ClInclude>
+    <ClInclude Include="I2CDevice.hpp">
+      <Filter>Header Files\IO</Filter>
+    </ClInclude>
+    <ClInclude Include="FaceController.hpp">
+      <Filter>Header Files\Ubi</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

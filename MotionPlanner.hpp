@@ -9,10 +9,7 @@
 #include "PredictiveJointController.hpp"
 #include "KinematicSolver.hpp"
 #include "MathUtils.hpp"
-#include "OpSpaceState.hpp"
-#include "ArmState.hpp"
 
-#include "IKFast.hpp"
 	
 
 
@@ -90,8 +87,6 @@ class MotionPlanner {
 	
 private:
 	std::vector<PredictiveJointController*> joints;
-	ArmState cArmState;
-	
 		
 	std::vector<std::shared_ptr<MotionPlan> > compileStepMotionPlans(std::vector<StepMotionPlan> * stepPlans, std::vector<Step> & steps);
 
@@ -103,23 +98,23 @@ private:
 
 	std::vector<std::shared_ptr<MotionPlan> > buildPlanForSmoothStop();
 	
-	void validatePlan(std::vector<OpSpaceState> goal, std::vector<std::shared_ptr<MotionPlan> > plan);
+	//void validatePlan(std::vector<OpSpaceState> goal, std::vector<std::shared_ptr<MotionPlan> > plan);
 	
 	static std::shared_ptr<MotionPlan> buildMotionPlan(const double startPosition,const double endPosition, const double totalTime, const double approachVelocity, const double maxAccel);
 	std::vector<std::shared_ptr<MotionPlan> > createClosedSolutionMotionPlanFromSteps(std::vector<Step> & steps, bool coastPhase);
 	
 	std::vector<std::shared_ptr<MotionPlan> > buildPlan(std::vector<Step> & steps);
 	void calculateStep(std::vector<StepMotionPlan> * stepPlans, std::vector<Step> & steps, int stepNumber);
-	std::vector<Step> buildMotionSteps(std::vector<OpSpaceState> goal);
+//	std::vector<Step> buildMotionSteps(std::vector<OpSpaceState> goal);
 	
 public:
 	MotionPlanner(std::vector<PredictiveJointController*> joints);
 	
 		
-	std::vector<std::shared_ptr<MotionPlan> > buildPlan(std::vector<OpSpaceState> trajectory);
+//	std::vector<std::shared_ptr<MotionPlan> > buildPlan(std::vector<OpSpaceState> trajectory);
 	std::shared_ptr<MotionPlan> buildOptimalMotionPlan(int jointIndex, const double targetAngle);
 
-	void setArmState(ArmState newArmState);
+//	void setArmState(ArmState newArmState);
 	
 };
 

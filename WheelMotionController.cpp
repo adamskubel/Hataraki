@@ -21,7 +21,7 @@ void WheelMotionController::translateBy(double distance)
 	//cout << "Meters per step = " << driveModel.metersPerStep << endl;
 	//cout << "Offsetting by " << totalRotation << " steps" << endl;
 	
-	for (int i=0;i<wheels.size();i++)
+	for (int i=0;i<driveModel.wheels.size();i++)
 	{
 		double finalPosition;
 		if (driveModel.wheels[i].reverse)
@@ -29,6 +29,7 @@ void WheelMotionController::translateBy(double distance)
 		else
 			finalPosition = wheels[i]->getCurrentAngle() + totalRotation;
 		
+		cout << "Setting joint " << i << " to position " << finalPosition << endl;
 		directController->setJointPosition(i, finalPosition);
 	}
 	

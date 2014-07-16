@@ -25,7 +25,6 @@
 #include "LowpassFilter.hpp"
 #include "TimeMultiplexedVoltageConverter.hpp"
 #include "ServoUtil.hpp"
-#include "PoseDynamics.hpp"
 #include "TimeUtil.hpp"
 #include "AsyncLogger.hpp"
 #include "MotionPlan.hpp"
