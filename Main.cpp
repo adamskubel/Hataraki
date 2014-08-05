@@ -28,7 +28,6 @@
 #include "cJSON.h"
 
 #include "I2CBus.hpp"
-#include "PredictiveJointController.hpp"
 #include "Configuration.hpp"
 #include "MathUtils.hpp"
 #include "AsyncLogger.hpp"
@@ -36,11 +35,9 @@
 #include "ThreadUtils.hpp"
 #include "ALog.hpp"
 #include "RealtimeLoopController.hpp"
-#include "ServoDirectController.hpp"
-#include "WheelMotionController.hpp"
-#include "NavigationController.hpp"
-#include "FaceController.hpp"
-#include "PCA9552.hpp"
+#include "TemperatureController.hpp"
+#include "DRV8830.hpp"
+#include "ADS1015.hpp"
 
 #define VMATH_NAMESPACE vmath
 #include "vmath.h"
@@ -80,25 +77,10 @@ map<string,I2CBus*> initializeI2C()
 }
 
 
-vector<PredictiveJointController*> loadControllers(DriveModel * driveModel, map<string,I2CBus*> busMap)
+int main(int argc, char *argv[])
 {
-	vector<PredictiveJointController*> controllers;
-	
-	for (int i=0;i<driveModel->wheelJoints.size();i++)
-	{
-		PredictiveJointController * pjc = new PredictiveJointController(&(driveModel->wheelJoints.at(i)),busMap);
-		controllers.push_back(pjc);
-	}
-	
-	return controllers;
-}
-
-int doRobot(int argc, char * argv[])
-{
-	vector<PredictiveJointController*> controllers;
+	cout << "STARTING TempMotion" << endl;
 	std::string configFileName = "config.json";
-	
-	DriveModel * driveModel;
 	
 	bool running = false;
 	
@@ -113,10 +95,7 @@ int doRobot(int argc, char * argv[])
 	{
 		Configuration::getInstance().loadConfig(configFileName);
 		DRV8830::MaxVoltageStep = DRV8830::voltageToSteps(Configuration::getInstance().getObject("GlobalSettings.MaxVoltage")->valuedouble);
-		driveModel = new DriveModel(Configuration::getInstance().getObject("DriveModel"));
-				
-		if (Configuration::getInstance().getObject("GlobalSettings.WheelsEnabled")->valueint != 0)
-			controllers = loadControllers(driveModel,busMap);
+		busMap = initializeI2C();
 	}
 	catch (ConfigurationException & confEx)
 	{
@@ -126,33 +105,19 @@ int doRobot(int argc, char * argv[])
 	}
 	cout << std::setbase(10) << 1.0 << endl;
 	
-	auto neckJoint = Configuration::getInstance().getObject("JointDefinitions.NeckPitch");
-	auto neckJointModel = new JointModel(neckJoint);
-	controllers.push_back(new PredictiveJointController(neckJointModel,busMap));
+	ADS1015 * adc = new ADS1015(busMap["i2c-3"],73);
+	DRV8830 * heaterDriver = new DRV8830(busMap["i2c-3"],100);
 	
-	//Initialize controllers
-	ServoDirectController * servoDirectController = new ServoDirectController(new MotionPlanner(controllers),controllers);
+	TemperatureController * tempController = new TemperatureController(adc,heaterDriver);
 	
-	WheelMotionController * wheelMotionController = new WheelMotionController(controllers,*driveModel,servoDirectController);
-	NavigationController * navController = new NavigationController(wheelMotionController);
-	
-	RealtimeLoopController jointLoop(controllers);
-	
-	jointLoop.addWatcher(wheelMotionController);
-	
-	FaceController * fc = new FaceController(new PCA9552(busMap["i2c-3"],96));
-	
-	
-	
-	jointLoop.addWatcher(fc);
-	
+	RealtimeLoopController controlLoop;
+	controlLoop.addWatcher(tempController);
+
 	//Start everything
 	AsyncLogger::getInstance().startThread();
-	jointLoop.start();
+	controlLoop.start();
 	running = true;
-	
-	servoDirectController->prepareAllJoints();
-	
+		
 	//Make main thread lower priority
 	ThreadUtils::requestPriority(SCHED_OTHER);
 	try
@@ -168,185 +133,17 @@ int doRobot(int argc, char * argv[])
 			
 			string command;
 			input >> command;
-			
 			try
 			{
 				if (command.compare("exit") == 0 || command.compare("k") == 0) {
 					cout << "Exit command." << endl;
 					running = false;
 				}
-				else if (command.compare("enable") == 0 || command.compare("ea") == 0)
+				else if (command.compare("temp") == 0)
 				{
-					
-					string enableName;
-					
-					if (command.compare("ea") == 0)
-						enableName = "all";
-					else
-						input >> enableName;
-					
-					if (input.fail()) {
-						cout << "Invalid input. Usage: enable <index|all>" << endl;
-					}
-					else
-					{
-						bool enableAll = false;
-						int jointIndex = 0;
-						
-						if (enableName.compare("all") == 0)
-							enableAll = true;
-						else
-							jointIndex= std::stoi(enableName);
-						
-						RealtimeDispatcher::AddTask([servoDirectController,enableAll,jointIndex,controllers](){
-							if (enableAll)
-								servoDirectController->enableAllJoints();
-							else
-								controllers.at(jointIndex)->enable();
-						});
-					}
-				}
-				else if (command.compare("home") == 0) {
-					
-					RealtimeDispatcher::AddTask([servoDirectController](){
-						servoDirectController->zeroAllJoints();
+					RealtimeDispatcher::getInstance().postTask([tempController](){
+						tempController->printStatus();
 					});
-				}
-				else if (command.compare("set") == 0 || command.compare("s") == 0) {
-					
-					int jointIndex;
-					double angle;
-					
-					input >> jointIndex;
-					input >> angle;
-					
-					if (input.fail()) {
-						cout << "Invalid input. Usage: set <index> <angle>" << endl;
-					}
-					else
-					{
-						RealtimeDispatcher::AddTask([servoDirectController,jointIndex,angle](){
-							servoDirectController->setJointPosition(jointIndex, AS5048::degreesToSteps(angle));
-						});
-					}
-					
-				}
-				else if (command.compare("ss") == 0 || command.compare("setspeed") == 0)
-				{
-					int jointIndex;
-					double speed, runTime;
-					
-					input >> jointIndex;
-					input >> speed;
-					
-					if (input.fail()) {
-						cout << "Invalid input. Usage: setspeed <index> <speed> [runtime]" << endl;
-					}
-					else
-					{
-						input >> runTime;
-						if (input.fail()) runTime = 30.0;
-						
-						RealtimeDispatcher::AddTask([servoDirectController,jointIndex,runTime,speed](){
-							servoDirectController->setJointVelocity(jointIndex, AS5048::degreesToSteps(speed),runTime);
-						});
-					}
-					
-				}
-				else if (command.compare("list") == 0) {
-					
-					cout << "Angles: ";
-					for (auto it = controllers.begin(); it != controllers.end(); it++)
-					{
-						cout << setprecision(2) << AS5048::stepsToDegrees((*it)->getCurrentAngle()) << " ";
-					}
-					cout << std::fixed;
-					cout << endl;
-				}
-				else if (command.compare("pause") == 0)
-				{
-					int jointIndex;
-					input >> jointIndex;
-					if (input.fail()) {
-						cout << "Usage: pause <jointIndex>" << endl;
-					} else {
-						RealtimeDispatcher::AddTask([controllers,jointIndex](){
-							controllers.at(jointIndex)->pause();
-						});
-					}
-				}
-				else if (command.compare("time") == 0)
-				{
-					jointLoop.printTimeDebugInfo();
-					//for (auto it = busMap.begin(); it != busMap.end(); it++)
-					//{
-					//	cout << "Bus: " << it->first <<
-					//		". Read = " << it->second->readTime->avg() << " ms" <<
-					//		". Write = " << it->second->writeTime->avg() << " ms" <<
-					//	endl;
-					//}
-				}
-				else if (command.compare("mv") == 0)
-				{
-					double distance;
-					input >> distance;
-					if (input.fail())
-					{
-						cout << "Usage: mv <distance>" << endl;
-					}
-					else
-					{
-						RealtimeDispatcher::AddTask([wheelMotionController,distance](){
-							wheelMotionController->translateBy(distance);
-						});
-					}
-				}
-				else if (command.compare("rt") == 0)
-				{
-					double rotation;
-					input >> rotation;
-					if (input.fail())
-					{
-						cout << "Usage: rt <angle deg>" << endl;
-					}
-					else
-					{
-						RealtimeDispatcher::AddTask([wheelMotionController,rotation](){
-							wheelMotionController->rotateBy(rotation);
-						});
-					}
-				}
-				else if (command.compare("path") == 0)
-				{
-					string filename;
-					input >> filename;
-					if (input.fail()) {
-						cout << "Usage: path <pathfile> [repeat count]" << endl;
-					} else {
-						cJSON * pathObject = Configuration::loadJsonFile(filename);
-						
-						int repeatCount;
-						input >> repeatCount;
-						if (input.fail()) repeatCount = 1;
-						
-						if (pathObject) {
-							cout << "Loaded path of " << cJSON_GetArraySize(pathObject) << " length" << endl;
-							
-							RealtimeDispatcher::AddTask([pathObject,navController,repeatCount](){
-								navController->executePath(pathObject,repeatCount);
-							});
-						}
-					}
-				}
-				else if (command.compare("led") == 0)
-				{
-					RealtimeDispatcher::AddTask([fc](){
-						fc->startTestAnimation();
-					});
-				}
-				else
-				{
-					cout << "Invalid command" << endl;
 				}
 			}
 			catch (std::runtime_error & commandException)
@@ -365,21 +162,10 @@ int doRobot(int argc, char * argv[])
 	}
 	
 	cout << "Powering down control loops..";
-	jointLoop.stop();
+	controlLoop.stop();
 	cout << "Done." << endl;
 	
 	return 0;
-}
-
-int main(int argc, char *argv[])
-{
-	cout << "STARTING TempMotion" << endl;
-	std::string configFileName = "config.json";
-	
-	
-//	RealtimeLoopController jointLoop(controllers);
-
-	doRobot(argc,argv);
 
 	AsyncI2CSender::cleanup();
 	

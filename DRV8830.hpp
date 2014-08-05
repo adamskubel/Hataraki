@@ -3,7 +3,7 @@
 
 #include <iostream>
 
-#include "I2CBus.hpp"
+#include "I2CDevice.hpp"
 
 #define MAX_OFF_VOLTAGE 0.01
 #define MIN_DRIVER_VOLTAGE_STEP 6
@@ -22,42 +22,13 @@ namespace DRV8830Registers
 	const int FAULT = 0x01;
 }
 
-//struct FaultRegister {
-//	unsigned char HasFault : 1;
-//	unsigned char 
-//};
 
-//struct DRV8830Command {
-//
-//	int Voltage;
-//	HBridgeMode Mode;
-//	
-//	DRV8830Command() {
-//		Voltage = 0;
-//		Mode = 0;
-//	}
-//
-//	DRV8830Command(int _Voltage, HBridgeMode _Mode) :
-//		Voltage(_Voltage),
-//		Mode(_Mode)
-//	{
-//
-//	}
-//
-//
-//};
-
-//enum HBridgeMode {
-//	Open,
-//	Forward,
-//	Reverse,
-//	Short
-//	
-//};
-
-class DRV8830 {
-
+class DRV8830 : public I2CDevice {
+	
 public:
+	DRV8830(I2CBus * bus, int address);
+	void writeVoltage(double voltage);
+	
 	static int MaxVoltageStep; 
 	static double MinDriverVoltage;
 
@@ -68,20 +39,17 @@ public:
 	static double fractionalStepsToVoltage(double input);
 
 	static double getNearestVoltage(double voltage);
-
+	
+private:
 	static int buildCommand(double voltageMagnitude, int mode);
 	static int buildCommand(double voltage);
 
-	static void writeCommand(I2CBus * bus,unsigned char command);
+	void writeCommand(unsigned char command);
+	void writeVoltageMode(double voltage, int mode);
 
-	//static void buildVoltageDitherArray(double vTarget,int * vCmdArray, int cycleLength,int cycleCount);
-
-	static void writeVoltage(I2CBus*bus, double voltage);
-	static void writeVoltageMode(I2CBus*bus, double voltage, int mode);
-
-	static unsigned char readFaultRegister(I2CBus*bus);
-	static bool hasFault(unsigned char faultRegisterValue);
-	static void printFaultRegister(unsigned char faultRegisterValue);
+	unsigned char readFaultRegister();
+	bool hasFault(unsigned char faultRegisterValue);
+	void printFaultRegister(unsigned char faultRegisterValue);
 
 };
 

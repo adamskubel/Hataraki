@@ -17,7 +17,7 @@ INC_PARAMS=$(foreach d, $(INC),-I$d)
 MAINFILE=Main.cpp
 TESTFILE=VoltageTesting.cpp
 
-SOURCES=DRV8830.cpp AS5048.cpp I2CBus.cpp PredictiveJointController.cpp Configuration.cpp TimeMultiplexedVoltageConverter.cpp MathUtils.cpp ServoUtil.cpp TimeUtil.cpp AsyncLogger.cpp PredictiveJointControl_ControllerImpl.cpp PredictiveJointControl_SignalImpl.cpp vmath.cpp cJSON.cpp MotionPlan.cpp MotionPlanner.cpp KinematicSolver.cpp QuadraticRegression.cpp ServoModel.cpp AsyncI2CSender.cpp ALog.cpp ServoDirectController.cpp WheelMotionController.cpp DriveModel.cpp RealtimeLoopController.cpp NavigationController.cpp FaceController.cpp PCA9552.cpp
+SOURCES=DRV8830.cpp AS5048.cpp I2CBus.cpp Configuration.cpp TimeMultiplexedVoltageConverter.cpp MathUtils.cpp TimeUtil.cpp AsyncLogger.cpp vmath.cpp cJSON.cpp QuadraticRegression.cpp AsyncI2CSender.cpp ALog.cpp RealtimeLoopController.cpp PCA9552.cpp ADS1015.cpp TemperatureController.cpp
 
 OBJECTS=$(SOURCES:.cpp=.o)
 MAINOBJ=$(MAINFILE:.cpp=.o)

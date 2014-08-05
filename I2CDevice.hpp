@@ -25,6 +25,19 @@ protected:
 		return bus->readByte(registerAddress);
 	}
 	
+	void writeWord(int registerAddress,unsigned short data)
+	{
+		bus->selectAddress(deviceAddress);
+		bus->writeWord(registerAddress, data);
+	}
+	
+	int readWord(int registerAddress)
+	{
+		bus->selectAddress(deviceAddress);
+		return bus->readWord(registerAddress);
+	}
+	
+	
 private:
 	I2CBus * bus;
 	int deviceAddress;

@@ -63,7 +63,7 @@ int i2c_smbus_read_word_data(int file, unsigned char command)
 		return 0x0FFFF & data.word;
 }
 
-int i2c_smbus_write_word_data(int file, unsigned char command, unsigned short value)
+int i2c_smbus_write_word_data(int file, unsigned char command, unsigned int value)
 {
 	union i2c_smbus_data data;
 	data.word = value;
@@ -73,7 +73,7 @@ int i2c_smbus_write_word_data(int file, unsigned char command, unsigned short va
 
 void I2CBus::writeWord(int registerAddress, int data)
 {
-	i2c_smbus_write_byte_data(file,(unsigned char)registerAddress,(unsigned short)data);
+	i2c_smbus_write_word_data(file,(unsigned char)registerAddress,(unsigned int)data);
 }
 
 void I2CBus::writeByte(int registerAddress, int data)
@@ -84,17 +84,17 @@ void I2CBus::writeByte(int registerAddress, int data)
 int I2CBus::readWord(int registerAddress)
 {
 	int res = 0;
-	timespec readStart = TimeUtil::getNow();
+//	timespec readStart = TimeUtil::getNow();
 	res = i2c_smbus_read_word_data(file,(unsigned char)registerAddress);
-	readTime->add(TimeUtil::timeSince(readStart)*1000.0);
+//	readTime->add(TimeUtil::timeSince(readStart)*1000.0);
 	return res;
 }
 
 int I2CBus::readByte(int registerAddress)
 {
-	timespec readStart = TimeUtil::getNow();
+//	timespec readStart = TimeUtil::getNow();
 	int res = i2c_smbus_read_byte_data(file,(unsigned char)registerAddress);
-	readTime->add(TimeUtil::timeSince(readStart)*1000.0);
+//	readTime->add(TimeUtil::timeSince(readStart)*1000.0);
 	return res;
 }
 

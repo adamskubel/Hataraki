@@ -15,14 +15,14 @@
 #include <thread>
 
 #include "SimpleMovingAverage.hpp"
-#include "PredictiveJointController.hpp"
 #include "IRealtimeUpdatable.hpp"
+#include "Configuration.hpp"
 
 
 class RealtimeLoopController {
 	
 public:
-	RealtimeLoopController(std::vector<PredictiveJointController*> controllers);
+	RealtimeLoopController();
 	
 	void start();
 	void stop();
@@ -33,10 +33,9 @@ public:
 	
 private:
 	std::map<std::string,SimpleMovingAverage*> timeSMA_map;
-	std::vector<PredictiveJointController*> jointControllers;
 	std::vector<IRealtimeUpdatable*> loopWatchers;
 	
-	std::thread jointLoopThread;
+	std::thread rtThread;
 	
 	volatile bool running;
 

@@ -1,18 +1,14 @@
 #include "RealtimeLoopController.hpp"
+#include "TimeUtil.hpp"
+#include "AsyncLogger.hpp"
 
 using namespace std;
 
 #define TimeDebug false
 
-RealtimeLoopController::RealtimeLoopController(std::vector<PredictiveJointController*> jointControllers)
+RealtimeLoopController::RealtimeLoopController()
 {
-	this->jointControllers = jointControllers;
 	updateCount = 0;
-	
-	for (auto it = jointControllers.begin(); it != jointControllers.end(); it++)
-		timeSMA_map.insert(make_pair((*it)->getJointModel()->name,new SimpleMovingAverage(30)));
-	
-	
 	updatePeriod = Configuration::SamplePeriod;
 	timeSMA_map.insert(make_pair("All",new SimpleMovingAverage(30)));
 }
@@ -20,13 +16,13 @@ RealtimeLoopController::RealtimeLoopController(std::vector<PredictiveJointContro
 void RealtimeLoopController::start()
 {
 	running = true;
-	jointLoopThread = thread([this](){this->run();});
+	rtThread = thread([this](){this->run();});
 }
 
 void RealtimeLoopController::stop()
 {
 	running = false;
-	jointLoopThread.join();
+	rtThread.join();
 }
 
 void RealtimeLoopController::run()
@@ -46,19 +42,13 @@ void RealtimeLoopController::update()
 	{
 		TimeUtil::setNow(start);
 		
-		vector<double> jointAngles;
-		for (auto it = jointControllers.begin(); it != jointControllers.end(); it++)
-		{
-			if (TimeDebug) TimeUtil::setNow(step);
-			(*it)->run();
-			if (TimeDebug) timeSMA_map[(*it)->getJointModel()->name]->add(TimeUtil::timeSince(step)*1000.0);
-		}
-		if (TimeDebug) timeSMA_map["All"]->add(TimeUtil::timeSince(start)*1000.0);
-		
 		for (auto it = loopWatchers.begin(); it != loopWatchers.end(); it++)
 		{
+//			if (TimeDebug) TimeUtil::setNow(step);
 			(*it)->update();
+//			if (TimeDebug) timeSMA_map[(*it)->getJointModel()->name]->add(TimeUtil::timeSince(step)*1000.0);
 		}
+//		if (TimeDebug) timeSMA_map["All"]->add(TimeUtil::timeSince(start)*1000.0);
 		
 		RealtimeDispatcher::getInstance().runTasks();
 		
@@ -77,10 +67,6 @@ void RealtimeLoopController::update()
 
 void RealtimeLoopController::shutdown()
 {
-	for (auto it = jointControllers.begin(); it != jointControllers.end(); it++)
-	{
-		(*it)->emergencyHalt("RealtimeLoopController stopped");
-	}
 	for (auto it = loopWatchers.begin(); it != loopWatchers.end(); it++)
 	{
 		(*it)->shutdown();

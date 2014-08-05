@@ -35,9 +35,6 @@ public:
 class Configuration {
 
 private:
-	//static std::vector<std::string> &split(const std::string &s, char delim, std::vector<std::string> &elems);
-	//static std::vector<std::string> split(const std::string &s, char delim);
-	
 	Configuration();	
 	Configuration(Configuration const&);
 	void operator=(Configuration const&); 

@@ -6,6 +6,13 @@ double DRV8830::MinDriverVoltage = 0.49;
 
 using namespace std;
 
+
+DRV8830::DRV8830(I2CBus * bus, int address) : I2CDevice(bus,address)
+{
+	
+}
+
+
 int DRV8830::voltageToSteps(double input)
 {
 	//v = 4 x 1.285 x (VSET +1) / 64
@@ -22,9 +29,9 @@ int DRV8830::voltageToSteps(double input)
 	return vset;
 }
 
-unsigned char DRV8830::readFaultRegister(I2CBus * bus)
+unsigned char DRV8830::readFaultRegister()
 {	
-	unsigned char result = static_cast<unsigned char>(bus->readByte(1));
+	unsigned char result = static_cast<unsigned char>(readByte(1));
 	return result;
 }
 
@@ -104,7 +111,7 @@ int DRV8830::buildCommand(double voltage)
 }
 
 
-void DRV8830::writeVoltage(I2CBus * bus, double voltage)
+void DRV8830::writeVoltage(double voltage)
 {
 	int mode = DriveMode::FORWARD;
 
@@ -113,16 +120,18 @@ void DRV8830::writeVoltage(I2CBus * bus, double voltage)
 	else if (voltage < -MAX_OFF_VOLTAGE)
 		mode = DriveMode::BACKWARD;
 
-	writeVoltageMode(bus,voltage,mode);
+	writeVoltageMode(voltage,mode);
 }
 
 
-void DRV8830::writeVoltageMode(I2CBus * bus, double voltage, int mode)
+void DRV8830::writeVoltageMode(double voltage, int mode)
 {
-	writeCommand(bus,buildCommand(voltage,mode));
+	writeCommand(buildCommand(voltage,mode));
 }
 
-void DRV8830::writeCommand(I2CBus * bus,unsigned char command)
+void DRV8830::writeCommand(unsigned char command)
 {
-	bus->writeByte(DRV8830Registers::CONTROL, command);
+	writeByte(DRV8830Registers::CONTROL, command);
 }
+
+
